@@ -1,0 +1,12 @@
+,Question,A,B,C,D,Answer,Subject
+0,"Find the degree for the given field extension Q(sqrt(2), sqrt(3), sqrt(18)) over Q.",0,4,2,6,B,abstract_algebra
+1,"Let p = (1, 2, 5, 4)(2, 3) in S_5 . Find the index of <p> in S_5.",8,2,24,120,C,abstract_algebra
+2,Find all zeros in the indicated finite field of the given polynomial with coefficients in that field. x^5 + 3x^3 + x^2 + 2x in Z_5,0,1,"0,1","0,4",D,abstract_algebra
+3,"Statement 1 | A factor group of a non-Abelian group is non-Abelian. Statement 2 | If K is a normal subgroup of H and H is a normal subgroup of G, then K is a normal subgroup of G.","True, True","False, False","True, False","False, True",B,abstract_algebra
+4,"Find the product of the given polynomials in the given polynomial ring. f(x) = 4x - 5, g(x) = 2x^2 - 4x + 2 in Z_8[x].",2x^2 + 5,6x^2 + 4x + 6,0,x^2 + 1,B,abstract_algebra
+5,"Statement 1 | If a group has an element of order 15 it must have at least 8 elements of order 15. Statement 2 | If a group has more than 8 elements of order 15, it must have at least 16 elements of order 15.","True, True","False, False","True, False","False, True",A,abstract_algebra
+6,Statement 1 | Every homomorphic image of a group G is isomorphic to a factor group of G. Statement 2 | The homomorphic images of a group G are the same (up to isomorphism) as the factor groups of G.,"True, True","False, False","True, False","False, True",A,abstract_algebra
+7,Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R.,"True, True","False, False","True, False","False, True",D,abstract_algebra
+8,Find the degree for the given field extension Q(sqrt(2) + sqrt(3)) over Q.,0,4,2,6,B,abstract_algebra
+9,Find all zeros in the indicated finite field of the given polynomial with coefficients in that field. x^3 + 2x + 2 in Z_7,1,2,"2,3",6,C,abstract_algebra
+10,"Statement 1 | If H is a subgroup of G and a belongs to G then |aH| = |Ha|. Statement 2 | If H is a subgroup of G and a and b belong to G, then aH and Hb are identical or disjoint.","True, True","False, False","True, False","False, True",C,abstract_algebra
