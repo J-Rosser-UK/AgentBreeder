@@ -11,6 +11,7 @@ import numpy as np
 import openai
 import pandas
 from tqdm import tqdm
+import time
 
 from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
 
@@ -24,7 +25,7 @@ from LLM_agent_base import LLMAgentBase
 
 SYSTEM_MSG = ""
 
-PRINT_LLM_DEBUG = False
+PRINT_LLM_DEBUG = True
 SEARCHING_MODE = True
 
 
@@ -48,13 +49,7 @@ def initialize_archive(file_path:str)->list[dict[str, str]]:
 
     return archive, generation_index
 
-
-def search(args):
-
-    file_path = os.path.join(args.save_dir, f"{args.dataset_name}_{args.model}_results_run_archive.json")
-    archive, generation_index = initialize_archive(file_path)
-    
-
+def fill_in_any_missing_fitness_evals(archive:list[dict[str, str]], file_path:str)->list[dict[str, str]]:
     for solution in archive:
         if 'fitness' in solution:
             continue
@@ -76,6 +71,17 @@ def search(args):
         with open(file_path, 'w') as json_file:
             json.dump(archive, json_file, indent=4)
 
+    return archive
+
+
+def search(args):
+
+    file_path = os.path.join(args.save_dir, f"{args.dataset_name}_{args.model}_results_run_archive.json")
+    
+    archive, generation_index = initialize_archive(file_path)
+    archive = fill_in_any_missing_fitness_evals(archive, file_path)
+    
+    # Generate novel agent systems
     for n in range(generation_index, args.n_generation):
         print(f"============Generation {n + 1}=================")
         system_prompt, prompt = get_prompt(archive)
@@ -83,10 +89,11 @@ def search(args):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
-        try:
-            next_solution = get_json_response_from_gpt_reflect(msg_list, args.model)
 
-            Reflexion_prompt_1, Reflexion_prompt_2 = get_reflexion_prompt(archive[-1] if n > 0 else None)
+        try:
+            next_solution:dict[str,str] = get_json_response_from_gpt_reflect(msg_list, args.model) # {thought, instights, name, code}
+
+            Reflexion_prompt_1, Reflexion_prompt_2 = get_reflexion_prompt(archive[-1] if n > 0 else None)  # archive[-1] {code, fitness, generation, name, thought}
             # Reflexion 1
             msg_list.append({"role": "assistant", "content": str(next_solution)})
             msg_list.append({"role": "user", "content": Reflexion_prompt_1})
@@ -141,6 +148,8 @@ def search(args):
 
 
 def evaluate(args):
+    """ Evaluate the archive """
+
     file_path = os.path.join(args.save_dir, f"{args.dataset_name}_{args.model}_results_run_archive.json")
     eval_file_path = str(os.path.join(args.save_dir, f"{args.dataset_name}_{args.model}_results_run_archive.json")).strip(".json") + "_evaluate.json"
     with open(file_path, 'r') as json_file:

@@ -12,7 +12,7 @@ def get_json_response_from_gpt(
         model,
         system_message,
         temperature=0.5
-):
+) -> dict:
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -33,7 +33,7 @@ def get_json_response_from_gpt_reflect(
         msg_list,
         model,
         temperature=0.8
-):
+) -> dict:
     response = client.chat.completions.create(
         model=model,
         messages=msg_list,
