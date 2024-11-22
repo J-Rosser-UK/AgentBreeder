@@ -67,6 +67,7 @@ class LLMAgentBase:
         for input_info in input_infos:
             if isinstance(input_info, Info):
                 (field_name, author, content, iteration_idx) = input_info
+                print(field_name, author, content, iteration_idx)
             else:
                 continue
             if author == self.__repr__():
@@ -94,6 +95,7 @@ class LLMAgentBase:
         - output_infos (list[Info]): Output information.
         """
         system_prompt, prompt = self.generate_prompt(input_infos, instruction)
+        
         response_json = get_json_response_from_gpt(prompt, self.model, system_prompt, self.temperature)
 
         output_infos = []

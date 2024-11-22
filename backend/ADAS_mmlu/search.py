@@ -12,6 +12,7 @@ import openai
 import pandas
 from tqdm import tqdm
 import time
+import importlib.util
 
 from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
 
@@ -29,9 +30,9 @@ PRINT_LLM_DEBUG = True
 SEARCHING_MODE = True
 
 
-class AgentSystem():
-    def __init__(self) -> None:
-        pass
+# class AgentSystem():
+#     def __init__(self) -> None:
+#         pass
 
 
 def initialize_archive(file_path:str)->list[dict[str, str]]:
@@ -90,6 +91,7 @@ def search(args):
             {"role": "user", "content": prompt},
         ]
 
+        # Generate new solution and do reflection
         try:
             next_solution:dict[str,str] = get_json_response_from_gpt_reflect(msg_list, args.model) # {thought, instights, name, code}
 
@@ -108,6 +110,8 @@ def search(args):
             n -= 1
             continue
 
+        
+        # Fix code if broken loop
         acc_list = []
         for _ in range(args.debug_max):
             try:
@@ -183,19 +187,34 @@ def evaluate(args):
         with open(eval_file_path, 'w') as json_file:
             json.dump(eval_archive, json_file, indent=4)
 
-
+    
 def evaluate_forward_fn(args, forward_str):
-    # dynamically define forward()
     # modified from https://github.com/luchris429/DiscoPOP/blob/main/scripts/launch_evo.py
-    namespace = {}
-    exec(forward_str, globals(), namespace)
-    names = list(namespace.keys())
-    if len(names) != 1:
-        raise AssertionError(f"{len(names)} things in namespace. Please only provide 1")
-    func = namespace[names[0]]
-    if not callable(func):
-        raise AssertionError(f"{func} is not callable")
-    setattr(AgentSystem, "forward", func)
+
+    # Dynamically define the forward function and write it to a temporary Python file
+    # Get the absolute path of the current script's directory
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    temp_file = f"{current_directory}/agent_system_temp.py"
+
+    # Write the complete AgentSystem class to the file, including the forward function
+    with open(temp_file, "w") as f:
+        f.write("import random\n")
+        f.write("import pandas\n\n")
+        f.write(f"from LLM_agent_base import LLMAgentBase\n\n")
+        f.write("class AgentSystem:\n")
+        # f.write("    def __init__(self):\n")
+        # f.write("        pass\n\n")
+        f.write("    " + forward_str.replace("\n", "\n    "))  # Indent forward function
+
+    # Import the AgentSystem class from the temp file
+    spec = importlib.util.spec_from_file_location("agent_system_temp", temp_file)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    AgentSystem = module.AgentSystem
+
+    # Clean up the temporary file (optional, for debugging you may want to keep it)
+    # os.remove(temp_file)
 
     LETTER_TO_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
     # set seed 0 for valid set
