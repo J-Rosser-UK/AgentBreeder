@@ -1,8 +1,7 @@
 from agent import Agent, Meeting, Chat
-import uuid
 
 class ChainOfThought:
-    
+
     def forward(self, task: str) -> str:
         # Create a system agent to provide instructions
         system = Agent(
