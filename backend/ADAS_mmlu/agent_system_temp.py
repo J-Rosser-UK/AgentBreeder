@@ -5,26 +5,24 @@ from LLM_agent_base import LLMAgentBase
 
 class AgentSystem:
     def forward(self, taskInfo):
-            # Instruction for step-by-step reasoning
-            cot_instruction = "Please think step by step and then solve the task."
-            expert_agents = [LLMAgentBase(['thinking', 'answer'], 'Expert Agent', role=role) for role in ['Physics Expert', 'Chemistry Expert', 'Biology Expert', 'Science Generalist']]
+        # Instruction for step-by-step reasoning
+        cot_instruction = "Please think step by step and then solve the task."
+        N = 5 # Number of CoT agents
     
-            # Instruction for routing the task to the appropriate expert
-            routing_instruction = "Given the task, please choose an Expert to answer the question. Choose from: Physics, Chemistry, Biology Expert, or Science Generalist."
-            routing_agent = LLMAgentBase(['choice'], 'Routing agent')
+        # Initialize multiple CoT agents with a higher temperature for varied reasoning
+        cot_agents = [LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent', temperature=0.8) for _ in range(N)]
     
-            # Get the choice of expert to route the task
-            choice = routing_agent([taskInfo], routing_instruction)[0]
+        # Majority voting function to select the most common answer
+        from collections import Counter
+        def majority_voting(answers):
+            return Counter(answers).most_common(1)[0][0]
+        
+        possible_answers = []
+        for i in range(N):
+            thinking, answer = cot_agents[i]([taskInfo], cot_instruction)
+            possible_answers.append(answer.content)
     
-            if 'physics' in choice.content.lower():
-                expert_id = 0
-            elif 'chemistry' in choice.content.lower():
-                expert_id = 1
-            elif 'biology' in choice.content.lower():
-                expert_id = 2
-            else:
-                expert_id = 3 # Default to Science Generalist
-    
-            thinking, answer = expert_agents[expert_id]([taskInfo], cot_instruction)
-            return answer
+        # Ensembling the answers from multiple CoT agents
+        answer = majority_voting(possible_answers)
+        return answer  
     

@@ -245,6 +245,11 @@ def evaluate_forward_fn(args, forward_str):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         results = list(tqdm(executor.map(agentSystem.forward, task_queue), total=len(task_queue)))
 
+
+    print("---------------results----------------")
+    print(results)
+    print("--------------------------------------")
+    
     for q_idx, res in enumerate(results):
         try:
             if isinstance(res, str) and res in LETTER_TO_INDEX:
@@ -283,6 +288,9 @@ def evaluate_forward_fn(args, forward_str):
         else:
             acc_list.append(0)
     print(f"acc: {bootstrap_confidence_interval(acc_list)}")
+    print("---------------acc_list----------------")
+    print(acc_list)
+    print("--------------------------------------")
     return acc_list
 
 
