@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, JSON, ForeignKey, DateTime
+from sqlalchemy import Column, String, Float, JSON, ForeignKey, DateTime, Integer
 import datetime
 from sqlalchemy.orm import declarative_base, relationship
 import uuid
@@ -10,21 +10,29 @@ import os
 from sqlalchemy.orm.collections import collection
 
 
-Base = declarative_base()
+
 
 
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')  # Replace with your database path
-Session = sessionmaker(bind=engine)
-session = Session()
+Base = declarative_base()
 
 
+def initialize_session():
+    
 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')  # Replace with your database path
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    Base.metadata.create_all(engine)
+    return session, Base
+
+
+session, Base = initialize_session()
 
 class CustomBase(Base):
     __abstract__ = True
@@ -51,6 +59,9 @@ class CustomBase(Base):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    
+    def __repr__(self):
+        return str(self.to_dict())
     
 
 
@@ -86,6 +97,31 @@ class Chat(CustomBase):
     agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
     meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
 
+class Framework(CustomBase):
+    __tablename__ = 'framework'
+
+    framework_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The framework's unique identifier (UUID).")
+    framework_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the framework.")
+    framework_name = CustomColumn(String, label="The name of the framework.")
+    framework_code = CustomColumn(String, label="The code of the framework. Starting with def forward(self, task: str) -> str:")
+    framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
+    framework_generation = CustomColumn(Integer, label="The generation of the framework.")
+    experiment_id = CustomColumn(String, ForeignKey('experiment.experiment_id'), label="The experiment's unique identifier (UUID).")
+
+    # Relationships
+    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
+    experiment = relationship("Experiment", back_populates="frameworks")
+
+
+class Experiment(CustomBase):
+    __tablename__ = 'experiment'    
+
+    experiment_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The experiment's unique identifier (UUID).")
+    experiment_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the experiment.")
+
+    # Relationships
+    frameworks = relationship("Framework", back_populates="experiment", collection_class=AutoSaveList)
+
 
 class Meeting(CustomBase):
     __tablename__ = 'meeting'
@@ -93,12 +129,16 @@ class Meeting(CustomBase):
     meeting_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The chat's unique identifier (UUID).")
     meeting_name = CustomColumn(String, label="The name of the meeting.")
     meeting_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the meeting.")
+    framework_id = CustomColumn(String, ForeignKey('framework.framework_id'), label="The framework's unique identifier (UUID).")
 
     # Relationships
+    framework = relationship("Framework", back_populates="meetings")
     chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList)
     agents = relationship("Agent", 
-                        secondary="agents_by_meeting",
-                        back_populates="meetings", collection_class=AutoSaveList)
+                           secondary="agents_by_meeting",
+                           back_populates="meetings", 
+                           collection_class=AutoSaveList)
+
 
 
 class AgentsbyMeeting(CustomBase):
@@ -181,7 +221,9 @@ class Agent(CustomBase):
 
 if __name__ == '__main__':
 
-    Base.metadata.create_all(engine)
+    
+
+  
 
     task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
 

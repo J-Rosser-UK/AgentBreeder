@@ -99,6 +99,7 @@ class Reflexion:
         return output["answer"]
 
 if __name__ == '__main__':
+    
     reflexion_system = Reflexion()
     task = "What is the meaning of life? A: 42 B: 43 C: To life a happy life. D: To do good for others."
     output = reflexion_system.forward(task)
