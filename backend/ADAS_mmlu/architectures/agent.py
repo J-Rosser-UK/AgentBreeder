@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, JSON, UUID, ForeignKey, DateTime
+from sqlalchemy import Column, String, Float, JSON, ForeignKey, DateTime
 import datetime
 from sqlalchemy.orm import declarative_base, relationship
 import uuid
@@ -6,9 +6,24 @@ from chat import get_structured_json_response_from_gpt
 from icecream import ic
 import random
 import string
+import os
+from sqlalchemy.orm.collections import collection
 
 
 Base = declarative_base()
+
+
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')  # Replace with your database path
+Session = sessionmaker(bind=engine)
+session = Session()
+
+
 
 
 class CustomBase(Base):
@@ -16,23 +31,41 @@ class CustomBase(Base):
 
     def __init__(self, **kwargs):
         super().__init__()
-        
-        # First, set all default values for columns
+
+        # Set default values for columns
         for column in self.__table__.columns:
             if column.default is not None:
                 if column.default.is_scalar:
                     setattr(self, column.name, column.default.arg)
-                elif column.type.__class__ == UUID:
-                    setattr(self, column.name, uuid.uuid4())
-                elif column.type.__class__ == DateTime:
-                    setattr(self, column.name, datetime.utcnow())
+                elif isinstance(column.type, DateTime):
+                    setattr(self, column.name, datetime.datetime.utcnow())
 
-        # Then override with any provided values
+        # Override with any provided values
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
+        # Add self to the session and commit
+        session.add(self)
+        session.commit()
+
+
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    
+
+
+
+class AutoSaveList(list):
+    def append(self, item):
+        super().append(item)
+        session.add(item)
+        session.commit()
+
+    def extend(self, items):
+        super().extend(items)
+        session.add_all(items)
+        session.commit()
+
 
 class CustomColumn(Column):
     def __init__(self, *args, label=None, **kwargs):
@@ -43,56 +76,56 @@ class CustomColumn(Column):
 class Chat(CustomBase):
     __tablename__ = 'chat'
 
-    chat_id = CustomColumn(UUID, primary_key=True, default=lambda: uuid.uuid4(), label="The chat's unique identifier (UUID).")
-    agent_id = CustomColumn(String, ForeignKey('agent.agent_id'), nullable=False, label="The role of the chat.")
-    meeting_id = CustomColumn(UUID, ForeignKey('meeting.meeting_id'), nullable=False, label="The meeting's unique identifier (UUID).")
-    content = CustomColumn(String, nullable=False, label="The content of the chat.")
+    chat_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The chat's unique identifier (UUID).")
+    agent_id = CustomColumn(String, ForeignKey('agent.agent_id'), label="The role of the chat.")
+    meeting_id = CustomColumn(String, ForeignKey('meeting.meeting_id'), label="The meeting's unique identifier (UUID).")
+    content = CustomColumn(String, label="The content of the chat.")
     chat_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the chat.")
 
     # Relationships
-    agent = relationship("Agent", back_populates="chats")
-    meeting = relationship("Meeting", back_populates="chats")
+    agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
+    meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
 
 
 class Meeting(CustomBase):
     __tablename__ = 'meeting'
 
-    meeting_id = CustomColumn(UUID, primary_key=True, default=lambda: uuid.uuid4(), label="The chat's unique identifier (UUID).")
-    meeting_name = CustomColumn(String, nullable=False, label="The name of the meeting.")
+    meeting_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The chat's unique identifier (UUID).")
+    meeting_name = CustomColumn(String, label="The name of the meeting.")
     meeting_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the meeting.")
 
     # Relationships
-    chats = relationship("Chat", back_populates="meeting")
+    chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList)
     agents = relationship("Agent", 
                         secondary="agents_by_meeting",
-                        back_populates="meetings")
+                        back_populates="meetings", collection_class=AutoSaveList)
 
 
 class AgentsbyMeeting(CustomBase):
     __tablename__ = 'agents_by_meeting'
 
     agent_id = CustomColumn(String, ForeignKey('agent.agent_id'), primary_key=True, label="The agent's unique identifier (UUID).")
-    meeting_id = CustomColumn(UUID, ForeignKey('meeting.meeting_id'), primary_key=True, label="The chat's unique identifier (UUID).")
+    meeting_id = CustomColumn(String, ForeignKey('meeting.meeting_id'), primary_key=True, label="The chat's unique identifier (UUID).")
     agents_by_meeting_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the agent's addition to the meeting.")
 
 class Agent(CustomBase):
     __tablename__ = 'agent'
 
-    agent_id = CustomColumn(UUID, primary_key=True, default=lambda: uuid.uuid4(), label="The agent's unique identifier (UUID).")
-    agent_name = CustomColumn(String, nullable=False, label="The agent's name.")
-    role = CustomColumn(String, nullable=False, label="The agent's role.")
-    model = CustomColumn(String, nullable=False, label="The LLM model to be used.")
-    temperature = CustomColumn(Float, nullable=False, default=0.7, label="The sampling temperature. The higher the temperature, the more creative the responses.")
+    agent_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The agent's unique identifier (UUID).")
+    agent_name = CustomColumn(String, label="The agent's name.")
+    agent_backstory = CustomColumn(String, label="A long description of the agent's backstory.")
+    model = CustomColumn(String, label="The LLM model to be used.")
+    temperature = CustomColumn(Float, default=0.7, label="The sampling temperature. The higher the temperature, the more creative the responses.")
     agent_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the agent's creation.")
 
     # Relationships
-    chats = relationship("Chat", back_populates="agent")
+    chats = relationship("Chat", back_populates="agent", collection_class=AutoSaveList)
     meetings = relationship("Meeting",
                           secondary="agents_by_meeting",
-                          back_populates="agents")
+                          back_populates="agents", collection_class=AutoSaveList)
 
-    def __init__(self, agent_name, role='helpful assistant', model='gpt-4o-mini', temperature=0.5):
-        super().__init__(agent_name=agent_name, role=role, model=model, temperature=temperature)
+    def __init__(self, agent_name, model='gpt-4o-mini', temperature=0.5):
+        super().__init__(agent_name=agent_name, model=model, temperature=temperature)
         characters = string.ascii_letters + string.digits  # includes both upper/lower case letters and numbers
         random_id = ''.join(random.choices(characters, k=4))
         self.agent_name = agent_name + " " + random_id
@@ -142,31 +175,56 @@ class Agent(CustomBase):
             temperature=0.5
         )
 
-        ic(response_json)
-
         return response_json
 
 
 
 if __name__ == '__main__':
 
-    # Create objects
-    agent1 = Agent(agent_name="Agent 1")
-    agent2 = Agent(agent_name="Agent 2")
-    meeting = Meeting(meeting_name="First Meeting")
-    chat1 = Chat(content="Hello", agent=agent1, meeting=meeting)
-    print(chat1.to_dict())
-    chat2 = Chat(content="Hi", agent=agent2, meeting=meeting)
+    Base.metadata.create_all(engine)
 
-    # Add agent to meeting
-    meeting.agents.append(agent1)
-    meeting.agents.append(agent2)
+    task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
 
-    # Get all chats for an agent
-    print(agent1.chat_history)
+    # Create a system agent to provide instructions
+    system = Agent(
+        agent_name='system',
+        temperature=0.8
+    )
+    
+    # Create the Chain-of-Thought agent
+    cot_agent = Agent(
+        agent_name='Chain-of-Thought Agent',
+        temperature=0.7
+    )
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="chain-of-thought")
 
-    # # Get all meetings for an agent
-    # print(agent1.meetings)
-
-    # # Get all agents in a meeting
-    # print(meeting.agents)
+    # Add agents to meeting e.g. populate the agents_by_meeting table
+    meeting.agents.extend([system, cot_agent])
+    
+    # Add system instruction
+    meeting.chats.append(
+        Chat(
+            agent=system, 
+            content=f"Please think step by step and then solve the task: {task}"
+        )
+    )
+    
+    # Get response from COT agent
+    output = cot_agent.forward(
+        response_format={
+            "thinking": "Your step by step thinking.",
+            "answer": "A single letter, A, B, C or D."
+        }
+    )
+    
+    # Record the agent's response in the meeting
+    meeting.chats.append(
+        Chat(
+            agent=cot_agent, 
+            content=output["thinking"]
+        )
+    )
+    
+    print(output["answer"])

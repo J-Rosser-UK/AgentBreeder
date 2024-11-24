@@ -1,6 +1,7 @@
-from agent import Agent, Meeting, Chat
+from agent import Agent, Meeting, Chat, CustomBase
 
 class ChainOfThought:
+
 
     def forward(self, task: str) -> str:
         # Create a system agent to provide instructions
@@ -17,6 +18,8 @@ class ChainOfThought:
         
         # Setup meeting
         meeting = Meeting(meeting_name="chain-of-thought")
+
+        # Add agents to meeting
         meeting.agents.extend([system, cot_agent])
         
         # Add system instruction
