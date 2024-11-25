@@ -9,6 +9,7 @@ import logging
 from utils import bootstrap_confidence_interval
 
 
+
 class MultipleChoiceQuestion(BaseModel):
     question_id: uuid.UUID
     question: str
@@ -106,13 +107,17 @@ def evaluate_framework(framework, multiple_choice_questions, args):
 
     
     confidence_level = 0.95
-    confidence_interval_string, ci_lower_percent, ci_upper_percent, median_percent = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
+    confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
 
-    framework.ci_lower_percent = ci_lower_percent
-    framework.ci_upper_percent = ci_upper_percent
-    framework.ci_median_percent = median_percent
-    framework.ci_sample_size = len(results_list)
-    framework.ci_confidence_level = confidence_level
+    framework.update(
+        ci_lower=ci_lower,
+        ci_upper=ci_upper,
+        ci_median=median,
+        ci_sample_size=len(results_list),
+        ci_confidence_level=confidence_level
+    )
+
+
 
     logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
 
@@ -120,6 +125,6 @@ def evaluate_framework(framework, multiple_choice_questions, args):
     os.remove(temp_file)
     
 
-    return median_percent
+    return median
 
 

@@ -52,7 +52,7 @@ def initialize_gen_0_frameworks(experiment:Experiment)->list[Framework]:
 
 
 
-def main(args):
+def main(args, session, Base):
 
     experiment = Experiment()
 
@@ -64,9 +64,7 @@ def main(args):
 
     multiple_choice_questions = load_eval_dataset(args)
 
-    
-
-    with ThreadPoolExecutor(max_workers=15) as executor:
+    with ThreadPoolExecutor(max_workers=18) as executor:
         median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), frameworks), total=len(frameworks)))
 
 
@@ -149,4 +147,4 @@ if __name__ == "__main__":
 
     
 
-    main(args)
+    main(args, session, Base)

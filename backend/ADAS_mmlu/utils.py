@@ -56,7 +56,7 @@ def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence
 
     # Return the formatted string with confidence interval and median
     confidence_interval_string = f"95% Bootstrap Confidence Interval: ({ci_lower_percent:.1f}%, {ci_upper_percent:.1f}%), Median: {median_percent:.1f}%"
-    return confidence_interval_string, ci_lower_percent, ci_upper_percent, median_percent
+    return confidence_interval_string, ci_lower, ci_upper, median
 
 
 def extract_class_code(file_path:str, class_name:str) -> str:

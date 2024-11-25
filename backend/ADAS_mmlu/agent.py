@@ -12,21 +12,18 @@ from sqlalchemy.orm.collections import collection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import logging
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm.session import object_session
+
 Base = declarative_base()
 
-
 def initialize_session():
-    
-
     current_dir = os.path.dirname(os.path.abspath(__file__))
-
-    engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')  # Replace with your database path
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
+    engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')
+    session_factory = sessionmaker(bind=engine)
+    session = scoped_session(session_factory)
     Base.metadata.create_all(engine)
     return session, Base
-
 
 session, Base = initialize_session()
 
@@ -58,6 +55,17 @@ class CustomBase(Base):
     
     def __repr__(self):
         return str(self.to_dict())
+    
+    def update(self, **kwargs):
+        for attr, value in kwargs.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
+        session = object_session(self)
+        if session is None:
+            # Handle the case where the object is not associated with a session
+            session = initialize_session()[0]  # Obtain your session appropriately
+            session.add(self)
+        session.commit()
     
 
 
@@ -103,9 +111,9 @@ class Framework(CustomBase):
     framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
     framework_generation = CustomColumn(Integer, label="The generation of the framework.")
     experiment_id = CustomColumn(String, ForeignKey('experiment.experiment_id'), label="The experiment's unique identifier (UUID).")
-    ci_lower_percent = CustomColumn(Float, label="")
-    ci_upper_percent = CustomColumn(Float, label="")
-    ci_median_percent = CustomColumn(Float, label="")
+    ci_lower = CustomColumn(Float, label="")
+    ci_upper = CustomColumn(Float, label="")
+    ci_median = CustomColumn(Float, label="")
     ci_sample_size = CustomColumn(Float, label="")
     ci_confidence_level = CustomColumn(Float, label="")
 
