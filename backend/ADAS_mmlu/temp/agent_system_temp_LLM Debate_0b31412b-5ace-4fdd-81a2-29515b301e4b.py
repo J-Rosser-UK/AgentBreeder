@@ -47,4 +47,3 @@ class AgentSystem:
         
         return output["answer"]
     
-    

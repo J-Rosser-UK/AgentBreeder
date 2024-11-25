@@ -68,7 +68,7 @@ COT_SC = {"thought": "While an LLM can arrive at the correct answer, its reasoni
     )
     
     # Create multiple CoT agents with higher temperature for varied reasoning
-    N = 5  # Number of CoT agents
+    N = 3  # Number of CoT agents
     cot_agents = [
         Agent(
             agent_name=f'Chain-of-Thought Agent {i}',
@@ -141,7 +141,7 @@ Reflexion = {
     meeting = Meeting(meeting_name="reflexion")
     meeting.agents.extend([system, cot_agent, critic_agent])
     
-    N_max = 5  # Maximum number of attempts
+    N_max = 3  # Maximum number of attempts
     
     # Initial attempt
     meeting.chats.append(

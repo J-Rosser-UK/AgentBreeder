@@ -3,6 +3,7 @@ import string
 from collections import namedtuple
 import ast
 import numpy as np
+import logging
 
 Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
 
@@ -54,7 +55,8 @@ def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence
     median_percent = median * 100
 
     # Return the formatted string with confidence interval and median
-    return f"95% Bootstrap Confidence Interval: ({ci_lower_percent:.1f}%, {ci_upper_percent:.1f}%), Median: {median_percent:.1f}%"
+    confidence_interval_string = f"95% Bootstrap Confidence Interval: ({ci_lower_percent:.1f}%, {ci_upper_percent:.1f}%), Median: {median_percent:.1f}%"
+    return confidence_interval_string, ci_lower_percent, ci_upper_percent, median_percent
 
 
 def extract_class_code(file_path:str, class_name:str) -> str:

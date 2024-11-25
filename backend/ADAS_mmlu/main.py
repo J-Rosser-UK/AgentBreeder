@@ -7,7 +7,7 @@ import os
 import random
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-
+import logging
 import backoff
 import numpy as np
 import openai
@@ -17,14 +17,17 @@ import time
 import importlib.util
 from pydantic import BaseModel
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
 from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
+
+from tqdm import tqdm
 
 client = openai.OpenAI()
 
 
 import os
-
 from agent import initialize_session
 from eval import load_eval_dataset, evaluate_framework
 
@@ -62,7 +65,12 @@ def main(args):
     multiple_choice_questions = load_eval_dataset(args)
 
     
-    evaluate_framework(frameworks[0], multiple_choice_questions, args)
+
+    with ThreadPoolExecutor(max_workers=15) as executor:
+        median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), frameworks), total=len(frameworks)))
+
+
+    print(f"Total accuracy for archive: {sum(median_percents) / len(median_percents) * 100}%")
 
     for g in range(1, args.n_generation+1):
 
@@ -113,9 +121,14 @@ def main(args):
 
 if __name__ == "__main__":
 
+    session, Base = initialize_session()
+
+    # Initialize a logger
+    logging.basicConfig(level=logging.INFO)
+
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/ADAS_mmlu/code/mmlu_sample_3.csv")
+    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/ADAS_mmlu/data/mmlu_sample_3.csv")
     parser.add_argument('--valid_size', type=int, default=128)
     parser.add_argument('--test_size', type=int, default=800)
     parser.add_argument('--shuffle_seed', type=int, default=0)
@@ -134,6 +147,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    session, Base = initialize_session()
+    
 
     main(args)

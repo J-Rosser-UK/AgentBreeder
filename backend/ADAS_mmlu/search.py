@@ -87,9 +87,10 @@ def search(args):
         print(f"============Generation {n + 1}=================")
         system_prompt, prompt = get_prompt(archive)
         msg_list = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
             {"role": "user", "content": prompt},
         ]
+        
 
         # Generate new solution and do reflection
         try:

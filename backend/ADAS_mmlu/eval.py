@@ -5,7 +5,7 @@ import pandas
 import importlib.util
 from pydantic import BaseModel
 import uuid
-
+import logging
 from utils import bootstrap_confidence_interval
 
 
@@ -68,10 +68,14 @@ def format_question(multiple_choice_question):
     
 
 def evaluate_framework(framework, multiple_choice_questions, args):
-   
+    # Create a new session for this thread
+
+
+    logging.info(f"Evaluating framework: {framework.framework_name}")
+
     # Create the agent framework in temporary code
     current_directory = os.path.dirname(os.path.abspath(__file__))
-    temp_file = f"{current_directory}/agent_system_temp.py"
+    temp_file = f"{current_directory}/temp/agent_system_temp_{framework.framework_name}_{framework.framework_id}.py"
     forward_function = framework.framework_code
 
     # Write the complete AgentSystem class to the file, including the forward function
@@ -101,7 +105,21 @@ def evaluate_framework(framework, multiple_choice_questions, args):
             results_list.append(0)
 
     
-    print(f"acc: {bootstrap_confidence_interval(results_list)}")
-    return results_list
+    confidence_level = 0.95
+    confidence_interval_string, ci_lower_percent, ci_upper_percent, median_percent = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
+
+    framework.ci_lower_percent = ci_lower_percent
+    framework.ci_upper_percent = ci_upper_percent
+    framework.ci_median_percent = median_percent
+    framework.ci_sample_size = len(results_list)
+    framework.ci_confidence_level = confidence_level
+
+    logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
+
+    # delete file at the end
+    os.remove(temp_file)
+    
+
+    return median_percent
 
 

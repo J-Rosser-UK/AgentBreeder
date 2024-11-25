@@ -11,6 +11,7 @@ from sqlalchemy.orm.collections import collection
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import logging
 Base = declarative_base()
 
 
@@ -102,6 +103,11 @@ class Framework(CustomBase):
     framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
     framework_generation = CustomColumn(Integer, label="The generation of the framework.")
     experiment_id = CustomColumn(String, ForeignKey('experiment.experiment_id'), label="The experiment's unique identifier (UUID).")
+    ci_lower_percent = CustomColumn(Float, label="")
+    ci_upper_percent = CustomColumn(Float, label="")
+    ci_median_percent = CustomColumn(Float, label="")
+    ci_sample_size = CustomColumn(Float, label="")
+    ci_confidence_level = CustomColumn(Float, label="")
 
     # Relationships
     meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
@@ -201,9 +207,11 @@ class Agent(CustomBase):
 
     def forward(self, response_format) -> dict:
 
+        logging.info(f"Agent {self.agent_name} is thinking...")
+
         messages = self.chat_history
 
-        response_json = self._get_structured_json_response_from_gpt(
+        response_json = get_structured_json_response_from_gpt(
             messages=messages,
             response_format=response_format,
             model='gpt-4o-mini',

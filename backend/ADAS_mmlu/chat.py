@@ -2,7 +2,7 @@ import json
 import backoff
 import openai
 from icecream import ic
-
+import logging
 client = openai.OpenAI()
 
 
@@ -50,7 +50,8 @@ def get_structured_json_response_from_gpt(
         messages,
         response_format,
         model='gpt-4o-mini',
-        temperature=0.5
+        temperature=0.5,
+        retry=0
 ) -> dict:
     
     properties = {}
@@ -81,6 +82,11 @@ def get_structured_json_response_from_gpt(
         )
 
     # Loading the response as a JSON object
+    if not response.choices[0].message.function_call and retry < 3:
+        logging.warning("Retrying due to missing function call.")
+        messages.append({"role": "system", "content": "YOU MUST use the 'get_structured_response' function to structure the response."})
+        response = get_structured_json_response_from_gpt(messages, response_format, model, temperature, retry + 1)
+    
     json_response = json.loads(response.choices[0].message.function_call.arguments)
     return json_response
 
