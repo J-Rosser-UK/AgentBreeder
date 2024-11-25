@@ -1,28 +1,49 @@
 import random
 import pandas
 
-from LLM_agent_base import LLMAgentBase
+from agent import Agent, Meeting, Chat
 
 class AgentSystem:
-    def forward(self, taskInfo):
-        # Instruction for step-by-step reasoning
-        cot_instruction = "Please think step by step and then solve the task."
-        N = 5 # Number of CoT agents
-    
-        # Initialize multiple CoT agents with a higher temperature for varied reasoning
-        cot_agents = [LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent', temperature=0.8) for _ in range(N)]
-    
-        # Majority voting function to select the most common answer
-        from collections import Counter
-        def majority_voting(answers):
-            return Counter(answers).most_common(1)[0][0]
+    def forward(self, task: str) -> str:
+        # Create a system agent to provide instructions
+        system = Agent(
+            agent_name='system',
+            temperature=0.8
+        )
         
-        possible_answers = []
-        for i in range(N):
-            thinking, answer = cot_agents[i]([taskInfo], cot_instruction)
-            possible_answers.append(answer.content)
-    
-        # Ensembling the answers from multiple CoT agents
-        answer = majority_voting(possible_answers)
-        return answer  
+        # Create the Chain-of-Thought agent
+        cot_agent = Agent(
+            agent_name='Chain-of-Thought Agent',
+            temperature=0.7
+        )
+        
+        # Setup meeting
+        meeting = Meeting(meeting_name="chain-of-thought")
+        meeting.agents.extend([system, cot_agent])
+        
+        # Add system instruction
+        meeting.chats.append(
+            Chat(
+                agent=system, 
+                content=f"Please think step by step and then solve the task: {task}"
+            )
+        )
+        
+        # Get response from COT agent
+        output = cot_agent.forward(
+            response_format={
+                "thinking": "Your step by step thinking.",
+                "answer": "A single letter, A, B, C or D."
+            }
+        )
+        
+        # Record the agent's response in the meeting
+        meeting.chats.append(
+            Chat(
+                agent=cot_agent, 
+                content=output["thinking"]
+            )
+        )
+        
+        return output["answer"]
     

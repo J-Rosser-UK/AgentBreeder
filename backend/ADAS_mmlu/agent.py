@@ -9,11 +9,6 @@ import string
 import os
 from sqlalchemy.orm.collections import collection
 
-
-
-
-
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
@@ -208,7 +203,7 @@ class Agent(CustomBase):
 
         messages = self.chat_history
 
-        response_json = get_structured_json_response_from_gpt(
+        response_json = self._get_structured_json_response_from_gpt(
             messages=messages,
             response_format=response_format,
             model='gpt-4o-mini',
@@ -216,7 +211,7 @@ class Agent(CustomBase):
         )
 
         return response_json
-
+    
 
 
 if __name__ == '__main__':

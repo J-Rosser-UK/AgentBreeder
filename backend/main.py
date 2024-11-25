@@ -32,8 +32,9 @@ total_evaluations = args['num_mutation_prompts']*args['num_thinking_styles']*arg
 co = OpenAIClientWrapper(api_key=os.environ['OPENAI_API_KEY'])
 # co = cohere.Client(api_key=os.environ['COHERE_API_KEY'],  num_workers=total_evaluations, max_retries=5, timeout=30) #override the 2 min timeout with 30s. 
 
-tp_set = mutation_prompts[:int(args['num_mutation_prompts'])]
-mutator_set= thinking_styles[:int(args['num_thinking_styles'])]
+tp_set:list[str] = mutation_prompts[:int(args['num_mutation_prompts'])]       # mutation prompts set
+
+mutator_set:list[str ]= thinking_styles[:int(args['num_thinking_styles'])]      # thinking style set
 
 logger.info(f'You are prompt-optimizing for the problem: {args["problem"]}')
 
@@ -44,6 +45,8 @@ logger.info(f'Generating the initial prompts...')
 init_run(p, co, int(args['num_evals']))
 
 print(p)
+print(len(p.units))
+assert 1 == 2
 
 logger.info(f'Starting the genetic algorithm...')
 run_for_n(n=int(args['simulations']), population=p, model=co, num_evals=int(args['num_evals']))

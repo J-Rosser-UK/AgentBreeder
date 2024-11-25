@@ -8,27 +8,6 @@ Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
 
 Example = namedtuple('Example', ['question', 'choice1', 'choice2', 'choice3', 'choice4', 'correct_index'])
 
-QUERY_TEMPLATE_MULTICHOICE = """
-Answer the following multiple choice question.
-
-{Question}
-
-(A) {A}
-(B) {B}
-(C) {C}
-(D) {D}
-""".strip()
-
-
-def format_multichoice_question(row):
-    return QUERY_TEMPLATE_MULTICHOICE.format(**row)
-
-
-def random_id(length=4):
-    characters = string.ascii_letters + string.digits  # includes both upper/lower case letters and numbers
-    random_id = ''.join(random.choices(characters, k=length))
-    return random_id
-
 
 def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence_level=0.95):
     """

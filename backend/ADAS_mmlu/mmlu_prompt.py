@@ -4,7 +4,7 @@ import os
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
     "name": "Name of your proposed agent",
-    "code": """def forward(self, taskInfo):
+    "code": """def forward(self, task):
     # Your code here
     return answer
 """
@@ -13,212 +13,411 @@ EXAMPLE = {
 COT = {
     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
     "name": "Chain-of-Thought",
-    "code": """def forward(self, taskInfo):
-    # Instruction for the Chain-of-Thought (CoT) approach
-    # It is an important practice that allows the LLM to think step by step before solving the task.
-    cot_instruction = "Please think step by step and then solve the task."
-
-    # Instantiate a new LLM agent specifically for CoT
-    # To allow LLM thinking before answering, we need to set an additional output field 'thinking'.
-    cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
-
-    # Prepare the inputs for the CoT agent
-    # The input should be a list of Info, and the first one is often the taskInfo
-    cot_agent_inputs = [taskInfo]
-
-    # Get the response from the CoT agent
-    thinking, answer = cot_agent(cot_agent_inputs, cot_instruction)
-
-    # Return only the final answer
-    return answer
+    "code": """def forward(self, task: str) -> str:
+    # Create a system agent to provide instructions
+    system = Agent(
+        agent_name='system',
+        temperature=0.8
+    )
+    
+    # Create the Chain-of-Thought agent
+    cot_agent = Agent(
+        agent_name='Chain-of-Thought Agent',
+        temperature=0.7
+    )
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="chain-of-thought")
+    meeting.agents.extend([system, cot_agent])
+    
+    # Add system instruction
+    meeting.chats.append(
+        Chat(
+            agent=system, 
+            content=f"Please think step by step and then solve the task: {task}"
+        )
+    )
+    
+    # Get response from COT agent
+    output = cot_agent.forward(
+        response_format={
+            "thinking": "Your step by step thinking.",
+            "answer": "A single letter, A, B, C or D."
+        }
+    )
+    
+    # Record the agent's response in the meeting
+    meeting.chats.append(
+        Chat(
+            agent=cot_agent, 
+            content=output["thinking"]
+        )
+    )
+    
+    return output["answer"]
 """
 }
 
 COT_SC = {"thought": "While an LLM can arrive at the correct answer, its reasoning may vary. By repeatedly asking the same question with high temperature settings, we can generate different reasoning paths. We then combine multiple answers from these Chain-of-Thought (CoT) agents to produce a more accurate final answer through ensembling.",
           "name": "Self-Consistency with Chain-of-Thought",
-          "code": """def forward(self, taskInfo):
-    # Instruction for step-by-step reasoning
-    cot_instruction = "Please think step by step and then solve the task."
-    N = 5 # Number of CoT agents
-
-    # Initialize multiple CoT agents with a higher temperature for varied reasoning
-    cot_agents = [LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent', temperature=0.8) for _ in range(N)]
-
-    # Majority voting function to select the most common answer
-    from collections import Counter
-    def majority_voting(answers):
-        return Counter(answers).most_common(1)[0][0]
+          "code": """def forward(self, task: str) -> str:
+    # Create a system agent to provide instructions
+    system = Agent(
+        agent_name='system',
+        temperature=0.8
+    )
     
+    # Create multiple CoT agents with higher temperature for varied reasoning
+    N = 5  # Number of CoT agents
+    cot_agents = [
+        Agent(
+            agent_name=f'Chain-of-Thought Agent {i}',
+            temperature=0.8
+        ) for i in range(N)
+    ]
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="self-consistency")
+    meeting.agents.extend([system] + cot_agents)
+    
+    # Collect answers from all agents
     possible_answers = []
     for i in range(N):
-        thinking, answer = cot_agents[i]([taskInfo], cot_instruction)
-        possible_answers.append(answer.content)
-
-    # Ensembling the answers from multiple CoT agents
-    answer = majority_voting(possible_answers)
-    return answer  
+        # Add system instruction
+        meeting.chats.append(
+            Chat(
+                agent=system, 
+                content=f"Please think step by step and then solve the task: {task}"
+            )
+        )
+        
+        # Get response from current COT agent
+        output = cot_agents[i].forward(
+            response_format={
+                "thinking": "Your step by step thinking.",
+                "answer": "A single letter, A, B, C or D."
+            }
+        )
+        
+        # Record the agent's response
+        meeting.chats.append(
+            Chat(
+                agent=cot_agents[i], 
+                content=output["thinking"]
+            )
+        )
+        
+        possible_answers.append(output["answer"])
+    
+    # Select the most common answer through majority voting
+    from collections import Counter
+    
+    final_answer = Counter(possible_answers).most_common(1)[0][0]
+    return final_answer
 """
           }
 
 Reflexion = {
     "thought": "To enhance its performance, an LLM can iteratively improve its answer based on feedback. By reflecting on its previous attempts and incorporating feedback, the model can refine its reasoning and provide a more accurate solution.",
     "name": "Self-Refine (Reflexion)",
-    "code": """def forward(self, taskInfo):
-    # Instruction for initial reasoning
-    cot_initial_instruction = "Please think step by step and then solve the task."
-
-    # Instruction for reflecting on previous attempts and feedback to improve
-    cot_reflect_instruction = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
-    cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
-
-    # Instruction for providing feedback and correcting the answer
-    critic_instruction = "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output 'True' in 'correct'."
-    critic_agent = LLMAgentBase(['feedback', 'correct'], 'Critic Agent')
+    "code": """def forward(self, task: str) -> str:
+    # Create system and agent instances
+    system = Agent(
+        agent_name='system',
+        temperature=0.8
+    )
     
-    N_max = 5 # Maximum number of attempts
-
+    cot_agent = Agent(
+        agent_name='Chain-of-Thought Agent',
+        temperature=0.7
+    )
+    
+    critic_agent = Agent(
+        agent_name='Critic Agent',
+        temperature=0.6
+    )
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="reflexion")
+    meeting.agents.extend([system, cot_agent, critic_agent])
+    
+    N_max = 5  # Maximum number of attempts
+    
     # Initial attempt
-    cot_inputs = [taskInfo]
-    thinking, answer = cot_agent(cot_inputs, cot_initial_instruction, 0)
-
+    meeting.chats.append(
+        Chat(
+            agent=system, 
+            content=f"Please think step by step and then solve the task: {task}"
+        )
+    )
+    
+    output = cot_agent.forward(
+        response_format={
+            "thinking": "Your step by step thinking.",
+            "answer": "A single letter, A, B, C or D."
+        }
+    )
+    
+    meeting.chats.append(
+        Chat(
+            agent=cot_agent, 
+            content=output["thinking"]
+        )
+    )
+    
+    # Refinement loop
     for i in range(N_max):
-        # Get feedback and correct status from the critic
-        feedback, correct = critic_agent([taskInfo, thinking, answer], critic_instruction, i)
-        if correct.content == 'True':
+        # Get feedback from critic
+        meeting.chats.append(
+            Chat(
+                agent=system, 
+                content="Please review the answer above and criticize where it might be wrong. If you are absolutely sure it is correct, output 'CORRECT'."
+            )
+        )
+        
+        critic_output = critic_agent.forward(
+            response_format={
+                "feedback": "Your detailed feedback.",
+                "correct": "Either 'CORRECT' or 'INCORRECT'"
+            }
+        )
+        
+        meeting.chats.append(
+            Chat(
+                agent=critic_agent, 
+                content=critic_output["feedback"]
+            )
+        )
+        
+        if critic_output["correct"] == "CORRECT":
             break
-            
-        # Add feedback to the inputs for the next iteration
-        cot_inputs.extend([thinking, answer, feedback])
-
-        # Reflect on previous attempts and refine the answer
-        thinking, answer = cot_agent(cot_inputs, cot_reflect_instruction, i + 1)
-    return answer
+        
+        # Reflect and refine
+        meeting.chats.append(
+            Chat(
+                agent=system, 
+                content=f"Given the feedback above, carefully consider where you could go wrong in your latest attempt. Using these insights, try to solve the task better: {task}"
+            )
+        )
+        
+        output = cot_agent.forward(
+            response_format={
+                "thinking": "Your step by step thinking.",
+                "answer": "A single letter, A, B, C or D."
+            }
+        )
+        
+        meeting.chats.append(
+            Chat(
+                agent=cot_agent, 
+                content=output["thinking"]
+            )
+        )
+    
+    return output["answer"]
 """
 }
 
 LLM_debate = {
     "thought": "By letting different LLMs debate with each other, we can leverage their diverse perspectives to find better solutions for tasks.",
     "name": "LLM Debate",
-    "code": """def forward(self, taskInfo):
-    # Instruction for initial reasoning
-    debate_initial_instruction = "Please think step by step and then solve the task."
+    "code": """def forward(self, task: str) -> str:
 
-    # Instruction for debating and updating the solution based on other agents' solutions
-    debate_instruction = "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
-    
+    # Create a system agent to provide instructions
+    system = Agent(agent_name = 'system', temperature=0.8)
+
     # Initialize debate agents with different roles and a moderate temperature for varied reasoning
-    debate_agents = [LLMAgentBase(['thinking', 'answer'], 'Debate Agent', temperature=0.8, role=role) for role in ['Biology Expert', 'Physics Expert', 'Chemistry Expert', 'Science Generalist']]
+    debate_agents = [Agent(
+        agent_name=name,
+        temperature=0.8
+    ) for name in ['Biology Expert', 'Physics Expert', 'Science Generalist']]
 
     # Instruction for final decision-making based on all debates and solutions
-    final_decision_instruction = "Given all the above thinking and answers, reason over them carefully and provide a final answer."
-    final_decision_agent = LLMAgentBase(['thinking', 'answer'], 'Final Decision Agent', temperature=0.1)
+    final_decision_agent = Agent(agent_name = 'Final Decision Agent',temperature=0.1)
+    
+    # Setup a single meeting for the debate
+    meeting = Meeting(meeting_name="debate")
+
+    # Ensure all agents are part of the meeting
+    [meeting.agents.append(agent) for agent in debate_agents]
+    meeting.agents.append(system)
+    meeting.agents.append(final_decision_agent)
 
     max_round = 2 # Maximum number of debate rounds
-    all_thinking = [[] for _ in range(max_round)]
-    all_answer = [[] for _ in range(max_round)]
 
     # Perform debate rounds
     for r in range(max_round):
         for i in range(len(debate_agents)):
-            if r == 0:
-                thinking, answer = debate_agents[i]([taskInfo], debate_initial_instruction)
+            if r == 0 and i == 0:
+                meeting.chats.append(Chat(agent=system, content=f"Please think step by step and then solve the task: {task}"))
+                output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+                
             else:
-                input_infos = [taskInfo] + [all_thinking[r-1][i]] + all_thinking[r-1][:i] + all_thinking[r-1][i+1:]
-                thinking, answer = debate_agents[i](input_infos, debate_instruction)
-            all_thinking[r].append(thinking)
-            all_answer[r].append(answer)
-    
+                meeting.chats.append(Chat(agent=system, content=f"Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer. Reminder, the task is: {task}"))
+                output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+
+            meeting.chats.append(Chat(agent=debate_agents[i], content=output["thinking"]+output["response"]))
+
     # Make the final decision based on all debate results and solutions
-    thinking, answer = final_decision_agent([taskInfo] + all_thinking[max_round-1] + all_answer[max_round-1], final_decision_instruction)
-    return answer
+    meeting.chats.append(Chat(agent=system, content="Given all the above thinking and answers, reason over them carefully and provide a final answer."))
+    output = final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
+    
+    return output["answer"]
 """
 }
 
 Take_a_step_back = {"thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
                     "name": "Step-back Abstraction",
-                    "code": """def forward(self, taskInfo):
-        # Instruction for understanding the principles involved in the task
-        principle_instruction = "What are the physics, chemistry or biology principles and concepts involved in solving this task? First think step by step. Then list all involved principles and explain them."
-        
-        # Instruction for solving the task based on the principles
-        cot_instruction = "Given the question and the involved principle behind the question, think step by step and then solve the task."
-        
-        # Instantiate LLM agents
-        principle_agent = LLMAgentBase(['thinking', 'principle'], 'Principle Agent')
-        cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
-        
-        # Get the principles involved in the task
-        thinking, principle = principle_agent([taskInfo], principle_instruction)
-
-        # Use the principles to solve the task
-        thinking, answer = cot_agent([taskInfo, thinking, principle], cot_instruction)
-        return answer
+                    "code": """def forward(self, task: str) -> str:
+    # Create agents
+    system = Agent(agent_name='system', temperature=0.8)
+    principle_agent = Agent(agent_name='Principle Agent', temperature=0.8)
+    cot_agent = Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="step_back_meeting")
+    meeting.agents.extend([system, principle_agent, cot_agent])
+    
+    # First get the principles involved
+    meeting.chats.append(Chat(
+        agent=system,
+        content="What are the physics, chemistry or biology principles and concepts involved in solving this task? First think step by step. Then list all involved principles and explain them."
+    ))
+    
+    principle_output = principle_agent.forward(response_format={
+        "thinking": "Your step by step thinking about the principles.",
+        "principles": "List and explanation of the principles involved."
+    })
+    
+    meeting.chats.append(Chat(
+        agent=principle_agent,
+        content=principle_output["thinking"] + principle_output["principles"]
+    ))
+    
+    # Now solve using the principles
+    meeting.chats.append(Chat(
+        agent=system,
+        content=f"Given the question and the involved principles above, think step by step and then solve the task: {task}"
+    ))
+    
+    final_output = cot_agent.forward(response_format={
+        "thinking": "Your step by step thinking.",
+        "answer": "A single letter, A, B, C or D."
+    })
+    
+    return final_output["answer"]
 """
                     }
 
 QD = {"thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
       "name": "Quality-Diversity",
-      "code": """def forward(self, taskInfo):
-    # Instruction for initial reasoning
-    cot_initial_instruction = "Please think step by step and then solve the task."
-
-    # Instruction for giving diverse answers
-    qd_instruction = "Given previous attempts, try to come up with another interesting way to solve the task."
-    cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
-
-    # Instruction for final decision-making based on collected reasoning and answers
-    final_decision_instruction = "Given all the above solutions, reason over them carefully and provide a final answer."
-    final_decision_agent = LLMAgentBase(['thinking', 'answer'], 'Final Decision Agent', temperature=0.1)
+      "code": """def forward(self, task: str) -> str:
+    # Create agents
+    system = Agent(agent_name='system', temperature=0.8)
+    cot_agent = Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
+    final_decision_agent = Agent(agent_name='Final Decision Agent', temperature=0.1)
     
-    N_max = 3 # Maximum number of attempts
-
+    # Setup meeting
+    meeting = Meeting(meeting_name="quality_diversity_meeting")
+    meeting.agents.extend([system, cot_agent, final_decision_agent])
+    
+    N_max = 3  # Maximum number of attempts
+    
     # Initial attempt
-    cot_inputs = [taskInfo]
-    possible_answers = []
-    thinking, answer = cot_agent(cot_inputs, cot_initial_instruction, 0)
-
-    # Add the answer to the list of possible answers
-    possible_answers.extend([thinking, answer])
-
+    meeting.chats.append(Chat(
+        agent=system,
+        content=f"Please think step by step and then solve the task: {task}"
+    ))
+    
+    output = cot_agent.forward(response_format={
+        "thinking": "Your step by step thinking.",
+        "answer": "A single letter, A, B, C or D."
+    })
+    
+    meeting.chats.append(Chat(
+        agent=cot_agent,
+        content=output["thinking"] + output["answer"]
+    ))
+    
+    # Generate diverse solutions
     for i in range(N_max):
-        # Reflect on previous attempts and generate another interesting answer
-        cot_inputs.extend([thinking, answer])
-
-        # Generate another interesting answer
-        thinking, answer = cot_agent(cot_inputs, qd_instruction, i + 1)
-        possible_answers.extend([thinking, answer])
-
-    # Make the final decision based on all generated answers
-    thinking, answer = final_decision_agent([taskInfo] + possible_answers, final_decision_instruction)
-    return answer
+        meeting.chats.append(Chat(
+            agent=system,
+            content=f"Given previous attempts, try to come up with another interesting way to solve the task: {task}"
+        ))
+        
+        output = cot_agent.forward(response_format={
+            "thinking": "Your step by step thinking with a new approach.",
+            "answer": "A single letter, A, B, C or D."
+        })
+        
+        meeting.chats.append(Chat(
+            agent=cot_agent,
+            content=output["thinking"] + output["answer"]
+        ))
+    
+    # Make final decision
+    meeting.chats.append(Chat(
+        agent=system,
+        content="Given all the above solutions, reason over them carefully and provide a final answer."
+    ))
+    
+    final_output = final_decision_agent.forward(response_format={
+        "thinking": "Your step by step thinking comparing all solutions.",
+        "answer": "A single letter, A, B, C or D."
+    })
+    
+    return final_output["answer"]
 """
       }
 
 Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
                    "name": "Dynamic Assignment of Roles",
-                   "code": """def forward(self, taskInfo):
-        # Instruction for step-by-step reasoning
-        cot_instruction = "Please think step by step and then solve the task."
-        expert_agents = [LLMAgentBase(['thinking', 'answer'], 'Expert Agent', role=role) for role in ['Physics Expert', 'Chemistry Expert', 'Biology Expert', 'Science Generalist']]
-
-        # Instruction for routing the task to the appropriate expert
-        routing_instruction = "Given the task, please choose an Expert to answer the question. Choose from: Physics, Chemistry, Biology Expert, or Science Generalist."
-        routing_agent = LLMAgentBase(['choice'], 'Routing agent')
-
-        # Get the choice of expert to route the task
-        choice = routing_agent([taskInfo], routing_instruction)[0]
-
-        if 'physics' in choice.content.lower():
-            expert_id = 0
-        elif 'chemistry' in choice.content.lower():
-            expert_id = 1
-        elif 'biology' in choice.content.lower():
-            expert_id = 2
-        else:
-            expert_id = 3 # Default to Science Generalist
-
-        thinking, answer = expert_agents[expert_id]([taskInfo], cot_instruction)
-        return answer
+                   "code": """def forward(self, task: str) -> str:
+    # Create agents
+    system = Agent(agent_name='system', temperature=0.8)
+    routing_agent = Agent(agent_name='Routing Agent', temperature=0.8)
+    
+    expert_agents = {
+        'physics': Agent(agent_name='Physics Expert', temperature=0.8),
+        'chemistry': Agent(agent_name='Chemistry Expert', temperature=0.8),
+        'biology': Agent(agent_name='Biology Expert', temperature=0.8),
+        'general': Agent(agent_name='Science Generalist', temperature=0.8)
+    }
+    
+    # Setup meeting
+    meeting = Meeting(meeting_name="role_assignment_meeting")
+    meeting.agents.extend([system, routing_agent] + list(expert_agents.values()))
+    
+    # Route the task
+    meeting.chats.append(Chat(
+        agent=system,
+        content="Given the task, please choose an Expert to answer the question. Choose from: Physics, Chemistry, Biology Expert, or Science Generalist."
+    ))
+    
+    routing_output = routing_agent.forward(response_format={
+        "choice": "One of: physics, chemistry, biology, or general"
+    })
+    
+    # Select expert based on routing decision
+    expert_choice = routing_output["choice"].lower()
+    if expert_choice not in expert_agents:
+        expert_choice = 'general'
+        
+    selected_expert = expert_agents[expert_choice]
+    
+    # Get answer from selected expert
+    meeting.chats.append(Chat(
+        agent=system,
+        content=f"Please think step by step and then solve the task: {task}"
+    ))
+    
+    expert_output = selected_expert.forward(response_format={
+        "thinking": "Your step by step thinking.",
+        "answer": "A single letter, A, B, C or D."
+    })
+    
+    return expert_output["answer"]
 """
                    }
 
@@ -226,7 +425,7 @@ system_prompt = """You are a helpful assistant. Make sure to return in a WELL-FO
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
-LLMAgentBase_code = extract_class_code(f"{current_directory}/LLM_agent_base.py", "LLMAgentBase")
+Agent_code = extract_class_code(f"{current_directory}/agent.py", "Agent")
 get_json_response_from_gpt_code = extract_function_code(f"{current_directory}/chat.py", "get_json_response_from_gpt")
 get_json_response_from_gpt_reflect_code = extract_function_code(f"{current_directory}/chat.py", "get_json_response_from_gpt_reflect")
 
@@ -260,28 +459,25 @@ from utils import random_id
 # Initialize the OpenAI client
 client = openai.OpenAI()
 
-# Named tuple for holding task information
-Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
-
 {{get_json_response_from_gpt_code}}
 
 {{get_json_response_from_gpt_reflect_code}}
 
-{{LLMAgentBase_code}}
+{{Agent_code}}
 
 class AgentArchitecture:
     \"""
     Fill in your code here.
     \"""
-    def forward(self, taskInfo) -> Union[Info, str]:
+    def forward(self, task) -> str:
         \"""
         Placeholder method for processing task information.
         
         Args:
-        - taskInfo (Info): Task information.
+        - task (str): Task description.
         
         Returns:
-        - Answer (Union[Info, str]): Your FINAL Answer. Return either a namedtuple Info or a string of answers.
+        - Answer (str): Your FINAL Answer. Return as a string.
         \"""
         pass
 ```
@@ -302,60 +498,71 @@ Here is an example of the output format for the next agent architecture:
 [EXAMPLE]
 
 You must use the exact function interface used above. You need to specify the instruction, input information, and the required output fields for various LLM agents to do their specific part of the architecture. 
-Also, it could be helpful to set the LLM’s role and temperature to further control the LLM’s response. Note that the LLMAgentBase() will automatically parse the output and return a list of “Infos”. You can get the content by Infos.content. 
-DO NOT FORGET the taskInfo input to LLM if you think it is needed, otherwise LLM will not know about the task.
+Also, it could be helpful to set the LLMs role and temperature to further control the LLMs response. Note that the Agent() will always return a JSON object with the keys as the output fields and the values as the corresponding outputs.
+DO NOT FORGET the task input to LLM if you think it is needed, otherwise LLM will not know about the task.
 
 ## WRONG Implementation examples:
 Here are some mistakes you may make:
+## Anti-patterns to avoid:
 
-1. This is WRONG: ```
-feedback, correct = critic_agent([taskInfo, thinking, answer], critic_instruction, i)
-feedback_info = verifier_agent([taskInfo, Info('feedback', 'Critic Agent', thinking, 0)], verification_instruction)
+1. DO NOT try to manually process agent outputs:
+```python
+# WRONG:
+output = agent.forward(...)
+processed = process_output(output["thinking"])  # Don't process outputs manually
 ```
-It is wrong to use "Info('feedback', 'Critic Agent', thinking, 0)". The returned "feedback" from LLMAgentBase is already Info.
 
-2. This is WRONG: ```
-# Debugging: Log the generated answer
-print('Generated Answer:', ...)
-feedback_info = verifier_agent([taskInfo, Info('feedback', 'Critic Agent', thinking, 0)], verification_instruction)
-if len(feedback_info) < 3:  # Check if feedback_info has enough elements
-    return 'Error: Feedback info incomplete'
+2. DO NOT use print statements or error handling that returns error messages:
+```python
+# WRONG:
+print("Debug:", output)  # No print statements
+if not output:
+    return "Error"  # No error messages as returns
 ```
-First, the len(feedback_info) will not work.
-Second, you should never return an error message. You should always return the best answer you can get.
-Third, you should never print anything in the code.
-Lastly, again, DO NOT CREATE Info object by yourself.
 
-3. This is WRONG: ```
-all_thinking = []
-all_answers = []
-for agent, role in zip(agents, roles):
-    outputs = agent([taskInfo], independent_reasoning_instruction.format(role=role))
-    all_thinking.append(outputs[0].content)
-    all_answers.append(outputs[1].content)
-
-# Aggregate the reasoning paths and answers
-aggregated_thinking = '\n'.join(all_thinking)
-aggregated_answers = '\n'.join(all_answers)
+3. DO NOT try to join or aggregate outputs manually:
+```python
+# WRONG:
+all_outputs = []
+for agent in agents:
+    output = agent.forward(...)
+    all_outputs.append(output["content"])  # Don't manually aggregate
+combined = "\\n".join(all_outputs)  # Don't manually join
 ```
-You SHOULD NOT extract the content from the Info object by yourself. You should use the Info object directly. If you want to aggregate the content, you should just put those Info objects into a list and then use the list as input to the next LLM agent.
 
-4. This is WRONG: ```
-reasoning_agent = LLMAgentBase(['thinking', 'answer'], 'Reasoning Agent')
-response_infos = reasoning_agent([taskInfo] + ..., reasoning_instruction)
-    
-# Extract the final answer from the response_infos
-for info in response_infos:
-    if info.name == 'final_answer':
-        return info
-# Fallback if no answer is found
-return Info('answer', 'Final Decision Agent', 'No answer generated.', 0)
+4. DO NOT extract or manipulate response content directly:
+```python
+# WRONG:
+output = agent.forward(...)
+if output["answer"] == "A":  # Don't inspect content directly
+    return "A"
 ```
-You should not extract the final answer by yourself. You SHOULD directly return the answer Info. Also, you should always return the best answer you can get.
-CORRECT example: ```
-reasoning_agent = LLMAgentBase(['thinking', 'answer'], 'Reasoning Agent')
-thinking, answer = reasoning_agent([taskInfo] + ..., reasoning_instruction)
-return answer
+
+## CORRECT implementation patterns:
+
+1. Proper agent creation and meeting setup:
+```python
+system = Agent(agent_name="system", temperature=0.7)
+expert = Agent(agent_name="Expert", temperature=0.8)
+meeting = Meeting(meeting_name="solving_task")
+meeting.agents.extend([system, expert])
+```
+
+2. Proper chat message addition:
+```python
+meeting.chats.append(Chat(
+    agent=system,
+    content=f"Please solve this task: \{task\}"
+))
+```
+
+3. Proper response format usage:
+```python
+output = agent.forward(response_format={
+    "thinking": "Your step by step reasoning",
+    "answer": "Single letter A, B, C, or D"
+})
+return output["answer"]
 ```
 
 # Your task
@@ -365,7 +572,7 @@ Be creative to think about the next interesting architecture to try. You are enc
 Using the knowledge learned from the archive and the inspiration from academic literature to give the next interesting architecture.
 THINK OUTSIDE THE BOX.
 """
-base = base.replace("{{LLMAgentBase_code}}", LLMAgentBase_code)
+base = base.replace("{{Agent_code}}", Agent_code)
 base = base.replace("{{get_json_response_from_gpt_code}}", get_json_response_from_gpt_code)
 base = base.replace("{{get_json_response_from_gpt_reflect_code}}", get_json_response_from_gpt_reflect_code)
 
