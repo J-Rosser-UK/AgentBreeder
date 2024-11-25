@@ -32,6 +32,10 @@ from agent import initialize_session
 from eval import load_eval_dataset, evaluate_framework
 
 
+from pb import init_run, run_for_n
+
+from population import initialize_mutation_thinking_population
+
 
 def initialize_gen_0_frameworks(experiment:Experiment)->list[Framework]:
     """Initialize the first generation of frameworks for the experiment."""
@@ -67,8 +71,12 @@ def main(args, session, Base):
     with ThreadPoolExecutor(max_workers=18) as executor:
         median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), frameworks), total=len(frameworks)))
 
-
     print(f"Total accuracy for archive: {sum(median_percents) / len(median_percents) * 100}%")
+
+
+
+    population = initialize_mutation_thinking_population(args)
+
 
     for g in range(1, args.n_generation+1):
 
@@ -121,12 +129,12 @@ if __name__ == "__main__":
 
     session, Base = initialize_session()
 
-    # Initialize a logger
+    # Initialize a logging
     logging.basicConfig(level=logging.INFO)
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/ADAS_mmlu/data/mmlu_sample_3.csv")
+    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/AgentBreeder/data/mmlu_sample_3.csv")
     parser.add_argument('--valid_size', type=int, default=128)
     parser.add_argument('--test_size', type=int, default=800)
     parser.add_argument('--shuffle_seed', type=int, default=0)
@@ -134,13 +142,15 @@ if __name__ == "__main__":
     parser.add_argument('--multiprocessing', action='store_true', default=True)
     parser.add_argument('--max_workers', type=int, default=48)
     parser.add_argument('--debug', action='store_true', default=True)
-    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/ADAS_mmlu/architectures/results')
+    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/AgentBreeder/architectures/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=30)
     parser.add_argument('--debug_max', type=int, default=3)
-    parser.add_argument('--model',
-                        type=str,
-                        default='gpt-4o-mini')
+    parser.add_argument('--model', type=str, default='gpt-4o-mini')
+    parser.add_argument('-mp', '--num_mutation_prompts', default=2)     
+    parser.add_argument('-ts', '--num_thinking_styles', default=4)     
+    parser.add_argument('-e', '--num_evals', default=10)     
+    parser.add_argument('-n', '--simulations', default=10)  
 
     args = parser.parse_args()
 

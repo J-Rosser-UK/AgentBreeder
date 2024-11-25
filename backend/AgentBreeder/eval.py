@@ -69,9 +69,8 @@ def format_question(multiple_choice_question):
     
 
 def evaluate_framework(framework, multiple_choice_questions, args):
+    
     # Create a new session for this thread
-
-
     logging.info(f"Evaluating framework: {framework.framework_name}")
 
     # Create the agent framework in temporary code
@@ -116,8 +115,6 @@ def evaluate_framework(framework, multiple_choice_questions, args):
         ci_sample_size=len(results_list),
         ci_confidence_level=confidence_level
     )
-
-
 
     logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
 

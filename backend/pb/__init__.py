@@ -54,12 +54,13 @@ def init_run(population: Population, model: Client, num_evals: int):
     prompts = []
 
     for unit in population.units:    
+        print(population.problem_description)
         template= f"{unit.T} {unit.M} INSTRUCTION: {population.problem_description} INSTRUCTION MUTANT = "
         prompts.append(template)
 
  
     results = model.batch_generate(prompts)
-    print(results)
+    # print(results)
     
     end_time = time.time()
 
