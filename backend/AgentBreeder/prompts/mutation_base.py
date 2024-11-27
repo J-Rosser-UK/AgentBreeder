@@ -13,13 +13,14 @@ EXAMPLE = {
 }
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
+higher_directory = os.path.dirname(current_directory)
 
-Agent_code = extract_class_code(f"{current_directory}/agent.py", "Agent")
-get_json_response_from_gpt_code = extract_function_code(f"{current_directory}/chat.py", "get_json_response_from_gpt")
-get_json_response_from_gpt_reflect_code = extract_function_code(f"{current_directory}/chat.py", "get_json_response_from_gpt_reflect")
+Agent_code = extract_class_code(f"{higher_directory}/base.py", "Agent")
+get_json_response_from_gpt_code = extract_function_code(f"{higher_directory}/chat.py", "get_json_response_from_gpt")
+get_json_response_from_gpt_reflect_code = extract_function_code(f"{higher_directory}/chat.py", "get_json_response_from_gpt_reflect")
 
 
-base = """# Overview
+prompt_base = """# Overview
 You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on the MMLU (Massive Multitask Language Understanding) benchmark, a challenging evaluation that assesses a model's ability to answer questions across a wide range of subjects and difficulty levels. It includes subjects from STEM, social sciences, humanities, and more.
 
 ## An example question from MMLU:
@@ -161,9 +162,9 @@ Be creative to think about the next interesting architecture to try. You are enc
 Using the knowledge learned from the archive and the inspiration from academic literature to give the next interesting architecture.
 THINK OUTSIDE THE BOX.
 """
-base = base.replace("{{Agent_code}}", Agent_code)
-base = base.replace("{{get_json_response_from_gpt_code}}", get_json_response_from_gpt_code)
-base = base.replace("{{get_json_response_from_gpt_reflect_code}}", get_json_response_from_gpt_reflect_code)
+prompt_base = prompt_base.replace("{{Agent_code}}", Agent_code)
+prompt_base = prompt_base.replace("{{get_json_response_from_gpt_code}}", get_json_response_from_gpt_code)
+prompt_base = prompt_base.replace("{{get_json_response_from_gpt_reflect_code}}", get_json_response_from_gpt_reflect_code)
 
 
 
@@ -175,7 +176,7 @@ def get_init_archive():
 def get_base_prompt(adaptive=False):
     archive_str = ",\n".join([json.dumps(sol) for sol in get_init_archive()])
     archive_str = f"[{archive_str}]"
-    prompt = base.replace("[ARCHIVE]", archive_str)
+    prompt = prompt_base.replace("[ARCHIVE]", archive_str)
     prompt = prompt.replace("[EXAMPLE]", json.dumps(EXAMPLE))
 
     response_format = {

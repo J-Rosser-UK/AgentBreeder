@@ -16,7 +16,7 @@ is typically biased towards solutions with higher fitness2
 """
 
 
-from backend.AgentBreeder.base import Agent, Meeting, Chat, Population, Framework
+from base import Agent, Meeting, Chat, Population, Framework
 import argparse
 import copy
 import json
@@ -37,14 +37,16 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
-from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
+from prompts.mutation_base import get_init_archive
 
 from tqdm import tqdm
 import os
-from backend.AgentBreeder.base import initialize_session
+from base import initialize_session
 from eval import load_eval_dataset, evaluate_framework
 
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
+
+from bayesian_illumination import Generator
 
 
 def initialize_population(args, multiple_choice_questions, initial_eval=True)->Population:
@@ -99,15 +101,22 @@ def main(args):
 
     mutation_operators = initialize_mutations(args)
 
+    mutant_generator = Generator(args, population, mutation_operators, multiple_choice_questions)
+
     for i in range(args.n_generation):
 
-        # Randomly select an elite from the map
-        x = random.choice(population.frameworks)
-        print(x)
+        
+        mutant_framework = mutant_generator()
 
-        # Randomly select a mutation operator
-        mutate = random.choice(mutation_operators)
-        print(mutate)
+        print(mutant_framework.framework_code)
+
+        # # Randomly select an elite from the map
+        # x = random.choice(population.frameworks)
+        # print(x)
+
+        # # Randomly select a mutation operator
+        # mutate = random.choice(mutation_operators)
+        # print(mutate)
 
         # # Mutate the elite to greate a mutant
         # x_mutated = mutate(x)

@@ -11,7 +11,6 @@ multi_agent_system_mutation_prompts = [
     "Introduce adversarial agents designed to exploit system weaknesses", # Silver et al., "Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm," Science 2018
     "Encourage multi-agent collaboration through a shared memory buffer", # Lowe et al., "Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments," NeurIPS 2017
     "Simulate natural ecosystems by introducing predator-prey dynamics", # Wardil & Hauert, "Origin and Structure of Food Webs," Ecology Letters 2015
-    "Integrate multi-modal communication using text, images, and symbolic messages", # Lazaridou et al., "Multi-Agent Cooperation and the Emergence of (Natural) Language," ICLR 2017
     "Introduce trust mechanisms where agents evaluate reliability of others", # Tran-Thanh et al., "Efficient Mechanisms for Crowdsourcing," AAMAS 2012
     "Reduce environmental stability to test robustness of agent policies", # Mnih et al., "Asynchronous Methods for Deep Reinforcement Learning," ICML 2016
     "Implement cultural evolution by allowing agents to share learned strategies over generations", # Rendell et al., "Why Copy Others? Insights from the Social Learning Strategies Tournament," Science 2010

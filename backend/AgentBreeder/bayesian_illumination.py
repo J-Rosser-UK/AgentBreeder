@@ -8,7 +8,9 @@ from prompts.mutation_reflexion import get_reflexion_prompt
 from eval import evaluate_forward_function
 import os
 import uuid
-from eval import MultipleChoiceQuestion
+from eval import MultipleChoiceQuestion, AgentSystemException
+from rich import print
+
 
 class Generator:
     """
@@ -29,29 +31,21 @@ class Generator:
         load_from_database(): Loads a set of molecules from the initial data database.
     """
 
-    def __init__(self, args, mutation_operations:list[str]) -> None:
+    def __init__(self, args, population, mutation_operators, multiple_choice_questions:list[MultipleChoiceQuestion]) -> None:
         """
         Initializes the Generator with the given configuration.
 
         Args:
             config: Configuration object containing settings for the Generator.
         """
-        self.population = None
-        self.crossover = Crossover(args)
-        self.mutator = Mutator(args, mutation_operations)
-        self.batch_size = args.batch_size
-
-    def set_population(self, population):
-        """
-        Sets the population for the Generator.
-
-        Args:
-            population: The population of elite molecules.
-        """
         self.population = population
-        return None
+        self.mutation_operators = mutation_operators
+        self.multiple_choice_questions = multiple_choice_questions
+        # self.crossover = Crossover(args)
+        self.mutator = Mutator(args, population, mutation_operators, multiple_choice_questions)
+        self.batch_size = 1
 
-    def __call__(self) -> Population:
+    def __call__(self) -> Framework:
         """
         Generates a batch of new populations by mutating and crossing over sampled populations.
 
@@ -60,11 +54,13 @@ class Generator:
         """
         population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)]
         population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
-        for population in population_samples:
-            population.frameworks.extend(self.mutator(population))
-        for population_pair in population_sample_pairs:
-            population.frameworks.extend(self.crossover(population_pair))
-        return population
+        for framework in population_samples:
+            mutant = self.mutator(framework)
+            if mutant is not None:
+                self.population.frameworks.append(mutant)
+        # for population_pair in population_sample_pairs:
+        #     population.frameworks.extend(self.crossover(population_pair))
+        return mutant
 
 
 
@@ -79,25 +75,16 @@ class Mutator:
         __init__(mutation_data): Initializes the Mutator with the given mutation data.
         __call__(molecule): Applies a mutation to a given molecule and returns the resulting molecules.
     """
-    def __init__(self, args, mutation_operations:list[str]) -> None:
+    def __init__(self, args, population, mutation_operators, multiple_choice_questions) -> None:
         """
         Initializes the Mutator with the given mutation data.
 
         Args:
             mutation_data (list[str]): A list of mutation operations to be applied to molecules.
         """
-        self.mutation_operations = mutation_operations
+        self.mutation_operators = mutation_operators
         self.args = args
-        self.test_questions = [MultipleChoiceQuestion(
-            question_id=uuid.uuid4(),
-            question="What is the capital of France?",
-            A="Paris",
-            B="London",
-            C="Berlin",
-            D="Madrid",
-            correct_answer_letter="A",
-            subject="Geography"
-        )]
+        self.multiple_choice_questions = multiple_choice_questions
 
     def __call__(self, framework: Framework) -> List[Framework]:
         """
@@ -110,7 +97,7 @@ class Mutator:
             List[Framework]: A list of new frameworks resulting from the mutation as applied
             by positional analogue scanning.
         """
-        sampled_mutation = random.choice(self.mutation_operations)
+        sampled_mutation = random.choice(self.mutation_operators)
         base_prompt, base_prompt_response_format = get_base_prompt()
         messages = [
             {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
@@ -145,15 +132,17 @@ class Mutator:
         except Exception as e:
             print("During LLM generate new solution:")
             print(e)
+            return None
 
-
+        print("---New Framework!---")
+        print(next_response)
         # Fix code if broken loop
         mutated_framework = None
         current_directory = os.path.dirname(os.path.abspath(__file__))
-        temp_file = f"{current_directory}/temp/agent_system_temp_{next_response["name"]}_{uuid.uuid4()}.py"
+        temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
         for _ in range(self.args.debug_max):
             try:
-                acc_list = evaluate_forward_function(next_response["code"], temp_file, self.test_questions)
+                acc_list = evaluate_forward_function(next_response["code"], temp_file, [self.multiple_choice_questions[0]])
 
                 mutated_framework = Framework(
                     framework_name=next_response["name"],
@@ -162,7 +151,7 @@ class Mutator:
                     population=framework.population
                 )
                 
-            except Exception as e:
+            except AgentSystemException as e:
                 print("During evaluation:")
                 print(e)
                 messages.append({"role": "assistant", "content": str(next_response)})
@@ -179,75 +168,75 @@ class Mutator:
     
 
 
-class Crossover:
-    """
-    A strategy class implementing a parent-centric crossover of small molecules.
+# class Crossover:
+#     """
+#     A strategy class implementing a parent-centric crossover of small molecules.
 
-    Methods:
-        __init__(): Initializes the Crossover object.
-        __call__(molecule_pair): Performs a crossover on a pair of molecules.
-        merge(molecule_pair): Merges the fragments of a molecule pair.
-        fragment(molecule_pair): Fragments a molecule pair into cores and sidechains.
-    """
+#     Methods:
+#         __init__(): Initializes the Crossover object.
+#         __call__(molecule_pair): Performs a crossover on a pair of molecules.
+#         merge(molecule_pair): Merges the fragments of a molecule pair.
+#         fragment(molecule_pair): Fragments a molecule pair into cores and sidechains.
+#     """
 
-    def __init__(self, args):
-        """
-        Initializes the Crossover object.
-        """
-        pass
+#     def __init__(self, args):
+#         """
+#         Initializes the Crossover object.
+#         """
+#         pass
 
-    def __call__(self, molecule_pair):
-        """
-        Performs a crossover on a pair of molecules.
+#     def __call__(self, molecule_pair):
+#         """
+#         Performs a crossover on a pair of molecules.
 
-        Args:
-            molecule_pair: A pair of molecules to be crossed over.
+#         Args:
+#             molecule_pair: A pair of molecules to be crossed over.
 
-        Returns:
-            List[Molecule]: A list of new molecules resulting from the crossover.
-        """
-        pedigree = ("crossover", molecule_pair[0].smiles, molecule_pair[1].smiles)
-        smiles_list = self.merge(molecule_pair)
-        molecules = [Molecule(Chem.CanonSmiles(smiles), pedigree) for smiles in smiles_list if Chem.MolFromSmiles(smiles)]
-        return molecules
+#         Returns:
+#             List[Molecule]: A list of new molecules resulting from the crossover.
+#         """
+#         pedigree = ("crossover", molecule_pair[0].smiles, molecule_pair[1].smiles)
+#         smiles_list = self.merge(molecule_pair)
+#         molecules = [Molecule(Chem.CanonSmiles(smiles), pedigree) for smiles in smiles_list if Chem.MolFromSmiles(smiles)]
+#         return molecules
 
-    def merge(self, molecule_pair):
-        """
-        Merges the fragments of a molecule pair.
+#     def merge(self, molecule_pair):
+#         """
+#         Merges the fragments of a molecule pair.
 
-        Args:
-            molecule_pair: A pair of molecules to be merged.
+#         Args:
+#             molecule_pair: A pair of molecules to be merged.
 
-        Returns:
-            List[str]: A list of SMILES strings representing the merged molecules.
-        """
-        molecular_graphs = []
-        graph_cores, graph_sidechains = self.fragment(molecule_pair)
-        random.shuffle(graph_sidechains)
-        reaction = AllChem.ReactionFromSmarts("[*:1]-[1*].[1*]-[*:2]>>[*:1]-[*:2]")
-        for core, sidechain in zip(graph_cores, graph_sidechains):
-            molecular_graphs.append(reaction.RunReactants((core, sidechain))[0][0])
-        smiles_list = [Chem.MolToSmiles(molecular_graph) for molecular_graph in molecular_graphs if molecular_graph is not None]
-        return smiles_list
+#         Returns:
+#             List[str]: A list of SMILES strings representing the merged molecules.
+#         """
+#         molecular_graphs = []
+#         graph_cores, graph_sidechains = self.fragment(molecule_pair)
+#         random.shuffle(graph_sidechains)
+#         reaction = AllChem.ReactionFromSmarts("[*:1]-[1*].[1*]-[*:2]>>[*:1]-[*:2]")
+#         for core, sidechain in zip(graph_cores, graph_sidechains):
+#             molecular_graphs.append(reaction.RunReactants((core, sidechain))[0][0])
+#         smiles_list = [Chem.MolToSmiles(molecular_graph) for molecular_graph in molecular_graphs if molecular_graph is not None]
+#         return smiles_list
 
-    def fragment(self, molecule_pair):
-        """
-        Fragments a molecule pair into cores and sidechains.
+#     def fragment(self, molecule_pair):
+#         """
+#         Fragments a molecule pair into cores and sidechains.
 
-        Args:
-            molecule_pair: A pair of molecules to be fragmented.
+#         Args:
+#             molecule_pair: A pair of molecules to be fragmented.
 
-        Returns:
-            Tuple[List[Chem.Mol], List[Chem.Mol]]: Two lists containing the cores and sidechains of the fragmented molecules.
-        """
-        graph_cores = []
-        graph_sidechains = []
-        for molecule in molecule_pair:
-            graph_frags = rdMMPA.FragmentMol(Chem.MolFromSmiles(molecule.smiles), maxCuts=1, resultsAsMols=False)
-            if len(graph_frags) > 0:
-                _, graph_frags = map(list, zip(*graph_frags))
-                for frag_pair in graph_frags:
-                    core, sidechain = frag_pair.split(".")
-                    graph_cores.append(Chem.MolFromSmiles(core.replace("[*:1]", "[1*]")))
-                    graph_sidechains.append(Chem.MolFromSmiles(sidechain.replace("[*:1]", "[1*]")))
-        return graph_cores, graph_sidechains
+#         Returns:
+#             Tuple[List[Chem.Mol], List[Chem.Mol]]: Two lists containing the cores and sidechains of the fragmented molecules.
+#         """
+#         graph_cores = []
+#         graph_sidechains = []
+#         for molecule in molecule_pair:
+#             graph_frags = rdMMPA.FragmentMol(Chem.MolFromSmiles(molecule.smiles), maxCuts=1, resultsAsMols=False)
+#             if len(graph_frags) > 0:
+#                 _, graph_frags = map(list, zip(*graph_frags))
+#                 for frag_pair in graph_frags:
+#                     core, sidechain = frag_pair.split(".")
+#                     graph_cores.append(Chem.MolFromSmiles(core.replace("[*:1]", "[1*]")))
+#                     graph_sidechains.append(Chem.MolFromSmiles(sidechain.replace("[*:1]", "[1*]")))
+#         return graph_cores, graph_sidechains

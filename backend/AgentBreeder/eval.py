@@ -93,42 +93,56 @@ def evaluate_framework(framework, multiple_choice_questions, args):
 
     logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
 
-    
-    
-
     return median
 
+class AgentSystemException(Exception):
+    """Custom exception for errors in the agent system."""
+    pass
 
-def evaluate_forward_function(forward_function, temp_file, multiple_choice_questions):
-    # Write the complete AgentSystem class to the file, including the forward function
-    with open(temp_file, "w") as f:
-        f.write("import random\n")
-        f.write("import pandas\n\n")
-        f.write(f"from base import Agent, Meeting, Chat\n\n")
-        f.write("class AgentSystem:\n")
-        f.write("    " + forward_function.replace("\n", "\n    "))  
 
-    # Import the AgentSystem class from the temp file
-    spec = importlib.util.spec_from_file_location("agent_system_temp", temp_file)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    AgentSystem = module.AgentSystem
+def evaluate_forward_function(forward_function, temp_file, multiple_choice_questions: list[MultipleChoiceQuestion]) -> list[int]:
+    
+    try:
+    
+        # Write the complete AgentSystem class to the file, including the forward function
+        with open(temp_file, "w") as f:
+            f.write("import random\n")
+            f.write("import pandas\n\n")
+            f.write(f"from base import Agent, Meeting, Chat\n\n")
+            f.write("class AgentSystem:\n")
+            f.write("    " + forward_function.replace("\n", "\n    "))
+            f.write("\n\n")
+            f.write("if __name__ == '__main__':\n")
+            f.write("    " + "from base import initialize_session\n")
+            f.write("    " + "session, Base = initialize_session\n")
+            f.write("    " + "agent_system = AgentSystem()\n")
+            f.write("    " + "task = \"What is the meaning of life? A: 42 B: 43 C: To life a happy life. D: To do good for others.\"\n")
+            f.write("    " + "output = agent_system.forward(task)\n")
+            f.write("    " + "print(output)\n")
 
-    results_list = []
-    for question in multiple_choice_questions:
-        agentSystem = AgentSystem()
+        # Import the AgentSystem class from the temp file
+        spec = importlib.util.spec_from_file_location("agent_system_temp", temp_file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        AgentSystem = module.AgentSystem
 
-        task = format_question(question)
-        agent_framework_answer = agentSystem.forward(task)
+        results_list = []
+        for question in multiple_choice_questions:
+            agentSystem = AgentSystem()
 
-        if agent_framework_answer == question.correct_answer_letter:
-            results_list.append(1)
-        else:
-            results_list.append(0)
+            task = format_question(question)
+            agent_framework_answer = agentSystem.forward(task)
 
-    # delete file at the end
-    os.remove(temp_file)
+            if agent_framework_answer == question.correct_answer_letter:
+                results_list.append(1)
+            else:
+                results_list.append(0)
 
+        # delete file at the end
+        os.remove(temp_file)
+
+    except Exception as e:
+        raise AgentSystemException(f"Error evaluating framework: {e}")
     return results_list
 
 
