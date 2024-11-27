@@ -41,7 +41,6 @@ from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
 
 from tqdm import tqdm
 
-client = openai.OpenAI()
 
 
 import os
@@ -49,7 +48,7 @@ from agent import initialize_session
 from eval import load_eval_dataset, evaluate_framework
 
 
-from pb import init_run, run_for_n
+# from pb import init_run, run_for_n
 
 from population import initialize_mutation_thinking_population
 
@@ -97,29 +96,29 @@ def main(args):
 
     # Run MAP-Elites algorithm
 
-    population = initialize_population(args)
+    # population = initialize_population(args)
 
-    mutation_operators = initialize_mutation_operators(args)
+    # mutation_operators = initialize_mutation_operators(args)
 
-    for i in range(args.n_generation):
+    # for i in range(args.n_generation):
 
-        # Randomly select an elite from the map
-        x = random_selection(population)
+    #     # Randomly select an elite from the map
+    #     x = random_selection(population)
 
-        # Randomly select a mutation operator
-        m = random_selection(mutation_operators)
+    #     # Randomly select a mutation operator
+    #     m = random_selection(mutation_operators)
 
-        # Mutate the elite to greate a mutant
-        x_mutated = mutate(x, m)
+    #     # Mutate the elite to greate a mutant
+    #     x_mutated = mutate(x, m)
 
-        # Record the feature descriptors of the mutant
-        x_mutated.b = feature_descriptor(x_mutated)
+    #     # Record the feature descriptors of the mutant
+    #     x_mutated.b = feature_descriptor(x_mutated)
 
-        # Evaluate the fitness of the mutant
-        x_mutated.f = evaluate_fitness(x_mutated) 
+    #     # Evaluate the fitness of the mutant
+    #     x_mutated.f = evaluate_fitness(x_mutated) 
 
-        # Update the map with the mutant
-        population = update_map(population, x_mutated)
+    #     # Update the map with the mutant
+    #     population = update_map(population, x_mutated)
 
 
 

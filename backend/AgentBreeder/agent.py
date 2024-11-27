@@ -14,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 import logging
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.session import object_session
+from gemini import get_structured_json_response_from_gemini
 
 Base = declarative_base()
 
@@ -219,10 +220,9 @@ class Agent(CustomBase):
 
         messages = self.chat_history
 
-        response_json = get_structured_json_response_from_gpt(
+        response_json = get_structured_json_response_from_gemini(
             messages=messages,
             response_format=response_format,
-            model='gpt-4o-mini',
             temperature=0.5
         )
 
