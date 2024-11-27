@@ -16,7 +16,7 @@ is typically biased towards solutions with higher fitness2
 """
 
 
-from agent import Agent, Meeting, Chat, Experiment, Framework
+from backend.AgentBreeder.base import Agent, Meeting, Chat, Population, Framework
 import argparse
 import copy
 import json
@@ -44,81 +44,85 @@ from tqdm import tqdm
 
 
 import os
-from agent import initialize_session
+from backend.AgentBreeder.base import initialize_session
 from eval import load_eval_dataset, evaluate_framework
 
-
-# from pb import init_run, run_for_n
-
-from population import initialize_mutation_thinking_population
+from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 
 
-def initialize_gen_0_frameworks(experiment:Experiment)->list[Framework]:
-    """Initialize the first generation of frameworks for the experiment."""
+def initialize_population(args, multiple_choice_questions, initial_eval=True)->Population:
+    """Initialize the first generation of frameworks for the population."""
 
     archive = get_init_archive()
 
-    frameworks = []
+    population = Population()
+
     for framework in archive:
-        frameworks.append(Framework(
+        population.frameworks.append(Framework(
             framework_name=framework['name'],
             framework_code=framework['code'],
             framework_thought_process=framework['thought'],
             framework_generation=0,
-            experiment=experiment
+            population=population
         ))
 
-    return frameworks
+    if initial_eval == True:
+
+        with ThreadPoolExecutor(max_workers=18) as executor:
+            median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), population), total=len(population)))
+
+        print(f"Total accuracy for population: {sum(median_percents) / len(median_percents) * 100}%")
+
+
+    return population
+
+
+def initialize_mutations(args) -> list[str]:
+
+    mutation_operators = multi_agent_system_mutation_prompts
+
+    return mutation_operators
+
 
 
 
 def main(args):
 
-    experiment = Experiment()
+    
 
     random.seed(args.shuffle_seed)
 
-    file_path = os.path.join(args.save_dir, f"{args.dataset_name}_{args.model}_results_run_archive.json")
-    
-    frameworks = initialize_gen_0_frameworks(experiment)
-
+    # Load the evaluation dataset
     multiple_choice_questions = load_eval_dataset(args)
-
-    with ThreadPoolExecutor(max_workers=18) as executor:
-        median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), frameworks), total=len(frameworks)))
-
-    print(f"Total accuracy for archive: {sum(median_percents) / len(median_percents) * 100}%")
-
-    
-
-    population = initialize_mutation_thinking_population(args)
 
 
     # Run MAP-Elites algorithm
 
-    # population = initialize_population(args)
+    population = initialize_population(args, multiple_choice_questions, initial_eval=False)
 
-    # mutation_operators = initialize_mutation_operators(args)
+    mutation_operators = initialize_mutations(args)
 
-    # for i in range(args.n_generation):
+    for i in range(args.n_generation):
 
-    #     # Randomly select an elite from the map
-    #     x = random_selection(population)
+        # Randomly select an elite from the map
+        x = random.choice(population.frameworks)
+        print(x)
 
-    #     # Randomly select a mutation operator
-    #     m = random_selection(mutation_operators)
+        # Randomly select a mutation operator
+        mutate = random.choice(mutation_operators)
+        print(mutate)
 
-    #     # Mutate the elite to greate a mutant
-    #     x_mutated = mutate(x, m)
+        # # Mutate the elite to greate a mutant
+        # x_mutated = mutate(x)
 
-    #     # Record the feature descriptors of the mutant
-    #     x_mutated.b = feature_descriptor(x_mutated)
+        # # Record the feature descriptors of the mutant
+        # x_mutated.b = feature_descriptor(x_mutated)
 
-    #     # Evaluate the fitness of the mutant
-    #     x_mutated.f = evaluate_fitness(x_mutated) 
+        # # Evaluate the fitness of the mutant
+        # x_mutated.f = evaluate_fitness(x_mutated) 
 
-    #     # Update the map with the mutant
-    #     population = update_map(population, x_mutated)
+        # # Update the map with the mutant
+        # population = update_map(population, x_mutated)
 
 
 

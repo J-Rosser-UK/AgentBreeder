@@ -82,7 +82,7 @@ def evaluate_framework(framework, multiple_choice_questions, args):
     with open(temp_file, "w") as f:
         f.write("import random\n")
         f.write("import pandas\n\n")
-        f.write(f"from agent import Agent, Meeting, Chat\n\n")
+        f.write(f"from base import Agent, Meeting, Chat\n\n")
         f.write("class AgentSystem:\n")
         f.write("    " + forward_function.replace("\n", "\n    "))  
 

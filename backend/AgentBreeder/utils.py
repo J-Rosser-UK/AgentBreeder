@@ -1,13 +1,7 @@
-import random
-import string
-from collections import namedtuple
+
 import ast
 import numpy as np
 import logging
-
-Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
-
-Example = namedtuple('Example', ['question', 'choice1', 'choice2', 'choice3', 'choice4', 'correct_index'])
 
 
 def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence_level=0.95):

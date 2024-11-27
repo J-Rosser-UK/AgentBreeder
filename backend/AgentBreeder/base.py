@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, JSON, ForeignKey, DateTime, Integer
+from sqlalchemy import Column, String, Float, JSON, ForeignKey, DateTime, Integer, Boolean
 import datetime
 from sqlalchemy.orm import declarative_base, relationship
 import uuid
@@ -111,7 +111,9 @@ class Framework(CustomBase):
     framework_code = CustomColumn(String, label="The code of the framework. Starting with def forward(self, task: str) -> str:")
     framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
     framework_generation = CustomColumn(Integer, label="The generation of the framework.")
-    experiment_id = CustomColumn(String, ForeignKey('experiment.experiment_id'), label="The experiment's unique identifier (UUID).")
+    population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
+    framework_is_elite = CustomColumn(Boolean, label="Whether the framework is an elite framework.")
+    framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
     ci_lower = CustomColumn(Float, label="")
     ci_upper = CustomColumn(Float, label="")
     ci_median = CustomColumn(Float, label="")
@@ -120,17 +122,19 @@ class Framework(CustomBase):
 
     # Relationships
     meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
-    experiment = relationship("Experiment", back_populates="frameworks")
+    population = relationship("Population", back_populates="frameworks")
 
 
-class Experiment(CustomBase):
-    __tablename__ = 'experiment'    
+class Population(CustomBase):
+    __tablename__ = 'population'    
 
-    experiment_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The experiment's unique identifier (UUID).")
-    experiment_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the experiment.")
+    population_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The population's unique identifier (UUID).")
+    population_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the population.")
 
     # Relationships
-    frameworks = relationship("Framework", back_populates="experiment", collection_class=AutoSaveList)
+    frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList)
+
+
 
 
 class Meeting(CustomBase):

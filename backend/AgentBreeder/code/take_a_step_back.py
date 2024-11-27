@@ -1,4 +1,4 @@
-from agent import Agent, Meeting, Chat
+from backend.AgentBreeder.base import Agent, Meeting, Chat
 
 class TakeAStepBackSystem:
     def forward(self, task: str) -> str:

@@ -1,6 +1,7 @@
 # Custom
 *.env
 *venv
+*.sql
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
