@@ -1,3 +1,20 @@
+"""
+because the
+work we build on comes from that community, here we adopt the
+language and metaphors of evolutionary computation. In that
+parlance, a solution is an organism or phenotype or individual, the
+organism is described by a genome or genotype, and the actions
+performed by that organism are the organism’s behavior. The performance or quality of a solution is called its fitness, and the equation, simulation, etc. that returns that fitness value is the fitness
+function. The way of stochastically producing new solutions is
+to take an existing solution and mutate its genome, meaning to
+change the genome in some random way, and or to produce a
+new solution descriptor by sampling portions of two parent descriptors, a process called crossover. Solutions that produce new
+offspring organisms are those that are selected, and such selection
+is typically biased towards solutions with higher fitness2
+.
+
+"""
+
 
 from agent import Agent, Meeting, Chat, Experiment, Framework
 import argparse
@@ -56,7 +73,7 @@ def initialize_gen_0_frameworks(experiment:Experiment)->list[Framework]:
 
 
 
-def main(args, session, Base):
+def main(args):
 
     experiment = Experiment()
 
@@ -73,53 +90,36 @@ def main(args, session, Base):
 
     print(f"Total accuracy for archive: {sum(median_percents) / len(median_percents) * 100}%")
 
-
+    
 
     population = initialize_mutation_thinking_population(args)
 
 
-    for g in range(1, args.n_generation+1):
+    # Run MAP-Elites algorithm
 
-        print(f"Generation {g}")
+    population = initialize_population(args)
 
-        for framework in frameworks:
+    mutation_operators = initialize_mutation_operators(args)
 
-        #     print(f"Framework: {framework.framework_name}")
+    for i in range(args.n_generation):
 
-        #     prompt = get_prompt(framework.framework_name, framework.framework_code, framework.framework_thought_process)
+        # Randomly select an elite from the map
+        x = random_selection(population)
 
-        #     # Get the reflexion prompt
-        #     reflexion_prompt = get_reflexion_prompt(framework.framework_name, framework.framework_code, framework.framework_thought_process)
+        # Randomly select a mutation operator
+        m = random_selection(mutation_operators)
 
-        #     # Get the response from the LLM
-        #     response = get_json_response_from_gpt_reflect(
-        #         messages=[
-        #             {"role": "system", "content": prompt},
-        #             {"role": "user", "content": reflexion_prompt}
-        #         ],
-        #         model=args.model
-        #     )
+        # Mutate the elite to greate a mutant
+        x_mutated = mutate(x, m)
 
-        #     # Save the response
-        #     framework.framework_code = response['code']
-        #     framework.framework_thought_process = response['thought']
-        #     framework.framework_generation = g
+        # Record the feature descriptors of the mutant
+        x_mutated.b = feature_descriptor(x_mutated)
 
-        #     time.sleep(1)
+        # Evaluate the fitness of the mutant
+        x_mutated.f = evaluate_fitness(x_mutated) 
 
-        # # Save the frameworks
-        # experiment.frameworks.extend(frameworks)
-
-        # # Get the next generation of frameworks
-        # frameworks = get_next_generation(frameworks)
-        
-            pass
-        pass
-
-    # print(frameworks)
-
-
-
+        # Update the map with the mutant
+        population = update_map(population, x_mutated)
 
 
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('--multiprocessing', action='store_true', default=True)
     parser.add_argument('--max_workers', type=int, default=48)
     parser.add_argument('--debug', action='store_true', default=True)
-    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/AgentBreeder/architectures/results')
+    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/AgentBreeder/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=30)
     parser.add_argument('--debug_max', type=int, default=3)
@@ -157,4 +157,4 @@ if __name__ == "__main__":
 
     
 
-    main(args, session, Base)
+    main(args)
