@@ -166,54 +166,25 @@ base = base.replace("{{get_json_response_from_gpt_code}}", get_json_response_fro
 base = base.replace("{{get_json_response_from_gpt_reflect_code}}", get_json_response_from_gpt_reflect_code)
 
 
-Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:"
-
-1. **Interestingness**: Assess whether your proposed architecture is interesting or innovative compared to existing methods in the archive. If you determine that the proposed architecture is not interesting, suggest a new architecture that addresses these shortcomings. 
-- Make sure to check the difference between the proposed architecture and previous attempts.
-- Compare the proposal and the architectures in the archive CAREFULLY, including their actual differences in the implementation.
-- Decide whether the current architecture is innovative.
-- USE CRITICAL THINKING!
-
-2. **Implementation Mistakes**: Identify any mistakes you may have made in the implementation. Review the code carefully, debug any issues you find, and provide a corrected version. REMEMBER checking "## WRONG Implementation examples" in the prompt.
-
-3. **Improvement**: Based on the proposed architecture, suggest improvements in the detailed implementation that could increase its performance or effectiveness. In this step, focus on refining and optimizing the existing implementation without altering the overall design framework, except if you want to propose a different architecture if the current is not interesting.
-- Observe carefully about whether the implementation is actually doing what it is supposed to do.
-- Check if there is redundant code or unnecessary steps in the implementation. Replace them with effective implementation.
-- Try to avoid the implementation being too similar to the previous agent.
-
-And then, you need to improve or revise the implementation, or implement the new proposed architecture based on the reflection.
-
-Your response should be organized as follows:
-
-"reflection": Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements.
-
-"thought": Revise your previous proposal or propose a new architecture if necessary, using the same format as the example response.
-
-"name": Provide a name for the revised or new architecture. (Don't put words like "new" or "improved" in the name.)
-
-"code": Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.
-"""
-
-Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section, revise the code further.
-Your response should be organized as follows:
-Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
-"""
 
 
 def get_init_archive():
     return [COT, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
 
 
-def get_prompt(adaptive=False):
+def get_base_prompt(adaptive=False):
     archive_str = ",\n".join([json.dumps(sol) for sol in get_init_archive()])
     archive_str = f"[{archive_str}]"
     prompt = base.replace("[ARCHIVE]", archive_str)
     prompt = prompt.replace("[EXAMPLE]", json.dumps(EXAMPLE))
 
-    return prompt
+    response_format = {
+            "thought": "The first key should be (thought), and it should capture your thought process for designing the next function. In the thought section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.",
+            "name": "The second key (name) corresponds to the name of your next agent architecture.",
+            "code": "Finally, the last key (code) corresponds to the exact forward() function in Python code that you would like to try. You must write a COMPLETE CODE in code: Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets."
+        }
+
+    return prompt, response_format
 
 
-def get_reflexion_prompt(prev_example):
-    prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
-    r1 = Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str) if prev_example else Reflexion_prompt_1.replace("[EXAMPLE]", "")
-    return r1, Reflexion_prompt_2
+

@@ -40,9 +40,6 @@ from tqdm import tqdm
 from mmlu_prompt import get_init_archive, get_prompt, get_reflexion_prompt
 
 from tqdm import tqdm
-
-
-
 import os
 from backend.AgentBreeder.base import initialize_session
 from eval import load_eval_dataset, evaluate_framework

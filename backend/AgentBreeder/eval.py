@@ -78,6 +78,28 @@ def evaluate_framework(framework, multiple_choice_questions, args):
     temp_file = f"{current_directory}/temp/agent_system_temp_{framework.framework_name}_{framework.framework_id}.py"
     forward_function = framework.framework_code
 
+    results_list = evaluate_forward_function(temp_file, multiple_choice_questions, forward_function)
+
+    confidence_level = 0.95
+    confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
+
+    framework.update(
+        ci_lower=ci_lower,
+        ci_upper=ci_upper,
+        ci_median=median,
+        ci_sample_size=len(results_list),
+        ci_confidence_level=confidence_level
+    )
+
+    logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
+
+    
+    
+
+    return median
+
+
+def evaluate_forward_function(forward_function, temp_file, multiple_choice_questions):
     # Write the complete AgentSystem class to the file, including the forward function
     with open(temp_file, "w") as f:
         f.write("import random\n")
@@ -104,24 +126,9 @@ def evaluate_framework(framework, multiple_choice_questions, args):
         else:
             results_list.append(0)
 
-    
-    confidence_level = 0.95
-    confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
-
-    framework.update(
-        ci_lower=ci_lower,
-        ci_upper=ci_upper,
-        ci_median=median,
-        ci_sample_size=len(results_list),
-        ci_confidence_level=confidence_level
-    )
-
-    logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
-
     # delete file at the end
     os.remove(temp_file)
-    
 
-    return median
+    return results_list
 
 
