@@ -87,22 +87,22 @@ def initialize_mutations(args) -> list[str]:
 
 def main(args):
 
-    
-
     random.seed(args.shuffle_seed)
+
+
+    # Initialize the mutation operators
+    mutation_operators = initialize_mutations(args)
 
     # Load the evaluation dataset
     multiple_choice_questions = load_eval_dataset(args)
 
-
-    # Run MAP-Elites algorithm
-
+    # Initialize the population
     population = initialize_population(args, multiple_choice_questions, initial_eval=False)
 
-    mutation_operators = initialize_mutations(args)
-
+    # Initialize the generator
     mutant_generator = Generator(args, population, mutation_operators, multiple_choice_questions)
 
+    # Begin Bayesian Illumination...
     for i in range(args.n_generation):
 
         
@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/AgentBreeder/data/mmlu_sample_3.csv")
+    parser.add_argument('--data_filename', type=str, default="/home/j/Documents/AgentBreeder/backend/data/mmlu_sample_3.csv")
     parser.add_argument('--valid_size', type=int, default=128)
     parser.add_argument('--test_size', type=int, default=800)
     parser.add_argument('--shuffle_seed', type=int, default=0)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('--multiprocessing', action='store_true', default=True)
     parser.add_argument('--max_workers', type=int, default=48)
     parser.add_argument('--debug', action='store_true', default=True)
-    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/AgentBreeder/results')
+    parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=30)
     parser.add_argument('--debug_max', type=int, default=3)

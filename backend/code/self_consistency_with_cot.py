@@ -1,4 +1,4 @@
-from backend.AgentBreeder.base import Agent, Meeting, Chat
+from backend.base import Agent, Meeting, Chat
 
 class SelfConsistencyCoT:
 

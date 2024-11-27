@@ -143,6 +143,7 @@ def evaluate_forward_function(forward_function, temp_file, multiple_choice_quest
 
     except Exception as e:
         raise AgentSystemException(f"Error evaluating framework: {e}")
+    
     return results_list
 
 

@@ -1,4 +1,4 @@
-from backend.AgentBreeder.base import Agent, Meeting, Chat
+from backend.base import Agent, Meeting, Chat
 
 class RoleAssignmentSystem:
     def forward(self, task: str) -> str:
