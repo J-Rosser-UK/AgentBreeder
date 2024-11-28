@@ -6,6 +6,7 @@ import os
 import backoff
 from typing_extensions import TypedDict
 from rich import print
+from chat import get_structured_json_response_from_gpt
 
 # Load environment variables
 load_dotenv(override=True)
@@ -13,7 +14,7 @@ load_dotenv(override=True)
 # Configure Gemini
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-def validate_response(response: str, expected_fields: set) -> dict:
+def validate_response(response: str, expected_fields: set, messages, response_format, model_name, temperature, retry) -> dict:
     """
     Validates and ensures all expected fields are present in the response.
     
@@ -38,7 +39,9 @@ def validate_response(response: str, expected_fields: set) -> dict:
                 
         return parsed
     except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON response: {response}")
+        # raise ValueError(f"Invalid JSON response: {response}")
+        logging.warning(f"Invalid JSON response: {response}, switching to openai")
+        return get_structured_json_response_from_gpt(messages, response_format, "gpt-4o-mini", temperature, retry)
 
 @backoff.on_exception(backoff.expo, Exception)
 def get_structured_json_response_from_gemini(
@@ -98,7 +101,7 @@ def get_structured_json_response_from_gemini(
         )
         
         # Validate and ensure all fields are present
-        validated_response = validate_response(result.text, set(response_format.keys()))
+        validated_response = validate_response(result.text, set(response_format.keys()), messages, response_format, model_name, temperature, retry)
         return validated_response
         
     except Exception as e:

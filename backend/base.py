@@ -32,7 +32,8 @@ class CustomBase(Base):
     __abstract__ = True
 
     def __init__(self, **kwargs):
-        super().__init__()
+        # Initialize the extra attributes dictionary first
+        self._extra_attrs = {}
 
         # Set default values for columns
         for column in self.__table__.columns:
@@ -50,23 +51,40 @@ class CustomBase(Base):
         session.add(self)
         session.commit()
 
+    def __getattr__(self, name):
+        # Check if the attribute exists in _extra_attrs
+        if '_extra_attrs' in self.__dict__ and name in self._extra_attrs:
+            return self._extra_attrs[name]
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name, value):
+        # Handle dynamically added attributes
+        if name not in self.__table__.columns and not name.startswith("_"):
+            if '_extra_attrs' not in self.__dict__:
+                self._extra_attrs = {}
+            self._extra_attrs[name] = value
+        else:
+            super().__setattr__(name, value)
 
     def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-    
+        # Include extra attributes in the dictionary representation
+        obj_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        obj_dict.update(getattr(self, "_extra_attrs", {}))
+        return obj_dict
+
     def __repr__(self):
         return str(self.to_dict())
-    
+
     def update(self, **kwargs):
         for attr, value in kwargs.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
+            setattr(self, attr, value)
         session = object_session(self)
         if session is None:
             # Handle the case where the object is not associated with a session
             session = initialize_session()[0]  # Obtain your session appropriately
             session.add(self)
         session.commit()
+
     
 
 

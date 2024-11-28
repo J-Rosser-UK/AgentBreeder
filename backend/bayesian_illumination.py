@@ -10,6 +10,9 @@ import os
 import uuid
 from eval import MultipleChoiceQuestion, AgentSystemException
 from rich import print
+from descriptor import Descriptor
+from eval import Evaluator
+from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 
 
 class Generator:
@@ -31,19 +34,43 @@ class Generator:
         load_from_database(): Loads a set of molecules from the initial data database.
     """
 
-    def __init__(self, args, population, mutation_operators, multiple_choice_questions:list[MultipleChoiceQuestion]) -> None:
+    def __init__(self, args, mutation_operators, multiple_choice_questions:list[MultipleChoiceQuestion]) -> None:
         """
         Initializes the Generator with the given configuration.
 
         Args:
             config: Configuration object containing settings for the Generator.
         """
-        self.population = population
-        self.mutation_operators = mutation_operators
+        self.population = self.initialize_population()
+        self.mutation_operators = multi_agent_system_mutation_prompts
         self.multiple_choice_questions = multiple_choice_questions
         # self.crossover = Crossover(args)
-        self.mutator = Mutator(args, population, mutation_operators, multiple_choice_questions)
+        self.mutator = Mutator(args, self.population, mutation_operators, multiple_choice_questions)
         self.batch_size = 1
+        self.descriptor = Descriptor()
+        self.evaluator = Evaluator(args)
+
+        
+    def initialize_population(self) -> Population:
+        """Initialize the first generation of frameworks for the population."""
+
+        archive = get_init_archive()
+
+        population = Population()
+
+        for framework in archive:
+            population.frameworks.append(Framework(
+                framework_name=framework['name'],
+                framework_code=framework['code'],
+                framework_thought_process=framework['thought'],
+                framework_generation=0,
+                population=population
+            ))
+
+        for framework in population.frameworks:
+            framework.update(framework_fitness = 0.5)
+
+        return population
 
     def __call__(self) -> Framework:
         """
@@ -55,12 +82,17 @@ class Generator:
         population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)] #TODO: sample from elites
         population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
         for framework in population_samples:
-            mutant = self.mutator(framework)
-            if mutant is not None:
-                self.population.frameworks.append(mutant)
+            mutant_framework = self.mutator(framework)
+            if mutant_framework is not None:
+                
+                mutant_framework.update(framework_fitness = self.evaluator.evaluate(mutant_framework))
+                mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
+
+                self.population.frameworks.append(mutant_framework)
+
         # for population_pair in population_sample_pairs:
         #     population.frameworks.extend(self.crossover(population_pair))
-        return mutant
+        return mutant_framework
 
 
 

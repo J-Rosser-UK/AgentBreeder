@@ -42,47 +42,9 @@ from prompts.mutation_base import get_init_archive
 from tqdm import tqdm
 import os
 from base import initialize_session
-from eval import load_eval_dataset, evaluate_framework
-
-from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 
 from bayesian_illumination import Generator
-from descriptor import Descriptor, Clusterer, Visualizer
-
-
-def initialize_population(args, multiple_choice_questions, initial_eval=True)->Population:
-    """Initialize the first generation of frameworks for the population."""
-
-    archive = get_init_archive()
-
-    population = Population()
-
-    for framework in archive:
-        population.frameworks.append(Framework(
-            framework_name=framework['name'],
-            framework_code=framework['code'],
-            framework_thought_process=framework['thought'],
-            framework_generation=0,
-            population=population
-        ))
-
-    if initial_eval == True:
-
-        with ThreadPoolExecutor(max_workers=18) as executor:
-            median_percents = list(tqdm(executor.map(lambda framework: evaluate_framework(framework, multiple_choice_questions, args), population), total=len(population)))
-
-        print(f"Total accuracy for population: {sum(median_percents) / len(median_percents) * 100}%")
-
-
-    return population
-
-
-def initialize_mutations(args) -> list[str]:
-
-    mutation_operators = multi_agent_system_mutation_prompts
-
-    return mutation_operators
-
+from descriptor import Clusterer, Visualizer
 
 
 
@@ -90,46 +52,33 @@ def main(args):
 
     random.seed(args.shuffle_seed)
 
-
-    mutation_operators = initialize_mutations(args)
-
- 
-    multiple_choice_questions = load_eval_dataset(args)
-
-
-    population = initialize_population(args, multiple_choice_questions, initial_eval=False)
-
-
-    mutant_generator = Generator(args, population, mutation_operators, multiple_choice_questions)
-
-
-    descriptor = Descriptor()
-
+    mutant_generator = Generator(args)
 
     clusterer = Clusterer()
 
+    visualizer = Visualizer()
+
     # Begin Bayesian Illumination...
-    for i in range(args.n_generation):
+    for i in tqdm(range(args.n_generation), desc="Generations"):
 
         novel_mutant_frameworks: list[Framework] = []
 
-        for m in range(args.n_mutations):
+        for m in tqdm(range(args.n_mutations), desc="Mutations"):
 
-        
             mutant_framework = mutant_generator()
 
             if not mutant_framework:
-                continue
-
-            print(mutant_framework.framework_code)
-
-            mutant_framework.framework_fitness = evaluate_framework(mutant_framework, multiple_choice_questions, args)
-            mutant_framework.framework_descriptor = descriptor.generate(mutant_framework)
+                return novel_mutant_frameworks
 
             novel_mutant_frameworks.append(mutant_framework)
 
         # Recluster the population
-        clusterer.cluster(population)
+        clusterer.cluster(mutant_generator.population)
+
+        visualizer.plot(mutant_generator.population)
+
+
+        
 
 
 

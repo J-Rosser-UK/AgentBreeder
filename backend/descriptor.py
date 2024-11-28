@@ -4,6 +4,8 @@ import hdbscan
 
 import umap
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb
+from matplotlib.colors import Normalize
 from base import Framework, Population, Cluster, initialize_session
 from prompts.mutation_base import get_init_archive
 from concurrent.futures import ThreadPoolExecutor
@@ -33,7 +35,7 @@ class Descriptor:
 
 
 class Clusterer:
-    
+
     def __init__(self, min_cluster_size=3, min_samples=1, metric="euclidean"):
         self.clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric=metric)
 
@@ -61,31 +63,40 @@ class Clusterer:
 
 
 class Visualizer:
-    def __init__(self, n_components=5, random_state=42):
+    
+    def __init__(self, n_components=2, random_state=42):
         self.reducer = umap.UMAP(n_components=n_components, random_state=random_state)
-
-
-
-    def plot(self, embeddings, labels):
         
-        # Normalize RGB values between 0 and 1
+    def plot(self, population):
+        # Extract embeddings and labels
+        embeddings = [framework.framework_descriptor for framework in population.frameworks]
+        labels = [framework.cluster_id for framework in population.frameworks]
+        
+        # Map non-numeric labels to numeric values
+        unique_labels = list(set(labels))
+        label_to_numeric = {label: i for i, label in enumerate(unique_labels)}
+        numeric_labels = [label_to_numeric[label] for label in labels]
+
+        
+        # Reduce dimensions with UMAP
         reduced_embeddings = self.reducer.fit_transform(embeddings)
-
-        # Step 2: Separate the reduced dimensions into RGB and spatial (x, y)
-        rgb_values = reduced_embeddings[:, :3]  # First three dimensions for RGB
-        xy_values = reduced_embeddings[:, 3:5]  # Last two dimensions for x and y
-
-        # Normalize RGB values between 0 and 1
-        rgb_normalized = (rgb_values - np.min(rgb_values, axis=0)) / (np.ptp(rgb_values, axis=0))
-
-        # Step 3: Plot the points
-        plt.figure(figsize=(8, 8))
-        plt.scatter(xy_values[:, 0], xy_values[:, 1], c=rgb_normalized, s=50, alpha=0.7)
-        plt.title("UMAP Dimensionality Reduction with RGB and Spatial Visualization")
-        plt.xlabel("UMAP Dimension 1 (x)")
-        plt.ylabel("UMAP Dimension 2 (y)")
-        plt.colorbar(label="Cluster RGB Intensity (Normalized)")
-        plt.grid(True)
+        
+        # Create scatter plot with colors for clusters
+        plt.figure(figsize=(10, 8))
+        scatter = plt.scatter(
+            reduced_embeddings[:, 0], 
+            reduced_embeddings[:, 1], 
+            c=numeric_labels, 
+            cmap='tab10',  # A colormap for discrete clusters
+            s=50,  # Size of points
+            alpha=0.8
+        )
+        
+        # Add a colorbar to interpret cluster IDs
+        plt.colorbar(scatter, label='Cluster ID')
+        plt.title('Cluster Visualization with UMAP', fontsize=14)
+        plt.xlabel('UMAP Dimension 1')
+        plt.ylabel('UMAP Dimension 2')
         plt.show()
 
 
@@ -127,9 +138,7 @@ if __name__ == "__main__":
     # Create a visualizer object
     visualizer = Visualizer()
 
-    # Get the embeddings for the frameworks
-    embeddings = [framework.framework_descriptor for framework in population.frameworks]
 
 
     # Plot the reduced embeddings with cluster colors
-    visualizer.plot(embeddings, labels)
+    visualizer.plot(population)
