@@ -16,21 +16,26 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.session import object_session
 from gemini import get_structured_json_response_from_gemini
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
+
+
 Base = declarative_base()
+# Create engine and Base
+current_dir = os.path.dirname(os.path.abspath(__file__))
+engine = create_engine(f'sqlite:///{current_dir}/chat_database.db', connect_args={"check_same_thread": False})
 
-def initialize_session():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    engine = create_engine(f'sqlite:///{current_dir}/chat_database.db')
-    session_factory = sessionmaker(bind=engine)
-    session = scoped_session(session_factory)
-    Base.metadata.create_all(engine)
-    return session, Base
 
+
+
+# Session factory
+SessionFactory = sessionmaker(bind=engine)
 
 class CustomBase(Base):
     __abstract__ = True
 
-    def __init__(self, **kwargs):
+    def __init__(self, session, **kwargs):
         # Initialize the extra attributes dictionary first
         self._extra_attrs = {}
 
@@ -39,18 +44,15 @@ class CustomBase(Base):
             if column.default is not None:
                 if column.default.is_scalar:
                     setattr(self, column.name, column.default.arg)
-                elif isinstance(column.type, DateTime):
+                elif isinstance(column.type, datetime.datetime):
                     setattr(self, column.name, datetime.datetime.utcnow())
 
         # Override with any provided values
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-        session = object_session(self)
-        if session is None:
-            # Handle the case where the object is not associated with a session
-            session = initialize_session()[0]  # Obtain your session appropriately
-            session.add(self)
+        # Add self to the session and commit
+        session.add(self)
         session.commit()
 
     def __getattr__(self, name):
@@ -74,19 +76,11 @@ class CustomBase(Base):
         obj_dict.update(getattr(self, "_extra_attrs", {}))
         return obj_dict
 
-    def __repr__(self):
-        return str(self.to_dict())
-
-    def update(self, **kwargs):
+    def update(self, session, **kwargs):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
-        session = object_session(self)
-        if session is None:
-            # Handle the case where the object is not associated with a session
-            session = initialize_session()[0]  # Obtain your session appropriately
-            session.add(self)
+        session.add(self)
         session.commit()
-
     
 
 
@@ -100,11 +94,9 @@ class AutoSaveList(list):
 
     def extend(self, items):
         super().extend(items)
-
         session = object_session(items[0])
-        session.add(items)
+        session.add_all(items)
         session.commit()
-
 
 class CustomColumn(Column):
     def __init__(self, *args, label=None, **kwargs):
@@ -122,8 +114,8 @@ class Chat(CustomBase):
     chat_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the chat.")
 
     # Relationships
-    agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
-    meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
+    agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList, lazy="joined")
+    meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList, lazy="joined")
 
 class Cluster(CustomBase):
     __tablename__ = 'cluster'
@@ -180,7 +172,7 @@ class Framework(CustomBase):
     
 
     # Relationships
-    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
+    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList, lazy="joined")
     population = relationship("Population", back_populates="frameworks")
 
 
@@ -191,7 +183,7 @@ class Population(CustomBase):
     population_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the population.")
 
     # Relationships
-    frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList)
+    frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList, lazy="joined")
 
 
 
@@ -206,11 +198,11 @@ class Meeting(CustomBase):
 
     # Relationships
     framework = relationship("Framework", back_populates="meetings")
-    chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList)
+    chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList, lazy="joined")
     agents = relationship("Agent", 
                            secondary="agents_by_meeting",
                            back_populates="meetings", 
-                           collection_class=AutoSaveList)
+                           collection_class=AutoSaveList, lazy="joined")
 
 
 
@@ -232,13 +224,13 @@ class Agent(CustomBase):
     agent_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the agent's creation.")
 
     # Relationships
-    chats = relationship("Chat", back_populates="agent", collection_class=AutoSaveList)
+    chats = relationship("Chat", back_populates="agent", collection_class=AutoSaveList, lazy="joined")
     meetings = relationship("Meeting",
                           secondary="agents_by_meeting",
-                          back_populates="agents", collection_class=AutoSaveList)
+                          back_populates="agents", collection_class=AutoSaveList, lazy="joined")
 
-    def __init__(self, agent_name, model='gpt-4o-mini', temperature=0.5):
-        super().__init__(agent_name=agent_name, model=model, temperature=temperature)
+    def __init__(self, session, agent_name, model='gpt-4o-mini', temperature=0.5):
+        super().__init__(session, agent_name=agent_name, model=model, temperature=temperature)
         characters = string.ascii_letters + string.digits  # includes both upper/lower case letters and numbers
         random_id = ''.join(random.choices(characters, k=4))
         self.agent_name = agent_name + " " + random_id
@@ -297,54 +289,18 @@ class Agent(CustomBase):
     
 
 
-if __name__ == '__main__':
+# Create tables
+Base.metadata.create_all(engine)
+print(Base.metadata.tables.keys())
+# dict_keys([])
 
-    
 
-  
 
-    task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
+def initialize_session():
+    """
+    Returns a new thread-safe session.
+    """
+    
+    return SessionFactory(), Base
 
-    # Create a system agent to provide instructions
-    system = Agent(
-        agent_name='system',
-        temperature=0.8
-    )
-    
-    # Create the Chain-of-Thought agent
-    cot_agent = Agent(
-        agent_name='Chain-of-Thought Agent',
-        temperature=0.7
-    )
-    
-    # Setup meeting
-    meeting = Meeting(meeting_name="chain-of-thought")
-
-    # Add agents to meeting e.g. populate the agents_by_meeting table
-    meeting.agents.extend([system, cot_agent])
-    
-    # Add system instruction
-    meeting.chats.append(
-        Chat(
-            agent=system, 
-            content=f"Please think step by step and then solve the task: {task}"
-        )
-    )
-    
-    # Get response from COT agent
-    output = cot_agent.forward(
-        response_format={
-            "thinking": "Your step by step thinking.",
-            "answer": "A single letter, A, B, C or D."
-        }
-    )
-    
-    # Record the agent's response in the meeting
-    meeting.chats.append(
-        Chat(
-            agent=cot_agent, 
-            content=output["thinking"]
-        )
-    )
-    
-    print(output["answer"])
+initialize_session()
