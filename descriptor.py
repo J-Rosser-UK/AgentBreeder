@@ -6,11 +6,13 @@ import umap
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb
 from matplotlib.colors import Normalize
-from base import Framework, Population, Cluster, initialize_session
+from base import Framework, Population, Cluster, initialize_session, Generation
 from prompts.mutation_base import get_init_archive
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+import uuid
 
+from sqlalchemy.orm import object_session
 import logging
 
 from dotenv import load_dotenv
@@ -41,7 +43,26 @@ class Clusterer:
 
     def cluster(self, population: Population):
 
+        session = object_session(population)
+
+        generation = Generation(session=session, population_id=population.population_id)
+
         embeddings = [framework.framework_descriptor for framework in population.frameworks]
+        
+        mode_framework_shape = np.shape(embeddings[0])[0] 
+
+        # Set any wrong ones to the median shape of zeros
+        for i, descriptor in enumerate(embeddings):
+            if not descriptor or len(descriptor) != mode_framework_shape:
+                embeddings[i] = np.zeros((int(mode_framework_shape),))
+
+        for i, descriptor in enumerate(embeddings):
+            print(f"Framework {i} descriptor shape: {np.shape(descriptor)}")
+
+        embeddings = np.array(embeddings, dtype=np.float32)
+        print(f"Embeddings shape: {embeddings.shape}")
+
+
         labels = self.clusterer.fit_predict(embeddings)
 
         
@@ -50,11 +71,13 @@ class Clusterer:
 
         if len(unique_labels) < 10:
             for framework in population.frameworks:
-                cluster = Cluster()
+                cluster = Cluster(session=session, generation_id=generation.generation_id, population_id=population.population_id)
+                population.clusters.append(cluster)
                 framework.update(cluster_id = cluster.cluster_id)
         else:
             for label in unique_labels:
-                cluster = Cluster()
+                cluster = Cluster(session=session, generation_id=generation.generation_id, population_id=population.population_id)
+                population.clusters.append(cluster)
                 for i, framework in enumerate(population.frameworks):
                     if labels[i] == label:
                         framework.update(cluster_id = cluster.cluster_id)
@@ -70,6 +93,18 @@ class Visualizer:
     def plot(self, population):
         # Extract embeddings and labels
         embeddings = [framework.framework_descriptor for framework in population.frameworks]
+        mode_framework_shape = np.shape(embeddings[0])[0] 
+
+        # Set any wrong ones to the median shape of zeros
+        for i, descriptor in enumerate(embeddings):
+            if not descriptor or len(descriptor) != mode_framework_shape:
+                embeddings[i] = np.zeros((int(mode_framework_shape),))
+
+        for i, descriptor in enumerate(embeddings):
+            print(f"Framework {i} descriptor shape: {np.shape(descriptor)}")
+
+        embeddings = np.array(embeddings, dtype=np.float32)
+        print(f"Embeddings shape: {embeddings.shape}")
         labels = [framework.cluster_id for framework in population.frameworks]
         
         # Map non-numeric labels to numeric values

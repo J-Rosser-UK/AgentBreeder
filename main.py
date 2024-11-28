@@ -36,7 +36,7 @@ def main(args):
 
     visualizer = Visualizer()
 
-    evaluator = Evaluator()
+    evaluator = Evaluator(args)
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
@@ -50,25 +50,20 @@ def main(args):
         
         session, Base = initialize_session()
 
+        # population_id = "de6326a9-95a7-4e19-bff6-5bb191ab1c25"
+
         # Get a list of frameworks where the framework_fitness is None
         frameworks_for_evaluation = session.query(Framework).filter_by(
             population_id=population_id,
             framework_fitness=None
         ).all()
 
-        
+        print("Frameworks for evaluation: ", len(frameworks_for_evaluation))
 
 
-        
-
-        with ThreadPoolExecutor(max_workers=20) as executor:
-            list(tqdm(executor.map(lambda _: evaluator.evaluate(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
-
-        
+        evaluator.async_evaluate(frameworks_for_evaluation)
 
 
-
-        
         # Re-load the population object in this session
         population = session.query(Population).filter_by(
             population_id=population_id
@@ -77,7 +72,7 @@ def main(args):
         # Recluster the population
         clusterer.cluster(population)
 
-        visualizer.plot(population)
+        # visualizer.plot(population)
 
         session.close()
 
@@ -101,8 +96,8 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', default=True)
     parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
-    parser.add_argument('--n_generation', type=int, default=1)
-    parser.add_argument('--n_mutations', type=int, default=10)
+    parser.add_argument('--n_generation', type=int, default=5)
+    parser.add_argument('--n_mutations', type=int, default=2)
     parser.add_argument('--debug_max', type=int, default=3)
     parser.add_argument('--model', type=str, default='gpt-4o-mini')
     parser.add_argument('-mp', '--num_mutation_prompts', default=2)     

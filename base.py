@@ -120,6 +120,12 @@ class Cluster(CustomBase):
     cluster_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the cluster.")
     cluster_name = CustomColumn(String, label="The name of the cluster.")
     cluster_description = CustomColumn(String, label="The description of the cluster.")
+    generation_id = CustomColumn(String, ForeignKey('generation.generation_id'), label="The generation's unique identifier (UUID).")
+    population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
+
+    # Relationships
+    population = relationship("Population", back_populates="clusters", collection_class=AutoSaveList)
+    generation = relationship("Generation", back_populates="clusters", collection_class=AutoSaveList)
 
 
     @property
@@ -172,6 +178,18 @@ class Framework(CustomBase):
     population = relationship("Population", back_populates="frameworks", collection_class=AutoSaveList)
 
 
+class Generation(CustomBase):
+    __tablename__ = 'generation'
+
+    generation_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The generation's unique identifier (UUID).")
+    generation_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the generation.")
+    population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
+
+    # Relationships
+    population = relationship("Population", back_populates="generations", collection_class=AutoSaveList)
+    clusters = relationship("Cluster", back_populates="generation", collection_class=AutoSaveList)
+
+
 class Population(CustomBase):
     __tablename__ = 'population'    
 
@@ -180,7 +198,23 @@ class Population(CustomBase):
 
     # Relationships
     frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList)
+    clusters = relationship("Cluster", back_populates="population", collection_class=AutoSaveList)
+    generations = relationship("Generation", back_populates="population", collection_class=AutoSaveList)
 
+    @property
+    def elites(self) -> list[Framework]:
+        """ Returns from the most recent generation the elites from each cluster. """
+        # Find most recent generation
+        generation = self.generations[-1]
+
+        print(generation.generation_id)
+        
+        # Find the elites from each cluster
+        elites = [cluster.elite for cluster in generation.clusters]
+
+        print(elites)
+
+        return elites
 
 
 

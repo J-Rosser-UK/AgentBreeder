@@ -75,8 +75,8 @@ class Generator:
         
 
 
-        population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)] #TODO: sample from elites
-        population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
+        population_samples = [random.choice(self.population.elites) for _ in range(self.batch_size)] #TODO: sample from elites
+        population_sample_pairs = [(random.choice(self.population.elites), random.choice(self.population.elites)) for _ in range(self.batch_size)]
         for framework in population_samples:
 
             try:
@@ -87,7 +87,7 @@ class Generator:
             if mutant_framework is not None:
                 try:
                 
-                    mutant_framework.update(framework_fitness = self.evaluator.evaluate(self.session, mutant_framework))
+                    # mutant_framework.update(framework_fitness = self.evaluator.evaluate(self.session, mutant_framework))
                     mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
 
                     self.population.frameworks.append(mutant_framework)
@@ -227,14 +227,13 @@ def initialize_population_id(args) -> str:
         population.frameworks.append(framework)
 
 
-    evaluator = Evaluator(args)
+    # evaluator = Evaluator(args)
 
-    evaluator.async_evaluate(population.frameworks)
+    # evaluator.async_evaluate(population.frameworks)
 
-    assert 1 == 2
-
-    # for framework in population.frameworks:
-    #     framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
+   
+    for framework in population.frameworks:
+        framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
 
 
     return str(population.population_id)    
