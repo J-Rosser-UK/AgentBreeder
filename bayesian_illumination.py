@@ -14,7 +14,8 @@ from evaluator import Evaluator
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 
 def generate_mutant(args, population_id):
-    generator = Generator(args, population_id)
+    session, Base = initialize_session()
+    generator = Generator(args, session, population_id)
     mutant_framework = generator()
     return mutant_framework
 
@@ -38,19 +39,19 @@ class Generator:
         load_from_database(): Loads a set of molecules from the initial data database.
     """
 
-    def __init__(self, args, population_id) -> None:
+    def __init__(self, args, session, population_id) -> None:
         """
         Initializes the Generator with the given configuration.
 
         Args:
             config: Configuration object containing settings for the Generator.
         """
-        
+        self.session = session
         self.mutation_operators = multi_agent_system_mutation_prompts
 
-        session, Base = initialize_session()
+        
         # self.crossover = Crossover(args)
-        self.population = session.query(Population).filter_by(
+        self.population = self.session.query(Population).filter_by(
             population_id=population_id
         ).one()
 
@@ -59,7 +60,7 @@ class Generator:
         self.batch_size = 1
         self.descriptor = Descriptor()
         self.evaluator = Evaluator(args)
-        self.mutator = Mutator(args, self.population, self.mutation_operators, self.evaluator)
+        self.mutator = Mutator(args, session, self.population, self.mutation_operators, self.evaluator)
 
         
     
@@ -102,7 +103,7 @@ class Mutator:
         __init__(mutation_data): Initializes the Mutator with the given mutation data.
         __call__(molecule): Applies a mutation to a given molecule and returns the resulting molecules.
     """
-    def __init__(self, args, population, mutation_operators, evaluator) -> None:
+    def __init__(self, args, session, population, mutation_operators, evaluator) -> None:
         """
         Initializes the Mutator with the given mutation data.
 
@@ -112,6 +113,7 @@ class Mutator:
         self.mutation_operators = mutation_operators
         self.args = args
         self.evaluator = evaluator
+        self.session = session
      
 
     def __call__(self, framework: Framework) -> List[Framework]:
@@ -170,7 +172,7 @@ class Mutator:
         temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
         for _ in range(self.args.debug_max):
             try:
-                acc_list = self.evaluator.evaluate_forward_function(next_response["code"], temp_file, batch_size=1)
+                acc_list = self.evaluator.evaluate_forward_function(self.session, next_response["code"], temp_file, batch_size=1)
 
                 mutated_framework = Framework(
                     framework_name=next_response["name"],
@@ -200,16 +202,18 @@ def initialize_population_id() -> str:
 
     archive = get_init_archive()
 
-    population = Population()
+    population = Population(session=session)
 
     for framework in archive:
-        population.frameworks.append(Framework(
+        framework = Framework(
+            session=session,
             framework_name=framework['name'],
             framework_code=framework['code'],
             framework_thought_process=framework['thought'],
             framework_generation=0,
             population=population
-        ))
+        )
+        population.frameworks.append(framework)
 
     for framework in population.frameworks:
         framework.update(framework_fitness = 0.5)

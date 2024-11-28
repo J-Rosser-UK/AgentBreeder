@@ -35,7 +35,7 @@ SessionFactory = sessionmaker(bind=engine)
 class CustomBase(Base):
     __abstract__ = True
 
-    def __init__(self, session, **kwargs):
+    def __init__(self, session=None, **kwargs):
         # Initialize the extra attributes dictionary first
         self._extra_attrs = {}
 
@@ -51,24 +51,12 @@ class CustomBase(Base):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-        # Add self to the session and commit
-        session.add(self)
-        session.commit()
+        if session:
+            self.session = session
+            # Add self to the session and commit
+            session.add(self)
+            session.commit()
 
-    # def __getattr__(self, name):
-    #     # Check if the attribute exists in _extra_attrs
-    #     if '_extra_attrs' in self.__dict__ and name in self._extra_attrs:
-    #         return self._extra_attrs[name]
-    #     raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-
-    # def __setattr__(self, name, value):
-    #     # Handle dynamically added attributes
-    #     if name not in self.__table__.columns and not name.startswith("_"):
-    #         if '_extra_attrs' not in self.__dict__:
-    #             self._extra_attrs = {}
-    #         self._extra_attrs[name] = value
-    #     else:
-    #         super().__setattr__(name, value)
 
     def to_dict(self):
         # Include extra attributes in the dictionary representation
@@ -76,15 +64,13 @@ class CustomBase(Base):
         obj_dict.update(getattr(self, "_extra_attrs", {}))
         return obj_dict
 
-    def update(self, session, **kwargs):
+    def update(self, **kwargs):
+        session = object_session(self)
         for attr, value in kwargs.items():
             setattr(self, attr, value)
         session.add(self)
         session.commit()
     
-
-
-
 class AutoSaveList(list):
     def append(self, item):
         super().append(item)
@@ -173,7 +159,7 @@ class Framework(CustomBase):
 
     # Relationships
     meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
-    population = relationship("Population", back_populates="frameworks")
+    population = relationship("Population", back_populates="frameworks", collection_class=AutoSaveList)
 
 
 class Population(CustomBase):

@@ -1,7 +1,4 @@
-from base import initialize_session
-from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy.orm import Session
-import threading
 from base import Agent, Meeting, Chat
 
 class Wrapper:
@@ -13,7 +10,7 @@ class Wrapper:
         kwargs['session'] = self.session
         return self.cls(*args, **kwargs)
 
-class Debate:
+class AgentSystem:
     def __init__(self, session: Session):
         self.Agent = Wrapper(Agent, session)
         self.Meeting = Wrapper(Meeting, session)
@@ -69,13 +66,18 @@ class Debate:
 
         return output["answer"]
 
-def run_task():
-    session, Base = initialize_session()
-    debate_instance = Debate(session)
-    task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
-    return debate_instance.forward(task)
+
 
 if __name__ == '__main__':
+    from base import initialize_session
+    import threading
+
+    from concurrent.futures import ThreadPoolExecutor
+    def run_task():
+        session, Base = initialize_session()
+        debate_instance = AgentSystem(session)
+        task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
+        return debate_instance.forward(task)
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(run_task) for _ in range(10)]
         for future in futures:

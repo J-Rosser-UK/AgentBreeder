@@ -78,7 +78,7 @@ class Evaluator:
 
         
 
-    def evaluate(self, framework):
+    def evaluate(self, session, framework):
         
         # Create a new session for this thread
         logging.info(f"Evaluating framework: {framework.framework_name}")
@@ -88,7 +88,7 @@ class Evaluator:
         temp_file = f"{current_directory}/temp/agent_system_temp_{framework.framework_name}_{framework.framework_id}.py"
         forward_function = framework.framework_code
 
-        results_list = self.evaluate_forward_function(temp_file, self.multiple_choice_questions, forward_function)
+        results_list = self.evaluate_forward_function(session, temp_file, self.multiple_choice_questions, forward_function)
 
         confidence_level = 0.95
         confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
@@ -107,8 +107,10 @@ class Evaluator:
 
 
     
-    def evaluate_forward_function(self, forward_function, temp_file, batch_size = 2**10) -> list[int]:
+    def evaluate_forward_function(self, session, forward_function, temp_file, batch_size = 2**10) -> list[int]:
         
+       
+
         try:
         
             # Write the complete AgentSystem class to the file, including the forward function
@@ -116,7 +118,13 @@ class Evaluator:
                 f.write("import random\n")
                 f.write("import pandas\n\n")
                 f.write(f"from base import Agent, Meeting, Chat\n\n")
+                f.write(f"from sqlalchemy import Session\n\n")
                 f.write("class AgentSystem:\n")
+                f.write("    def __init__(self, session: Session):\n")
+                f.write("        self.Agent = Wrapper(Agent, session)\n")
+                f.write("        self.Meeting = Wrapper(Meeting, session)\n")
+                f.write("        self.Chat = Wrapper(Chat, session)\n")
+                f.write("        self.session = session\n\n")
                 f.write("    " + forward_function.replace("\n", "\n    "))
                 f.write("\n\n")
                 f.write("if __name__ == '__main__':\n")
@@ -135,7 +143,7 @@ class Evaluator:
 
             results_list = []
             for question in self.multiple_choice_questions[0: batch_size]:
-                agentSystem = AgentSystem()
+                agentSystem = AgentSystem(session)
 
                 task = self.format_question(question)
                 agent_framework_answer = agentSystem.forward(task)
