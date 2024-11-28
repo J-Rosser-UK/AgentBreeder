@@ -44,7 +44,7 @@ class CustomBase(Base):
             if column.default is not None:
                 if column.default.is_scalar:
                     setattr(self, column.name, column.default.arg)
-                elif isinstance(column.type, datetime.datetime):
+                elif isinstance(column.type, DateTime):
                     setattr(self, column.name, datetime.datetime.utcnow())
 
         # Override with any provided values
@@ -55,20 +55,20 @@ class CustomBase(Base):
         session.add(self)
         session.commit()
 
-    def __getattr__(self, name):
-        # Check if the attribute exists in _extra_attrs
-        if '_extra_attrs' in self.__dict__ and name in self._extra_attrs:
-            return self._extra_attrs[name]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    # def __getattr__(self, name):
+    #     # Check if the attribute exists in _extra_attrs
+    #     if '_extra_attrs' in self.__dict__ and name in self._extra_attrs:
+    #         return self._extra_attrs[name]
+    #     raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
-    def __setattr__(self, name, value):
-        # Handle dynamically added attributes
-        if name not in self.__table__.columns and not name.startswith("_"):
-            if '_extra_attrs' not in self.__dict__:
-                self._extra_attrs = {}
-            self._extra_attrs[name] = value
-        else:
-            super().__setattr__(name, value)
+    # def __setattr__(self, name, value):
+    #     # Handle dynamically added attributes
+    #     if name not in self.__table__.columns and not name.startswith("_"):
+    #         if '_extra_attrs' not in self.__dict__:
+    #             self._extra_attrs = {}
+    #         self._extra_attrs[name] = value
+    #     else:
+    #         super().__setattr__(name, value)
 
     def to_dict(self):
         # Include extra attributes in the dictionary representation
@@ -114,8 +114,8 @@ class Chat(CustomBase):
     chat_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the chat.")
 
     # Relationships
-    agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList, lazy="joined")
-    meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList, lazy="joined")
+    agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
+    meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
 
 class Cluster(CustomBase):
     __tablename__ = 'cluster'
@@ -172,7 +172,7 @@ class Framework(CustomBase):
     
 
     # Relationships
-    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList, lazy="joined")
+    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
     population = relationship("Population", back_populates="frameworks")
 
 
@@ -183,7 +183,7 @@ class Population(CustomBase):
     population_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the population.")
 
     # Relationships
-    frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList, lazy="joined")
+    frameworks = relationship("Framework", back_populates="population", collection_class=AutoSaveList)
 
 
 
@@ -198,11 +198,11 @@ class Meeting(CustomBase):
 
     # Relationships
     framework = relationship("Framework", back_populates="meetings")
-    chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList, lazy="joined")
+    chats = relationship("Chat", back_populates="meeting", collection_class=AutoSaveList)
     agents = relationship("Agent", 
                            secondary="agents_by_meeting",
                            back_populates="meetings", 
-                           collection_class=AutoSaveList, lazy="joined")
+                           collection_class=AutoSaveList)
 
 
 
@@ -224,10 +224,10 @@ class Agent(CustomBase):
     agent_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the agent's creation.")
 
     # Relationships
-    chats = relationship("Chat", back_populates="agent", collection_class=AutoSaveList, lazy="joined")
+    chats = relationship("Chat", back_populates="agent", collection_class=AutoSaveList)
     meetings = relationship("Meeting",
                           secondary="agents_by_meeting",
-                          back_populates="agents", collection_class=AutoSaveList, lazy="joined")
+                          back_populates="agents", collection_class=AutoSaveList)
 
     def __init__(self, session, agent_name, model='gpt-4o-mini', temperature=0.5):
         super().__init__(session, agent_name=agent_name, model=model, temperature=temperature)
