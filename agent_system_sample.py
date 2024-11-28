@@ -1,14 +1,7 @@
 from sqlalchemy.orm import Session
-from base import Agent, Meeting, Chat
+from base import Agent, Meeting, Chat, Wrapper
 
-class Wrapper:
-    def __init__(self, cls, session: Session):
-        self.cls = cls
-        self.session = session
 
-    def __call__(self, *args, **kwargs):
-        kwargs['session'] = self.session
-        return self.cls(*args, **kwargs)
 
 class AgentSystem:
     def __init__(self, session: Session):

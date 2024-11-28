@@ -38,22 +38,9 @@ def main(args):
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
-
-        # from base import initialize_session
-        # import threading
-
-        # from concurrent.futures import ThreadPoolExecutor
-        # def run_task():
-        #     session, Base = initialize_session()
-        #     generate_mutant(args, session, population_id)
-            
-        # with ThreadPoolExecutor(max_workers=10) as executor:
-        #     futures = tqdm([executor.submit(run_task) for _ in range(args.n_mutations)], desc="Mutations", total=args.n_mutations)
-        #     for future in futures:
-        #         print(future.result())
         
 
-        with ThreadPoolExecutor(max_workers=18) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
         session, Base = initialize_session()

@@ -117,8 +117,8 @@ class Evaluator:
             with open(temp_file, "w") as f:
                 f.write("import random\n")
                 f.write("import pandas\n\n")
-                f.write(f"from base import Agent, Meeting, Chat\n\n")
-                f.write(f"from sqlalchemy import Session\n\n")
+                f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
+                f.write(f"from sqlalchemy.orm import Session\n\n")
                 f.write("class AgentSystem:\n")
                 f.write("    def __init__(self, session: Session):\n")
                 f.write("        self.Agent = Wrapper(Agent, session)\n")

@@ -81,7 +81,7 @@ class Generator:
             mutant_framework = self.mutator(framework)
             if mutant_framework is not None:
                 
-                mutant_framework.update(framework_fitness = self.evaluator.evaluate(mutant_framework))
+                mutant_framework.update(framework_fitness = self.evaluator.evaluate(self.session, mutant_framework))
                 mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
 
                 self.population.frameworks.append(mutant_framework)

@@ -8,6 +8,7 @@ import random
 import string
 import os
 from sqlalchemy.orm.collections import collection
+from sqlalchemy.orm import Session
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -31,6 +32,15 @@ engine = create_engine(f'sqlite:///{current_dir}/chat_database.db', connect_args
 
 # Session factory
 SessionFactory = sessionmaker(bind=engine)
+
+class Wrapper:
+    def __init__(self, cls, session: Session):
+        self.cls = cls
+        self.session = session
+
+    def __call__(self, *args, **kwargs):
+        kwargs['session'] = self.session
+        return self.cls(*args, **kwargs)
 
 class CustomBase(Base):
     __abstract__ = True
