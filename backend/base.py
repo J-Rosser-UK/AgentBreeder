@@ -102,6 +102,40 @@ class Chat(CustomBase):
     agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
     meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
 
+class Cluster(CustomBase):
+    __tablename__ = 'cluster'
+
+    cluster_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The cluster's unique identifier (UUID).")
+    cluster_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the cluster.")
+    cluster_name = CustomColumn(String, label="The name of the cluster.")
+    cluster_description = CustomColumn(String, label="The description of the cluster.")
+
+
+    @property
+    def elite(self):
+        """
+        Returns the framework with the highest framework_fitness in the cluster.
+        If no frameworks are associated with the cluster, returns None.
+        """
+        # from sqlalchemy.orm.session import object_session  # Ensure we use the correct function
+
+        # Get the session associated with this object
+        session = object_session(self)
+        if not session:
+            raise RuntimeError("Session is not available. Ensure the cluster object is attached to a session.")
+
+        # Query the Framework table for the highest fitness framework in this cluster
+        return (
+            session.query(Framework)
+            .filter(Framework.cluster_id == self.cluster_id)
+            .order_by(Framework.framework_fitness.desc())
+            .first()
+        )
+
+
+
+    
+
 class Framework(CustomBase):
     __tablename__ = 'framework'
 
@@ -112,13 +146,15 @@ class Framework(CustomBase):
     framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
     framework_generation = CustomColumn(Integer, label="The generation of the framework.")
     population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
-    framework_is_elite = CustomColumn(Boolean, label="Whether the framework is an elite framework.")
     framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
+    framework_embedding = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")
     ci_lower = CustomColumn(Float, label="")
     ci_upper = CustomColumn(Float, label="")
     ci_median = CustomColumn(Float, label="")
     ci_sample_size = CustomColumn(Float, label="")
     ci_confidence_level = CustomColumn(Float, label="")
+    cluster_id = CustomColumn(String, ForeignKey('cluster.cluster_id'), label="The cluster's unique identifier (UUID).")
+    
 
     # Relationships
     meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)

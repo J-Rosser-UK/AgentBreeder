@@ -1,19 +1,10 @@
-
-<!--
-Hey, thanks for using the awesome-readme-template template.  
-If you have any enhancements, then fork this project and create a pull request 
-or just open an issue with the label "enhancement".
-
-Don't forget to give this project a star for additional support ;)
-Maybe you can mention me or this repo in the acknowledgements too
--->
 <div align="center">
 
-  <img src="assets/logo.png" alt="AgentBreeder" width="200" height="auto" />
-  <h1></h1>
+  <img src="assets/logo2.png" alt="AgentBreeder" width="200" height="auto" />
+  <h1>AgentBreeder</h1>
   
   <p>
-    An awesome README template for your projects! 
+    Using Bayesian Illumination to automatically generate novel LLM Multi-Agent Frameworks!
   </p>
   
   
@@ -56,6 +47,7 @@ Maybe you can mention me or this repo in the acknowledgements too
 # :notebook_with_decorative_cover: Table of Contents
 
 - [About the Project](#star2-about-the-project)
+  * [References](#book-references)
   * [Screenshots](#camera-screenshots)
   * [Tech Stack](#space_invader-tech-stack)
   * [Features](#dart-features)
@@ -80,6 +72,10 @@ Maybe you can mention me or this repo in the acknowledgements too
 
 <!-- About the Project -->
 ## :star2: About the Project
+
+<!-- References -->
+### :book: References
+The work builds upon
 
 
 <!-- Screenshots -->
