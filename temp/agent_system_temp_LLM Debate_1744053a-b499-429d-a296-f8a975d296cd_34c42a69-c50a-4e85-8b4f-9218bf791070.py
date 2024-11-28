@@ -13,32 +13,28 @@ class AgentSystem:
         self.session = session
 
     def forward(self, task: str) -> str:
-        import random
     
         # Create a system agent to provide instructions
-        system = self.Agent(agent_name='system', temperature=0.8)
+        system = self.Agent(agent_name = 'system', temperature=0.8)
     
-        # Initialize debate agents with different roles
+        # Initialize debate agents with different roles and a moderate temperature for varied reasoning
         debate_agents = [self.Agent(
             agent_name=name,
             temperature=0.8
         ) for name in ['Biology Expert', 'Physics Expert', 'Science Generalist']]
     
-        # Initialize confidence scores for each agent
-        confidence_scores = {agent.agent_name: 1.0 for agent in debate_agents}
-    
         # Instruction for final decision-making based on all debates and solutions
-        final_decision_agent = self.Agent(agent_name='Final Decision Agent', temperature=0.1)
-    
+        final_decision_agent = self.Agent(agent_name = 'Final Decision Agent',temperature=0.1)
+        
         # Setup a single meeting for the debate
-        meeting = self.Meeting(meeting_name="adaptive_debate")
+        meeting = self.Meeting(meeting_name="debate")
     
         # Ensure all agents are part of the meeting
         [meeting.agents.append(agent) for agent in debate_agents]
         meeting.agents.append(system)
         meeting.agents.append(final_decision_agent)
     
-        max_round = 2  # Maximum number of debate rounds
+        max_round = 2 # Maximum number of debate rounds
     
         # Perform debate rounds
         for r in range(max_round):
@@ -46,33 +42,19 @@ class AgentSystem:
                 if r == 0 and i == 0:
                     meeting.chats.append(self.Chat(agent=system, content=f"Please think step by step and then solve the task: {task}"))
                     output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
-    
+                    
                 else:
-                    # Use confidence score to influence decision-making
-                    if random.random() < confidence_scores[debate_agents[i].agent_name]:  # Weighted by confidence score
-                        meeting.chats.append(self.Chat(agent=system, content="Given solutions to the problem from other agents, please think carefully and provide an updated answer. Reminder, the task is: {task}."))
-                    else:
-                        meeting.chats.append(self.Chat(agent=system, content="Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide a different approach. Reminder, the task is: {task}."))
-    
+                    meeting.chats.append(self.Chat(agent=system, content=f"Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer. Reminder, the task is: {task}"))
                     output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
     
-                meeting.chats.append(self.Chat(agent=debate_agents[i], content=output["thinking"] + output["response"]))
-    
-                # Update confidence score based on performance
-                confidence_scores[debate_agents[i].agent_name] = update_confidence(debate_agents[i], output)
+                meeting.chats.append(self.Chat(agent=debate_agents[i], content=output["thinking"]+output["response"]))
     
         # Make the final decision based on all debate results and solutions
         meeting.chats.append(self.Chat(agent=system, content="Given all the above thinking and answers, reason over them carefully and provide a final answer."))
-        output = final_decision_agent.forward(response_format={"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
-    
+        output = final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
+        
         return output["answer"]
     
-    # Function to update confidence score
-    def update_confidence(agent, output):
-        # Logic to update the confidence score based on output performance
-        # For simplicity, we can increase confidence if the output is deemed acceptable
-        # This is a placeholder logic, which should be replaced with actual performance feedback
-        return 1.0  # This should be replaced with actual logic
 
 if __name__ == '__main__':
     from base import initialize_session

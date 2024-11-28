@@ -269,7 +269,7 @@ class Agent(CustomBase):
 
     def forward(self, response_format) -> dict:
 
-        logging.info(f"Agent {self.agent_name} is thinking...")
+        # logging.info(f"Agent {self.agent_name} is thinking...")
 
         messages = self.chat_history
 
@@ -279,7 +279,7 @@ class Agent(CustomBase):
             temperature=0.5
         )
 
-        logging.info(f"Agent {self.agent_name} has responded with: \n{response_json}\n -------------------")
+        # logging.info(f"Agent {self.agent_name} has responded with: \n{response_json}\n -------------------")
 
         return response_json
     

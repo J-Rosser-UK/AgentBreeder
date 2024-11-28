@@ -22,19 +22,21 @@ import logging
 from tqdm import tqdm
 from bayesian_illumination import Generator, initialize_population_id, generate_mutant
 from descriptor import Clusterer, Visualizer
-from base import initialize_session, Population
+from base import initialize_session, Population, Framework
 
-
+from evaluator import Evaluator
 
 def main(args):
 
     random.seed(args.shuffle_seed)
 
-    population_id = initialize_population_id()
+    population_id = initialize_population_id(args)
 
     clusterer = Clusterer()
 
     visualizer = Visualizer()
+
+    evaluator = Evaluator()
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
@@ -43,7 +45,29 @@ def main(args):
         with ThreadPoolExecutor(max_workers=20) as executor:
             list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
+        
+        
+        
         session, Base = initialize_session()
+
+        # Get a list of frameworks where the framework_fitness is None
+        frameworks_for_evaluation = session.query(Framework).filter_by(
+            population_id=population_id,
+            framework_fitness=None
+        ).all()
+
+        
+
+
+        
+
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            list(tqdm(executor.map(lambda _: evaluator.evaluate(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
+
+        
+
+
+
         
         # Re-load the population object in this session
         population = session.query(Population).filter_by(

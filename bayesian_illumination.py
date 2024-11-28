@@ -78,13 +78,22 @@ class Generator:
         population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)] #TODO: sample from elites
         population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
         for framework in population_samples:
-            mutant_framework = self.mutator(framework)
-            if mutant_framework is not None:
-                
-                mutant_framework.update(framework_fitness = self.evaluator.evaluate(self.session, mutant_framework))
-                mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
 
-                self.population.frameworks.append(mutant_framework)
+            try:
+                mutant_framework = self.mutator(framework)
+            except Exception as e:
+                print(f"Error mutating {framework.framework_name} framework: {e}")
+                continue
+            if mutant_framework is not None:
+                try:
+                
+                    mutant_framework.update(framework_fitness = self.evaluator.evaluate(self.session, mutant_framework))
+                    mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
+
+                    self.population.frameworks.append(mutant_framework)
+                except Exception as e:
+                    print(f"Error evaluating {framework.framework_name} framework: {e}")
+                    
 
         # for population_pair in population_sample_pairs:
         #     population.frameworks.extend(self.crossover(population_pair))
@@ -197,7 +206,7 @@ class Mutator:
         return mutated_framework
     
 
-def initialize_population_id() -> str:
+def initialize_population_id(args) -> str:
     """Initialize the first generation of frameworks for the population."""
     session, Base = initialize_session()
 
@@ -217,8 +226,15 @@ def initialize_population_id() -> str:
         )
         population.frameworks.append(framework)
 
-    for framework in population.frameworks:
-        framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
+
+    evaluator = Evaluator(args)
+
+    evaluator.async_evaluate(population.frameworks)
+
+    assert 1 == 2
+
+    # for framework in population.frameworks:
+    #     framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
 
 
     return str(population.population_id)    

@@ -29,14 +29,9 @@ class AgentSystem:
             temperature=0.6
         )
         
-        trust_agent = self.Agent(
-            agent_name='Trust Evaluation Agent',
-            temperature=0.5
-        )
-        
         # Setup meeting
-        meeting = self.Meeting(meeting_name="dynamic_trust_reflexion")
-        meeting.agents.extend([system, cot_agent, critic_agent, trust_agent])
+        meeting = self.Meeting(meeting_name="reflexion")
+        meeting.agents.extend([system, cot_agent, critic_agent])
         
         N_max = 3  # Maximum number of attempts
         
@@ -86,26 +81,6 @@ class AgentSystem:
                 )
             )
             
-            # Trust evaluation based on critic's feedback
-            trust_output = trust_agent.forward(
-                response_format={
-                    "trust_score_cot": "Trust score for Chain-of-Thought Agent",
-                    "trust_score_critic": "Trust score for Critic Agent"
-                }
-            )
-            
-            # Ensure trust scores are numeric
-            cot_weight = self.map_trust_score_to_numeric(trust_output["trust_score_cot"])
-            critic_weight = self.map_trust_score_to_numeric(trust_output["trust_score_critic"])
-            
-            # Use trust scores to determine weight of responses
-            total_weight = cot_weight + critic_weight
-            if total_weight == 0:
-                total_weight = 1  # Prevent division by zero
-            
-            # Calculate weighted answer based on trust scores
-            weighted_answer = (cot_weight * output["answer"] + critic_weight * critic_output["feedback"]) / total_weight
-            
             if critic_output["correct"] == "CORRECT":
                 break
             
@@ -131,16 +106,8 @@ class AgentSystem:
                 )
             )
         
-        return weighted_answer
+        return output["answer"]
     
-    # Define the trust score mapping inside the class to ensure proper context
-        def map_trust_score_to_numeric(self, trust_score: str) -> float:
-            mapping = {
-                'high': 1.0,
-                'medium': 0.5,
-                'low': 0.0
-            }
-            return mapping.get(trust_score.lower(), 0.0)  # Default to 0.0 if not found
 
 if __name__ == '__main__':
     from base import initialize_session

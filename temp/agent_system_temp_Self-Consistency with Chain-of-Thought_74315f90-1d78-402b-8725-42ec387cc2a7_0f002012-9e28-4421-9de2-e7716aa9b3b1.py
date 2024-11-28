@@ -19,7 +19,7 @@ class AgentSystem:
             temperature=0.8
         )
         
-        # Create multiple CoT agents to explore the task
+        # Create multiple CoT agents with higher temperature for varied reasoning
         N = 3  # Number of CoT agents
         cot_agents = [
             self.Agent(
@@ -29,11 +29,11 @@ class AgentSystem:
         ]
         
         # Setup meeting
-        meeting = self.Meeting(meeting_name="debate_fairness_decision")
+        meeting = self.Meeting(meeting_name="self-consistency")
         meeting.agents.extend([system] + cot_agents)
         
-        # Collect initial answers from all agents
-        agent_responses = []
+        # Collect answers from all agents
+        possible_answers = []
         for i in range(N):
             # Add system instruction
             meeting.chats.append(
@@ -59,46 +59,14 @@ class AgentSystem:
                 )
             )
             
-            agent_responses.append(output)
-    
-        # Debate phase: Allow agents to challenge each other's answers
-        for i in range(N):
-            meeting.chats.append(
-                self.Chat(
-                    agent=system,
-                    content="Now, please respond to the answers of other agents and provide your reasoning for your answer."
-                )
-            )
-            
-            debate_output = cot_agents[i].forward(
-                response_format={
-                    "debate_thinking": "Your rebuttal reasoning.",
-                    "debate_answer": "A single letter, A, B, C or D."
-                }
-            )
-            
-            meeting.chats.append(
-                self.Chat(
-                    agent=cot_agents[i], 
-                    content=debate_output["debate_thinking"]
-                )
-            )
-    
-        # Final decision based on fairness
-        final_decision_agent = self.Agent(agent_name='Final Decision Agent', temperature=0.5)
-        meeting.chats.append(
-            self.Chat(
-                agent=system,
-                content="Given all the responses and rebuttals from the agents, please evaluate the answers based on fairness and thorough reasoning."
-            )
-        )
+            possible_answers.append(output["answer"])
         
-        # Analyze responses and select the best answer
-        final_decision_output = final_decision_agent.forward(response_format={
-            "evaluated_answers": "Analyze all answers and provide the best one based on fairness."
-        })
+        # Select the most common answer through majority voting
+        from collections import Counter
         
-        return final_decision_output["evaluated_answers"]
+        final_answer = Counter(possible_answers).most_common(1)[0][0]
+        return final_answer
+    
 
 if __name__ == '__main__':
     from base import initialize_session

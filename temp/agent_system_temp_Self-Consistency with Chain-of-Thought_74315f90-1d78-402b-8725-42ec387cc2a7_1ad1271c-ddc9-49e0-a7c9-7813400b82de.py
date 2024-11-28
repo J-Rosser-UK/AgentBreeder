@@ -12,8 +12,6 @@ class AgentSystem:
         self.Chat = Wrapper(Chat, session)
         self.session = session
 
-    import numpy as np
-    
     def forward(self, task: str) -> str:
         # Create a system agent to provide instructions
         system = self.Agent(
@@ -21,54 +19,54 @@ class AgentSystem:
             temperature=0.8
         )
         
-        # Create multiple Chain-of-Thought agents
-        N = 3  # Number of agents
+        # Create multiple CoT agents with higher temperature for varied reasoning
+        N = 3  # Number of CoT agents
         cot_agents = [
             self.Agent(
                 agent_name=f'Chain-of-Thought Agent {i}',
-                temperature=0.7
+                temperature=0.8
             ) for i in range(N)
         ]
         
         # Setup meeting
-        meeting = self.Meeting(meeting_name="dynamic_trust_evaluation")
+        meeting = self.Meeting(meeting_name="self-consistency")
         meeting.agents.extend([system] + cot_agents)
         
-        # Add system instruction
-        meeting.chats.append(
-            self.Chat(
-                agent=system, 
-                content=f"Please think step by step and then solve the task: {task}"
+        # Collect answers from all agents
+        possible_answers = []
+        for i in range(N):
+            # Add system instruction
+            meeting.chats.append(
+                self.Chat(
+                    agent=system, 
+                    content=f"Please think step by step and then solve the task: {task}"
+                )
             )
-        )
-        
-        trust_scores = [1.0] * N  # Initialize trust scores to 1.0 for all agents
-        outputs = []  # To store outputs from each agent
-        
-        # Get responses from all agents
-        for agent in cot_agents:
-            output = agent.forward(
+            
+            # Get response from current COT agent
+            output = cot_agents[i].forward(
                 response_format={
                     "thinking": "Your step by step thinking.",
                     "answer": "A single letter, A, B, C or D."
                 }
             )
-            outputs.append(output)
+            
+            # Record the agent's response
             meeting.chats.append(
                 self.Chat(
-                    agent=agent,
+                    agent=cot_agents[i], 
                     content=output["thinking"]
                 )
             )
             
-            # Update trust scores based on correctness (assume correctness is evaluated externally)
-            trust_scores[cot_agents.index(agent)] += 0.1  # Placeholder for correctness evaluation
+            possible_answers.append(output["answer"])
         
-        # Determine the most trusted agent
-        trusted_index = np.argmax(trust_scores)
-        trusted_output = outputs[trusted_index]
+        # Select the most common answer through majority voting
+        from collections import Counter
         
-        return trusted_output["answer"]
+        final_answer = Counter(possible_answers).most_common(1)[0][0]
+        return final_answer
+    
 
 if __name__ == '__main__':
     from base import initialize_session
