@@ -147,7 +147,7 @@ class Framework(CustomBase):
     framework_generation = CustomColumn(Integer, label="The generation of the framework.")
     population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
     framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
-    framework_embedding = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")
+    framework_descriptor = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")
     ci_lower = CustomColumn(Float, label="")
     ci_upper = CustomColumn(Float, label="")
     ci_median = CustomColumn(Float, label="")

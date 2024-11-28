@@ -4,7 +4,7 @@ import hdbscan
 
 import umap
 import matplotlib.pyplot as plt
-from base import Framework, Population, Cluster
+from base import Framework, Population, Cluster, initialize_session
 from prompts.mutation_base import get_init_archive
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
@@ -33,11 +33,31 @@ class Descriptor:
 
 
 class Clusterer:
-    def __init__(self, min_cluster_size=2, min_samples=1, metric="euclidean"):
+    
+    def __init__(self, min_cluster_size=3, min_samples=1, metric="euclidean"):
         self.clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric=metric)
 
-    def cluster(self, embeddings):
-        return self.clusterer.fit_predict(embeddings)
+    def cluster(self, population: Population):
+
+        embeddings = [framework.framework_descriptor for framework in population.frameworks]
+        labels = self.clusterer.fit_predict(embeddings)
+
+        
+        # get unique labels and assign them to the clusters
+        unique_labels = np.unique(labels)
+
+        if len(unique_labels) < 10:
+            for framework in population.frameworks:
+                cluster = Cluster()
+                framework.update(cluster_id = cluster.cluster_id)
+        else:
+            for label in unique_labels:
+                cluster = Cluster()
+                for i, framework in enumerate(population.frameworks):
+                    if labels[i] == label:
+                        framework.update(cluster_id = cluster.cluster_id)
+
+        return labels
 
 
 class Visualizer:
@@ -73,6 +93,8 @@ class Visualizer:
 
 if __name__ == "__main__":
 
+    session, Base = initialize_session()
+
     # Create a descriptor object
     descriptor = Descriptor()
 
@@ -92,16 +114,21 @@ if __name__ == "__main__":
         ))
 
     # Generate embeddings for the frameworks
-    embeddings = descriptor.batch_generate(frameworks)
+
+    for framework in population.frameworks:
+        framework.update(framework_descriptor = descriptor.generate(framework))
 
     # Create a clusterer object
     clusterer = Clusterer()
 
     # Cluster the embeddings
-    labels = clusterer.cluster(embeddings)
+    labels = clusterer.cluster(population)
 
     # Create a visualizer object
     visualizer = Visualizer()
+
+    # Get the embeddings for the frameworks
+    embeddings = [framework.framework_descriptor for framework in population.frameworks]
 
 
     # Plot the reduced embeddings with cluster colors

@@ -52,7 +52,7 @@ class Generator:
         Returns:
             List[Molecule]: A list of newly generated populations.
         """
-        population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)]
+        population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)] #TODO: sample from elites
         population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
         for framework in population_samples:
             mutant = self.mutator(framework)

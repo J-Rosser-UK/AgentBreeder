@@ -47,6 +47,7 @@ from eval import load_eval_dataset, evaluate_framework
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 
 from bayesian_illumination import Generator
+from descriptor import Descriptor, Clusterer, Visualizer
 
 
 def initialize_population(args, multiple_choice_questions, initial_eval=True)->Population:
@@ -90,45 +91,46 @@ def main(args):
     random.seed(args.shuffle_seed)
 
 
-    # Initialize the mutation operators
     mutation_operators = initialize_mutations(args)
 
-    # Load the evaluation dataset
+ 
     multiple_choice_questions = load_eval_dataset(args)
 
-    # Initialize the population
+
     population = initialize_population(args, multiple_choice_questions, initial_eval=False)
 
-    # Initialize the generator
+
     mutant_generator = Generator(args, population, mutation_operators, multiple_choice_questions)
+
+
+    descriptor = Descriptor()
+
+
+    clusterer = Clusterer()
 
     # Begin Bayesian Illumination...
     for i in range(args.n_generation):
 
+        novel_mutant_frameworks: list[Framework] = []
+
+        for m in range(args.n_mutations):
+
         
-        mutant_framework = mutant_generator()
+            mutant_framework = mutant_generator()
 
-        print(mutant_framework.framework_code)
+            if not mutant_framework:
+                continue
 
-        # # Randomly select an elite from the map
-        # x = random.choice(population.frameworks)
-        # print(x)
+            print(mutant_framework.framework_code)
 
-        # # Randomly select a mutation operator
-        # mutate = random.choice(mutation_operators)
-        # print(mutate)
+            mutant_framework.framework_fitness = evaluate_framework(mutant_framework, multiple_choice_questions, args)
+            mutant_framework.framework_descriptor = descriptor.generate(mutant_framework)
 
-        # # Mutate the elite to greate a mutant
-        # x_mutated = mutate(x)
+            novel_mutant_frameworks.append(mutant_framework)
 
-        # # Record the feature descriptors of the mutant
-        # x_mutated.b = feature_descriptor(x_mutated)
+        # Recluster the population
+        clusterer.cluster(population)
 
-        # # Evaluate the fitness of the mutant
-        # x_mutated.f = evaluate_fitness(x_mutated) 
-
-        # # Update the map with the mutant
-        # population = update_map(population, x_mutated)
 
 
 
@@ -154,6 +156,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/backend/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=30)
+    parser.add_argument('--n_mutations', type=int, default=5)
     parser.add_argument('--debug_max', type=int, default=3)
     parser.add_argument('--model', type=str, default='gpt-4o-mini')
     parser.add_argument('-mp', '--num_mutation_prompts', default=2)     
