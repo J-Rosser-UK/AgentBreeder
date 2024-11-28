@@ -203,6 +203,7 @@ def initialize_population_id() -> str:
     archive = get_init_archive()
 
     population = Population(session=session)
+    descriptor = Descriptor()
 
     for framework in archive:
         framework = Framework(
@@ -216,7 +217,8 @@ def initialize_population_id() -> str:
         population.frameworks.append(framework)
 
     for framework in population.frameworks:
-        framework.update(framework_fitness = 0.5)
+        framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
+
 
     return str(population.population_id)    
 

@@ -40,7 +40,7 @@ def main(args):
     for i in tqdm(range(args.n_generation), desc="Generations"):
         
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
         session, Base = initialize_session()
@@ -77,8 +77,8 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', default=True)
     parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
-    parser.add_argument('--n_generation', type=int, default=30)
-    parser.add_argument('--n_mutations', type=int, default=5)
+    parser.add_argument('--n_generation', type=int, default=1)
+    parser.add_argument('--n_mutations', type=int, default=10)
     parser.add_argument('--debug_max', type=int, default=3)
     parser.add_argument('--model', type=str, default='gpt-4o-mini')
     parser.add_argument('-mp', '--num_mutation_prompts', default=2)     

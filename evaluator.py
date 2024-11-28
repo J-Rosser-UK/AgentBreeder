@@ -88,7 +88,7 @@ class Evaluator:
         temp_file = f"{current_directory}/temp/agent_system_temp_{framework.framework_name}_{framework.framework_id}.py"
         forward_function = framework.framework_code
 
-        results_list = self.evaluate_forward_function(session, temp_file, self.multiple_choice_questions, forward_function)
+        results_list = self.evaluate_forward_function(session, forward_function, temp_file)
 
         confidence_level = 0.95
         confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
