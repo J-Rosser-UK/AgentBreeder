@@ -78,12 +78,6 @@ def main(args):
         visualizer.plot(mutant_generator.population)
 
 
-        
-
-
-
-
-
 
 if __name__ == "__main__":
 

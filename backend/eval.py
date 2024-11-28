@@ -30,7 +30,7 @@ class Evaluator:
 
     def __init__(self, args):
         self.args = args
-        self.multiple_choice_questions = self.load_eval_dataset(args)
+        self.multiple_choice_questions = self.load_eval_dataset()
        
 
     def load_eval_dataset(self) -> list[MultipleChoiceQuestion]:
@@ -108,8 +108,8 @@ class Evaluator:
         return median
 
 
-
-    def evaluate_forward_function(self, forward_function, temp_file) -> list[int]:
+    
+    def evaluate_forward_function(self, forward_function, temp_file, batch_size = 2**10) -> list[int]:
         
         try:
         
@@ -136,7 +136,7 @@ class Evaluator:
             AgentSystem = module.AgentSystem
 
             results_list = []
-            for question in self.multiple_choice_questions:
+            for question in self.multiple_choice_questions[0: batch_size]:
                 agentSystem = AgentSystem()
 
                 task = self.format_question(question)

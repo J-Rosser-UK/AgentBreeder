@@ -5,7 +5,6 @@ from base import Framework, Population
 from chat import get_structured_json_response_from_gpt
 from prompts.mutation_base import get_base_prompt, get_init_archive
 from prompts.mutation_reflexion import get_reflexion_prompt
-from eval import evaluate_forward_function
 import os
 import uuid
 from eval import MultipleChoiceQuestion, AgentSystemException
@@ -34,7 +33,7 @@ class Generator:
         load_from_database(): Loads a set of molecules from the initial data database.
     """
 
-    def __init__(self, args, mutation_operators, multiple_choice_questions:list[MultipleChoiceQuestion]) -> None:
+    def __init__(self, args) -> None:
         """
         Initializes the Generator with the given configuration.
 
@@ -43,12 +42,12 @@ class Generator:
         """
         self.population = self.initialize_population()
         self.mutation_operators = multi_agent_system_mutation_prompts
-        self.multiple_choice_questions = multiple_choice_questions
         # self.crossover = Crossover(args)
-        self.mutator = Mutator(args, self.population, mutation_operators, multiple_choice_questions)
+        
         self.batch_size = 1
         self.descriptor = Descriptor()
         self.evaluator = Evaluator(args)
+        self.mutator = Mutator(args, self.population, self.mutation_operators, self.evaluator)
 
         
     def initialize_population(self) -> Population:
@@ -107,7 +106,7 @@ class Mutator:
         __init__(mutation_data): Initializes the Mutator with the given mutation data.
         __call__(molecule): Applies a mutation to a given molecule and returns the resulting molecules.
     """
-    def __init__(self, args, population, mutation_operators, multiple_choice_questions) -> None:
+    def __init__(self, args, population, mutation_operators, evaluator) -> None:
         """
         Initializes the Mutator with the given mutation data.
 
@@ -116,7 +115,8 @@ class Mutator:
         """
         self.mutation_operators = mutation_operators
         self.args = args
-        self.multiple_choice_questions = multiple_choice_questions
+        self.evaluator = evaluator
+     
 
     def __call__(self, framework: Framework) -> List[Framework]:
         """
@@ -174,7 +174,7 @@ class Mutator:
         temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
         for _ in range(self.args.debug_max):
             try:
-                acc_list = evaluate_forward_function(next_response["code"], temp_file, [self.multiple_choice_questions[0]])
+                acc_list = self.evaluator.evaluate_forward_function(next_response["code"], temp_file, batch_size=1)
 
                 mutated_framework = Framework(
                     framework_name=next_response["name"],
