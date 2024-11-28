@@ -15,43 +15,22 @@ is typically biased towards solutions with higher fitness2
 
 """
 
-
-from base import Agent, Meeting, Chat, Population, Framework
 import argparse
-import copy
-import json
-import os
 import random
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 import logging
-import backoff
-import numpy as np
-import openai
-import pandas
 from tqdm import tqdm
-import time
-import importlib.util
-from pydantic import BaseModel
-import uuid
-from concurrent.futures import ThreadPoolExecutor
-from tqdm import tqdm
-
-from prompts.mutation_base import get_init_archive
-
-from tqdm import tqdm
-import os
-from base import initialize_session
-
-from bayesian_illumination import Generator
+from bayesian_illumination import Generator, initialize_population_id, generate_mutant
 from descriptor import Clusterer, Visualizer
+from base import initialize_session, Population
+
 
 
 def main(args):
 
     random.seed(args.shuffle_seed)
 
-    mutant_generator = Generator(args)
+    population_id = initialize_population_id()
 
     clusterer = Clusterer()
 
@@ -61,19 +40,27 @@ def main(args):
     for i in tqdm(range(args.n_generation), desc="Generations"):
 
         with ThreadPoolExecutor(max_workers=18) as executor:
-            list(tqdm(executor.map(lambda _: mutant_generator(), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
+            list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
+        session, Base = initialize_session()
+        
+        # Re-load the population object in this session
+        population = session.query(Population).filter_by(
+            population_id=population_id
+        ).one()
+        
         # Recluster the population
-        clusterer.cluster(mutant_generator.population)
+        clusterer.cluster(population)
 
-        visualizer.plot(mutant_generator.population)
+        visualizer.plot(population)
+
+        session.close()
 
 
 
 if __name__ == "__main__":
 
-    session, Base = initialize_session()
-
+    
     # Initialize a logging
     logging.basicConfig(level=logging.INFO)
 
@@ -99,8 +86,4 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--simulations', default=10)  
 
     args = parser.parse_args()
-
-
-    
-
     main(args)

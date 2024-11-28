@@ -26,7 +26,6 @@ def initialize_session():
     Base.metadata.create_all(engine)
     return session, Base
 
-session, Base = initialize_session()
 
 class CustomBase(Base):
     __abstract__ = True
@@ -47,8 +46,11 @@ class CustomBase(Base):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-        # Add self to the session and commit
-        session.add(self)
+        session = object_session(self)
+        if session is None:
+            # Handle the case where the object is not associated with a session
+            session = initialize_session()[0]  # Obtain your session appropriately
+            session.add(self)
         session.commit()
 
     def __getattr__(self, name):
@@ -92,12 +94,15 @@ class CustomBase(Base):
 class AutoSaveList(list):
     def append(self, item):
         super().append(item)
+        session = object_session(item)
         session.add(item)
         session.commit()
 
     def extend(self, items):
         super().extend(items)
-        session.add_all(items)
+
+        session = object_session(items[0])
+        session.add(items)
         session.commit()
 
 

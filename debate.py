@@ -1,6 +1,22 @@
 from base import Agent, Meeting, Chat
 
+def wrapper(cls, session):
+    class WrappedClass(cls):
+        def __init__(self, *args, **kwargs):
+            super(WrappedClass, self).__init__(*args, **kwargs)
+            session.add(self)
+    return WrappedClass
+
 class Debate:
+
+    def __init__(self, session):
+
+        # Modify the module-level Agent, Meeting, and Chat classes
+        globals()['Agent'] = wrapper(Agent, session)
+        globals()['Meeting'] = wrapper(Meeting, session)
+        globals()['Chat'] = wrapper(Chat, session)
+        self.session = session
+
 
     def forward(self, task: str) -> str:
 
@@ -53,8 +69,8 @@ class Debate:
 if __name__ == '__main__':
     
     from base import initialize_session
-    session, Base = initialize_session
-    agent_system = Debate()
+    session, Base = initialize_session()
+    agent_system = Debate(session)
     task = "What is the meaning of life? A: 42 B: 43 C: To life a happy life. D: To do good for others."
     output = agent_system.forward(task)
     print(output)

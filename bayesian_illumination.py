@@ -1,7 +1,7 @@
 import random
 import pandas as pd
 from typing import List
-from base import Framework, Population
+from base import Framework, Population, initialize_session
 from chat import get_structured_json_response_from_gpt
 from prompts.mutation_base import get_base_prompt, get_init_archive
 from prompts.mutation_reflexion import get_reflexion_prompt
@@ -12,6 +12,11 @@ from rich import print
 from descriptor import Descriptor
 from evaluator import Evaluator
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
+
+def generate_mutant(args, population_id):
+    generator = Generator(args, population_id)
+    mutant_framework = generator()
+    return mutant_framework
 
 
 class Generator:
@@ -33,43 +38,31 @@ class Generator:
         load_from_database(): Loads a set of molecules from the initial data database.
     """
 
-    def __init__(self, args) -> None:
+    def __init__(self, args, population_id) -> None:
         """
         Initializes the Generator with the given configuration.
 
         Args:
             config: Configuration object containing settings for the Generator.
         """
-        self.population = self.initialize_population()
-        self.mutation_operators = multi_agent_system_mutation_prompts
-        # self.crossover = Crossover(args)
         
+        self.mutation_operators = multi_agent_system_mutation_prompts
+
+        session, Base = initialize_session()
+        # self.crossover = Crossover(args)
+        self.population = session.query(Population).filter_by(
+            population_id=population_id
+        ).one()
+
+        self.frameworks = self.population.frameworks  # error on this line
+
         self.batch_size = 1
         self.descriptor = Descriptor()
         self.evaluator = Evaluator(args)
         self.mutator = Mutator(args, self.population, self.mutation_operators, self.evaluator)
 
         
-    def initialize_population(self) -> Population:
-        """Initialize the first generation of frameworks for the population."""
-
-        archive = get_init_archive()
-
-        population = Population()
-
-        for framework in archive:
-            population.frameworks.append(Framework(
-                framework_name=framework['name'],
-                framework_code=framework['code'],
-                framework_thought_process=framework['thought'],
-                framework_generation=0,
-                population=population
-            ))
-
-        for framework in population.frameworks:
-            framework.update(framework_fitness = 0.5)
-
-        return population
+    
 
     def __call__(self) -> Framework:
         """
@@ -78,6 +71,9 @@ class Generator:
         Returns:
             List[Molecule]: A list of newly generated populations.
         """
+        
+
+
         population_samples = [random.choice(self.population.frameworks) for _ in range(self.batch_size)] #TODO: sample from elites
         population_sample_pairs = [(random.choice(self.population.frameworks), random.choice(self.population.frameworks)) for _ in range(self.batch_size)]
         for framework in population_samples:
@@ -197,7 +193,28 @@ class Mutator:
 
         return mutated_framework
     
-    
+
+def initialize_population_id() -> str:
+    """Initialize the first generation of frameworks for the population."""
+    session, Base = initialize_session()
+
+    archive = get_init_archive()
+
+    population = Population()
+
+    for framework in archive:
+        population.frameworks.append(Framework(
+            framework_name=framework['name'],
+            framework_code=framework['code'],
+            framework_thought_process=framework['thought'],
+            framework_generation=0,
+            population=population
+        ))
+
+    for framework in population.frameworks:
+        framework.update(framework_fitness = 0.5)
+
+    return str(population.population_id)    
 
 
 # class Crossover:
