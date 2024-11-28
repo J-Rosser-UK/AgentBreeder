@@ -47,7 +47,6 @@ from bayesian_illumination import Generator
 from descriptor import Clusterer, Visualizer
 
 
-
 def main(args):
 
     random.seed(args.shuffle_seed)
@@ -61,16 +60,8 @@ def main(args):
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
 
-        novel_mutant_frameworks: list[Framework] = []
-
-        for m in tqdm(range(args.n_mutations), desc="Mutations"):
-
-            mutant_framework = mutant_generator()
-
-            if not mutant_framework:
-                return novel_mutant_frameworks
-
-            novel_mutant_frameworks.append(mutant_framework)
+        with ThreadPoolExecutor(max_workers=18) as executor:
+            list(tqdm(executor.map(lambda _: mutant_generator(), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
         # Recluster the population
         clusterer.cluster(mutant_generator.population)
