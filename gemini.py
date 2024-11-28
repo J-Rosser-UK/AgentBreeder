@@ -7,6 +7,9 @@ import backoff
 from typing_extensions import TypedDict
 from rich import print
 from chat import get_structured_json_response_from_gpt
+import google.generativeai as genai
+from google.generativeai.protos import Tool, FunctionDeclaration, Schema, Type
+from google.protobuf.json_format import MessageToDict
 
 # Load environment variables
 load_dotenv(override=True)
@@ -14,7 +17,7 @@ load_dotenv(override=True)
 # Configure Gemini
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-def validate_response(response: str, expected_fields: set, messages, response_format, model_name, temperature, retry) -> dict:
+def validate_response(response: str, expected_fields: set) -> dict:
     """
     Validates and ensures all expected fields are present in the response.
     
@@ -25,25 +28,21 @@ def validate_response(response: str, expected_fields: set, messages, response_fo
     Returns:
         dict: Validated and complete JSON response
     """
-    try:
-        # Parse the response
-        if isinstance(response, str):
-            parsed = json.loads(response)
-        else:
-            parsed = response
+    # Parse the response
+    if isinstance(response, str):
+        parsed = json.loads(response)
+    else:
+        parsed = response
+        
+    # Ensure all expected fields are present
+    for field in expected_fields:
+        if field not in parsed:
+            raise Exception(f"Field '{field}' is missing from the response")
+        
+    return parsed
             
-        # Ensure all expected fields are present
-        for field in expected_fields:
-            if field not in parsed:
-                parsed[field] = None  # Add missing fields with null value
-                
-        return parsed
-    except json.JSONDecodeError:
-        # raise ValueError(f"Invalid JSON response: {response}")
-        logging.warning(f"Invalid JSON response: {response}, switching to openai")
-        return get_structured_json_response_from_gpt(messages, response_format, "gpt-4o-mini", temperature, retry)
-
-@backoff.on_exception(backoff.expo, Exception)
+      
+# @backoff.on_exception(backoff.expo, Exception)
 def get_structured_json_response_from_gemini(
     messages: list[dict],
     response_format: dict,
@@ -69,8 +68,7 @@ def get_structured_json_response_from_gemini(
     for key, value in response_format.items():
         field_descriptions.append(f"- {key}: {value if value else 'No description provided'}")
 
-    # Create TypedDict for response validation
-    StructuredResponse = TypedDict("StructuredResponse", {key: str for key in response_format.keys()})
+    
     
     # Enhanced system prompt with explicit instructions about field requirements
     system_message = (
@@ -89,6 +87,9 @@ def get_structured_json_response_from_gemini(
     
     messages.append({"role": "system", "content": system_message})
 
+    # Create TypedDict for response validation
+    StructuredResponse = TypedDict("StructuredResponse", {key: str for key in response_format.keys()})
+
     try:
         model = genai.GenerativeModel(model_name)
         result = model.generate_content(
@@ -101,15 +102,15 @@ def get_structured_json_response_from_gemini(
         )
         
         # Validate and ensure all fields are present
-        validated_response = validate_response(result.text, set(response_format.keys()), messages, response_format, model_name, temperature, retry)
+        validated_response = validate_response(result.text, set(response_format.keys()))
+    
         return validated_response
         
     except Exception as e:
-        if retry < 3:
-            logging.warning(f"Retrying due to exception: {e}")
-            return get_structured_json_response_from_gemini(messages, response_format, model_name, temperature, retry + 1)
-        else:
-            raise
+        logging.warning(f"Error during Gemini generation, switching to GPT: {e}")
+        return get_structured_json_response_from_gpt(messages, response_format, "gpt-4o-mini", temperature, retry)
+
+
 
 # Example usage
 if __name__ == "__main__":

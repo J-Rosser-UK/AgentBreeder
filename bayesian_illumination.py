@@ -175,6 +175,7 @@ class Mutator:
                 acc_list = self.evaluator.evaluate_forward_function(self.session, next_response["code"], temp_file, batch_size=1)
 
                 mutated_framework = Framework(
+                    session=self.session,
                     framework_name=next_response["name"],
                     framework_code=next_response["code"],
                     framework_thought_process=next_response["thought"],
