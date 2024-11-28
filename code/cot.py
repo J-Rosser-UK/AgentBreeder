@@ -1,4 +1,4 @@
-from backend.base import Agent, Meeting, Chat, CustomBase
+from base import Agent, Meeting, Chat, CustomBase
 
 class ChainOfThought:
 

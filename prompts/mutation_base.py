@@ -1,6 +1,6 @@
 import json
 from utils import extract_class_code, extract_function_code
-from initial_population import COT, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment
+from prompts.initial_population import COT, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment
 import os
 
 EXAMPLE = {

@@ -8,8 +8,6 @@ import uuid
 import logging
 from utils import bootstrap_confidence_interval
 
-
-
 class MultipleChoiceQuestion(BaseModel):
     question_id: uuid.UUID
     question: str
