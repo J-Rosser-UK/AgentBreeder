@@ -122,6 +122,7 @@ class Evaluator:
             # Write the complete AgentSystem class to the file, including the forward function
             with open(temp_file, "w") as f:
                 f.write("import random\n")
+                f.write("import numpy as np\n")
                 f.write("import pandas\n\n")
                 f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
                 f.write(f"from sqlalchemy.orm import Session\n\n")

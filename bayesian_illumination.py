@@ -236,9 +236,11 @@ def initialize_population_id(args) -> str:
     for framework in population.frameworks:
         framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
 
+
+    population_id = str(population.population_id)    
     session.close()
 
-    return str(population.population_id)    
+    return population_id
 
 
 # class Crossover:
