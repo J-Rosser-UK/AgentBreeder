@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="assets/logo2.png" alt="AgentBreeder" width="200" height="auto" />
+  <img src="assets/agentbreederone-removebg-preview.png" alt="AgentBreeder" width="200" height="auto" />
   <h1>AgentBreeder</h1>
   
   <p>

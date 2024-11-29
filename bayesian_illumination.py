@@ -78,6 +78,7 @@ class Generator:
 
         population_samples = [random.choice(self.population.elites) for _ in range(self.batch_size)] #TODO: sample from elites
         population_sample_pairs = [(random.choice(self.population.elites), random.choice(self.population.elites)) for _ in range(self.batch_size)]
+        mutant_framework = None
         for framework in population_samples:
 
             try:
