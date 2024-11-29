@@ -185,7 +185,7 @@ class Evaluator:
 
 
         # use concurrent futures to multithread this and return updated framework_question_pairs
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(self.thread_eval, pair) for pair in framework_question_pairs]
             for future in tqdm(futures, desc="Evaluating Async Frameworks"):
                 pair = future.result()
