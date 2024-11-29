@@ -71,7 +71,7 @@ if __name__ == '__main__':
         debate_instance = AgentSystem(session)
         task = "What is the meaning of life? A: 42 B: 43 C: To live a happy life. D: To do good for others."
         return debate_instance.forward(task)
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(run_task) for _ in range(10)]
         for future in futures:
             print(future.result())
