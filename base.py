@@ -204,8 +204,12 @@ class Population(CustomBase):
     @property
     def elites(self) -> list[Framework]:
         """ Returns from the most recent generation the elites from each cluster. """
+
         # Find most recent generation
-        generation = self.generations[-1]
+        if self.generations == []:
+            return self.frameworks
+        
+        generation = self.generations[-1] 
 
         print(generation.generation_id)
         

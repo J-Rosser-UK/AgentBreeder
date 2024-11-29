@@ -17,6 +17,7 @@ def generate_mutant(args, population_id):
     session, Base = initialize_session()
     generator = Generator(args, session, population_id)
     mutant_framework = generator()
+    session.close()
     return mutant_framework
 
 
@@ -183,14 +184,6 @@ class Mutator:
             try:
                 acc_list = self.evaluator.evaluate_forward_function(self.session, next_response["code"], temp_file, batch_size=1)
 
-                mutated_framework = Framework(
-                    session=self.session,
-                    framework_name=next_response["name"],
-                    framework_code=next_response["code"],
-                    framework_thought_process=next_response["thought"],
-                    population=framework.population
-                )
-                
             except AgentSystemException as e:
                 print("During evaluation:")
                 print(e)
@@ -201,6 +194,14 @@ class Mutator:
                 except Exception as e:
                     print("During LLM generate new solution:")
                     print(e)
+
+        mutated_framework = Framework(
+                session=self.session,
+                framework_name=next_response["name"],
+                framework_code=next_response["code"],
+                framework_thought_process=next_response["thought"],
+                population=framework.population
+            )
 
 
         return mutated_framework
@@ -235,6 +236,7 @@ def initialize_population_id(args) -> str:
     for framework in population.frameworks:
         framework.update(framework_fitness = 0.5, framework_descriptor = descriptor.generate(framework))
 
+    session.close()
 
     return str(population.population_id)    
 

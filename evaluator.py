@@ -239,6 +239,8 @@ class Evaluator:
         # delete file at the end
         os.remove(temp_file)
 
+        session.close()
+
     def evaluate_forward_function_on_one_question(self, session, multiple_choice_question, forward_function, temp_file) -> int:
         
 
