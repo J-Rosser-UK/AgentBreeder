@@ -250,12 +250,13 @@ class Population(CustomBase):
         
         generation = self.generations[-1] 
 
-        print(generation.generation_id)
+        # print(generation.generation_id)
+        print(f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}")
         
         # Find the elites from each cluster
         elites = [cluster.elite for cluster in generation.clusters]
 
-        print(elites)
+        # print(elites)
 
         return elites
 

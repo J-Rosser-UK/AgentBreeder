@@ -182,9 +182,13 @@ class Mutator:
         current_directory = os.path.dirname(os.path.abspath(__file__))
         temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
         for _ in range(self.args.debug_max):
-            try:
-                acc_list = self.evaluator.evaluate_forward_function(self.session, next_response["code"], temp_file, batch_size=1)
 
+
+            try:
+                if "return self.forward" in next_response["code"]:
+                    raise AgentSystemException("The output of the forward function must not be the forward function itself, as it will recurse infinitely.")
+                acc_list = self.evaluator.evaluate_forward_function(self.session, next_response["code"], temp_file, batch_size=1)
+                
             except AgentSystemException as e:
                 print("During evaluation:")
                 print(e)

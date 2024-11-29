@@ -12,13 +12,33 @@ import time  # Added for restart delay
 def main(args, population_id=None):
     random.seed(args.shuffle_seed)
 
+    evaluator = Evaluator(args)
+    clusterer = Clusterer()
+    visualizer = Visualizer()
+
     # Initialize population_id only if it doesn't exist
     if not population_id:
         population_id = initialize_population_id(args)
+    else:
+        session, Base = initialize_session()
+        frameworks_for_evaluation = session.query(Framework).filter_by(
+            population_id=population_id,
+            framework_fitness=None
+        ).all()
 
-    clusterer = Clusterer()
-    visualizer = Visualizer()
-    evaluator = Evaluator(args)
+        # Uncomment to evaluate any frameworks if evaluation was paused or stopped
+        # frameworks_for_evaluation.extend(session.query(Framework).filter_by(
+        #     population_id=population_id,
+        #     framework_fitness=-1
+        # ).limit(20))
+
+        print("Frameworks for evaluation: ", len(frameworks_for_evaluation))
+
+        evaluator.async_evaluate(frameworks_for_evaluation)
+        session.close()
+
+    
+    
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
@@ -74,7 +94,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    population_id = None
+    population_id = "68d8c6e5-d514-4119-ba15-eaa12d09e3f0"
     while True:
         try:
             population_id = main(args, population_id)

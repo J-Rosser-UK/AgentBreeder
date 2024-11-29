@@ -173,6 +173,7 @@ class Evaluator:
         framework_id_map = {}
         framework_question_pairs:list[dict] = []
         for framework in frameworks_for_evaluation:
+            framework.update(framework_fitness=-1)
             for n in range(5):
                 framework_question_pairs.append({
                     "framework_id": framework.framework_id,
@@ -185,7 +186,7 @@ class Evaluator:
 
 
         # use concurrent futures to multithread this and return updated framework_question_pairs
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             futures = [executor.submit(self.thread_eval, pair) for pair in framework_question_pairs]
             for future in tqdm(futures, desc="Evaluating Async Frameworks"):
                 pair = future.result()
@@ -244,6 +245,8 @@ class Evaluator:
 
     def evaluate_forward_function_on_one_question(self, session, multiple_choice_question, forward_function, temp_file) -> int:
         
+        if "return self.forward" in forward_function:
+            return 0
 
         try:
         
