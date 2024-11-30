@@ -1,63 +1,39 @@
-from base import Agent, Meeting, Chat
+import random
+import numpy as np
+import pandas
+
+from base import Agent, Meeting, Chat, Wrapper
+
+from sqlalchemy.orm import Session
+
 
 class SelfConsistencyCoT:
+    
+    def __init__(self, session: Session):
+        self.Agent = Wrapper(Agent, session)
+        self.Meeting = Wrapper(Meeting, session)
+        self.Chat = Wrapper(Chat, session)
+        self.session = session
 
-    def forward(self, task: str) -> str:
-        # Create a system agent to provide instructions
-        system = Agent(
-            agent_name='system',
-            temperature=0.8
-        )
+    def forward(self, task: str = "What should I have for dinner? A: soup, B: pasta, C: burger") -> str:
+    
+        system = self.Agent(agent_name='system')
+        cot_agents = [self.Agent(agent_name=f'Chain-of-Thought Agent {i}') for i in range(5)]
         
-        # Create multiple CoT agents with higher temperature for varied reasoning
-        N = 5  # Number of CoT agents
-        cot_agents = [
-            Agent(
-                agent_name=f'Chain-of-Thought Agent {i}',
-                temperature=0.8
-            ) for i in range(N)
-        ]
-        
-        # Setup meeting
-        meeting = Meeting(meeting_name="self-consistency")
+        meeting = self.Meeting(meeting_name="self-consistency")
         meeting.agents.extend([system] + cot_agents)
         
-        # Collect answers from all agents
         possible_answers = []
-        for i in range(N):
-            # Add system instruction
-            meeting.chats.append(
-                Chat(
-                    agent=system, 
-                    content=f"Please think step by step and then solve the task: {task}"
-                )
-            )
-            
-            # Get response from current COT agent
-            output = cot_agents[i].forward(
-                response_format={
-                    "thinking": "Your step by step thinking.",
-                    "answer": "A single letter, A, B, C or D."
-                }
-            )
-            
-            # Record the agent's response
-            meeting.chats.append(
-                Chat(
-                    agent=cot_agents[i], 
-                    content=output["thinking"]
-                )
-            )
-            
+        for agent in cot_agents:
+            meeting.chats.append(self.Chat(agent=system, content=f"Think and then solve the task: {task}"))
+            output = agent.forward(response_format={"thinking": "Your thinking.", "answer": "A, B or C"})
+            meeting.chats.append(self.Chat(agent=agent, content=output["thinking"]))
             possible_answers.append(output["answer"])
 
-        print(f"Possible answers: {possible_answers}")
-        
-        # Select the most common answer through majority voting
         from collections import Counter
-        
         final_answer = Counter(possible_answers).most_common(1)[0][0]
-        return final_answer
+        return final_answer # A
+
 
 if __name__ == '__main__':
     sc_system = SelfConsistencyCoT()

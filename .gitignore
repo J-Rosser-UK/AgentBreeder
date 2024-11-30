@@ -2,7 +2,7 @@
 *.env
 *venv
 *.sql
-
+*.db
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *__pycache__/

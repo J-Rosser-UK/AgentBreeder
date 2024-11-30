@@ -107,7 +107,7 @@ def get_structured_json_response_from_gemini(
         return validated_response
         
     except Exception as e:
-        logging.warning(f"Error during Gemini generation, switching to GPT: {e}")
+        # logging.warning(f"Error during Gemini generation, switching to GPT: {e}")
         return get_structured_json_response_from_gpt(messages, response_format, "gpt-4o-mini", temperature, retry)
 
 

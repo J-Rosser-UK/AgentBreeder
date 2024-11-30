@@ -8,6 +8,18 @@ from descriptor import Clusterer, Visualizer
 from base import initialize_session, Population, Framework
 from evaluator import Evaluator
 import time  # Added for restart delay
+import warnings
+from sqlalchemy.exc import SAWarning
+import logging
+
+import logging
+
+# Disable logging for httpx
+logging.getLogger("httpx").disabled = True
+
+# Suppress all SAWarnings
+warnings.filterwarnings("ignore", category=SAWarning)
+
 
 def main(args, population_id=None):
     random.seed(args.shuffle_seed)
@@ -42,7 +54,7 @@ def main(args, population_id=None):
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
 
         session, Base = initialize_session()
@@ -84,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=100)
-    parser.add_argument('--n_mutations', type=int, default=20)
+    parser.add_argument('--n_mutations', type=int, default=10)
     parser.add_argument('--debug_max', type=int, default=3)
     parser.add_argument('--model', type=str, default='gpt-4o-mini')
     parser.add_argument('-mp', '--num_mutation_prompts', default=2)

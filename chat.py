@@ -10,7 +10,7 @@ load_dotenv(override=True)
 client = openai.OpenAI()
 
 
-@backoff.on_exception(backoff.expo, openai.RateLimitError)
+# @backoff.on_exception(backoff.expo, openai.RateLimitError)
 def get_json_response_from_gpt(
         msg,
         model,
@@ -32,7 +32,7 @@ def get_json_response_from_gpt(
     return json_dict
 
 
-@backoff.on_exception(backoff.expo, openai.RateLimitError)
+# @backoff.on_exception(backoff.expo, openai.RateLimitError)
 def get_json_response_from_gpt_reflect(
         msg_list,
         model,
@@ -49,7 +49,7 @@ def get_json_response_from_gpt_reflect(
     return json_dict
 
 
-@backoff.on_exception(backoff.expo, openai.RateLimitError)
+# @backoff.on_exception(backoff.expo, openai.RateLimitError)
 def get_structured_json_response_from_gpt(
         messages,
         response_format,
