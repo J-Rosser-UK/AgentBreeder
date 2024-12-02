@@ -20,6 +20,14 @@ def generate_mutant(args, population_id):
 class Generator:
 
     def __init__(self, args, session, population_id) -> None:
+        """
+        Initializes the Generator class.
+
+        Args:
+            args: Arguments object containing configurations for the generator.
+            session: The session object for managing database interactions.
+            population_id: The ID of the population to operate on.
+        """
 
         self.session = session
         self.mutation_operators = multi_agent_system_mutation_prompts
@@ -40,8 +48,12 @@ class Generator:
 
     def __call__(self) -> Framework:
         """
-        Generates a batch of new populations by mutating and crossing over sampled populations.
+        Generates a mutated framework from the population by sampling and applying mutations.
+
+        Returns:
+            Framework: The mutated framework object. Returns None if the mutation fails.
         """
+
         sample_framework = random.choice(self.population.elites)
 
         try:
@@ -62,7 +74,15 @@ class Generator:
 
 
 def initialize_population_id(args) -> str:
-    """Initialize the first generation of frameworks for the population."""
+    """
+    Initializes the first generation of frameworks for a given population.
+
+    Args:
+        args: Arguments object containing configurations for the population initialization.
+
+    Returns:
+        str: The unique ID of the initialized population.
+    """
     session, Base = initialize_session()
 
     archive = get_init_archive()

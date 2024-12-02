@@ -32,10 +32,23 @@ class AgentSystemException(Exception):
 class Evaluator:
 
     def __init__(self, args):
+        """
+        Initializes the Evaluator class.
+
+        Args:
+            args: Arguments object containing configurations for the evaluator, including
+            dataset file paths and model settings.
+        """
         self.args = args
         self.multiple_choice_questions = self.load_eval_dataset()
 
     def load_eval_dataset(self) -> list[MultipleChoiceQuestion]:
+        """
+        Loads and prepares a dataset of multiple-choice questions for evaluation.
+
+        Returns:
+            list[MultipleChoiceQuestion]: A list of formatted multiple-choice question objects.
+        """
 
         df = pandas.read_csv(self.args.data_filename)
         examples = [row.to_dict() for _, row in df.iterrows()]
@@ -58,7 +71,16 @@ class Evaluator:
 
         return multiple_choice_questions
 
-    def format_question(self, multiple_choice_question):
+    def format_question(self, multiple_choice_question: MultipleChoiceQuestion) -> str:
+        """
+        Formats a multiple-choice question into a prompt string.
+
+        Args:
+            multiple_choice_question (MultipleChoiceQuestion): The question object to format.
+
+        Returns:
+            str: A formatted string containing the multiple-choice question and options.
+        """
 
         QUERY_TEMPLATE_MULTICHOICE = """
         Answer the following multiple choice question.
@@ -84,7 +106,20 @@ class Evaluator:
 
         return prompt
 
-    def evaluate_mocked_forward_function(self, forward_function, temp_file) -> None:
+    def evaluate_mocked_forward_function(
+        self, forward_function: str, temp_file: str
+    ) -> None:
+        """
+        Evaluates a forward function of an agent framework by executing it in a temporary
+        environment.
+
+        Args:
+            forward_function (str): The forward function code to evaluate.
+            temp_file (str): Path to the temporary file where the framework code will be written.
+
+        Raises:
+            AgentSystemException: If there is an error during evaluation.
+        """
 
         try:
 
@@ -137,6 +172,13 @@ class Evaluator:
             raise AgentSystemException(f"Error evaluating framework: {e}")
 
     def async_evaluate(self, frameworks_for_evaluation: list[Framework]):
+        """
+        Asynchronously evaluates a batch of frameworks by comparing their forward functions
+        against a dataset of questions.
+
+        Args:
+            frameworks_for_evaluation (list[Framework]): A list of frameworks to evaluate.
+        """
 
         framework_id_map = {}
         framework_question_pairs: list[dict] = []
@@ -199,6 +241,13 @@ class Evaluator:
             )
 
     def _thread_eval(self, pair):
+        """
+        Evaluates a single framework and multiple-choice question pair in a thread.
+
+        Args:
+            pair (dict): A dictionary containing framework details, forward function, and
+            the question to evaluate.
+        """
 
         session, Base = initialize_session()
 
@@ -225,6 +274,18 @@ class Evaluator:
     def evaluate_forward_function_on_one_question(
         self, session, multiple_choice_question, forward_function, temp_file
     ) -> int:
+        """
+        Evaluates the forward function of a framework on a single multiple-choice question.
+
+        Args:
+            session: Database session for framework interactions.
+            multiple_choice_question (MultipleChoiceQuestion): The question object to evaluate.
+            forward_function (str): The forward function code to test.
+            temp_file (str): Path to the temporary file where the framework code will be written.
+
+        Returns:
+            int: 1 if the framework's forward function produces the correct answer, 0 otherwise.
+        """
 
         if "return self.forward" in forward_function:
             return 0
@@ -282,17 +343,15 @@ class Evaluator:
         self, data, num_bootstrap_samples=100000, confidence_level=0.95
     ):
         """
-        Calculate the bootstrap confidence interval for the mean of 1D accuracy data.
-        Also returns the median of the bootstrap means.
+        Calculates the bootstrap confidence interval for the mean accuracy of framework evaluations.
 
         Args:
-        - data (list or array of float): 1D list or array of data points.
-        - num_bootstrap_samples (int): Number of bootstrap samples.
-        - confidence_level (float): The desired confidence level (e.g., 0.95 for 95%).
+            data (list or array): 1D list or array of accuracy data points.
+            num_bootstrap_samples (int): Number of bootstrap samples to generate.
+            confidence_level (float): Desired confidence level (e.g., 0.95 for 95%).
 
         Returns:
-        - str: Formatted string with 95% confidence interval and median as percentages
-          with one decimal place.
+            tuple: A formatted string of the confidence interval and median, along with lower and upper bounds of the interval and the median value.
         """
         # Convert data to a numpy array for easier manipulation
         data = np.array(data)

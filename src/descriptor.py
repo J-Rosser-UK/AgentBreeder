@@ -16,11 +16,27 @@ load_dotenv(override=True)
 class Descriptor:
 
     def __init__(self, model="text-embedding-3-small", output_dim=24):
+        """
+        Initializes the Descriptor class.
+
+        Args:
+            model (str): The name of the OpenAI embedding model to use for generating embeddings.
+            output_dim (int): The dimensionality of the output embeddings.
+        """
         self.client = openai.Client()
         self.model = model
         self.output_dim = output_dim
 
     def batch_generate(self, frameworks: list[Framework]):
+        """
+        Generates embeddings for a batch of frameworks using threading.
+
+        Args:
+            frameworks (list[Framework]): A list of framework objects for which embeddings will be generated.
+
+        Returns:
+            np.ndarray: A NumPy array containing the embeddings for all frameworks in the batch.
+        """
         with ThreadPoolExecutor(max_workers=16) as executor:
             embeddings = list(
                 tqdm(
@@ -32,6 +48,15 @@ class Descriptor:
         return np.array(embeddings)
 
     def generate(self, framework: Framework):
+        """
+        Generates an embedding for a single framework.
+
+        Args:
+            framework (Framework): The framework object for which the embedding will be generated.
+
+        Returns:
+            list[float]: The embedding vector for the given framework.
+        """
         text = (
             framework.framework_name
             + ": "
@@ -48,11 +73,29 @@ class Descriptor:
 class Clusterer:
 
     def __init__(self, min_cluster_size=3, min_samples=1, metric="euclidean"):
+        """
+        Initializes the Clusterer class.
+
+        Args:
+            min_cluster_size (int): Minimum size of a cluster.
+            min_samples (int): The number of samples in a neighborhood for a point to be considered a core point.
+            metric (str): The distance metric to use for clustering.
+        """
+
         self.clusterer = hdbscan.HDBSCAN(
             min_cluster_size=min_cluster_size, min_samples=min_samples, metric=metric
         )
 
     def cluster(self, population: Population):
+        """
+        Clusters frameworks in a population based on their embeddings.
+
+        Args:
+            population (Population): The population object containing frameworks to cluster.
+
+        Returns:
+            np.ndarray: An array of cluster labels for the frameworks in the population.
+        """
 
         session = object_session(population)
 

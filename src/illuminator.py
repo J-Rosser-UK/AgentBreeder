@@ -6,10 +6,31 @@ import logging
 class Illuminator:
 
     def __init__(self, args):
+        """
+        Initializes the Illuminator class.
+
+        Args:
+            args: Arguments object containing configurations for the illuminator,
+            including model settings.
+        """
 
         self.args = args
 
     def illuminate(self, population: Population, frameworks_for_evaluation: Framework):
+        """
+        Evaluates frameworks in a population to determine which surrogates should
+        proceed to further evaluation.
+
+        Args:
+            population (Population): The population object containing the current
+            generation and associated frameworks.
+            frameworks_for_evaluation (Framework): A list of frameworks to be illuminated
+            for evaluation.
+
+        Returns:
+            list[Framework]: A list of frameworks deemed suitable for further evaluation
+            based on the illumination process.
+        """
 
         generation = population.generations[-1]
 
@@ -27,12 +48,6 @@ class Illuminator:
                 "framework_thought_process": framework.framework_thought_process,
                 "framework_code": framework.framework_code,
             }
-
-            framework_cluster_id = framework.cluster_id
-
-            framework_cluster = framework.cluster
-
-            print(framework_cluster_id, framework_cluster)
 
             cluster_frameworks: list[Framework] = [
                 {
@@ -84,7 +99,6 @@ class Illuminator:
                 Y_or_N = get_structured_json_response_from_gpt(
                     messages, response_format, model=self.args.model, temperature=0.5
                 )
-                print(Y_or_N)
                 if Y_or_N["Will it outperform the other frameworks?"] == "Y":
                     illuminated_frameworks_for_evaluation.append(framework)
             except Exception as e:

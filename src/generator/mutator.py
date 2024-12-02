@@ -1,36 +1,33 @@
 import random
 import pandas as pd
 from typing import List
-from base import Framework, Population, initialize_session
+from base import Framework
 from chat import get_structured_json_response_from_gpt
-from prompts.mutation_base import get_base_prompt, get_init_archive
+from prompts.mutation_base import get_base_prompt
 from prompts.mutation_reflexion import get_reflexion_prompt
 import os
 import uuid
 from evaluator import AgentSystemException
+import logging
 
 
 class Mutator:
-    """
-    A catalog class containing and implementing mutations to small molecules according to the principles of positional analogue scanning.
-
-    Attributes:
-        mutation_data: A dataframe containing mutation SMARTS patterns and their associated probabilities.
-
-    Methods:
-        __init__(mutation_data): Initializes the Mutator with the given mutation data.
-        __call__(molecule): Applies a mutation to a given molecule and returns the resulting molecules.
-    """
 
     def __init__(
         self, args, session, population, mutation_operators, evaluator
     ) -> None:
         """
-        Initializes the Mutator with the given mutation data.
+        Initializes the Mutator class.
 
         Args:
-            mutation_data (list[str]): A list of mutation operations to be applied to molecules.
+            args: Arguments object containing configurations for the mutator, such
+            as debugging limits and model settings.
+            session: The session object for managing framework interactions.
+            population: The population of frameworks for mutation.
+            mutation_operators: A list of mutation operator strings to apply.
+            evaluator: An evaluator object for validating and testing mutated frameworks.
         """
+
         self.mutation_operators = mutation_operators
         self.args = args
         self.evaluator = evaluator
@@ -39,17 +36,46 @@ class Mutator:
 
     def __call__(self, framework: Framework) -> List[Framework]:
         """
-        Applies a mutation to a given framework and returns the resulting frameworks.
+        Applies a mutation to a given framework.
 
         Args:
-            framework: The framework to be mutated.
+            framework (Framework): The framework object to mutate.
 
         Returns:
-            List[Framework]: A list of new frameworks resulting from the mutation as applied
-            by positional analogue scanning.
+            List[Framework]: A list containing the mutated framework objects.
         """
 
         sampled_mutation = random.choice(self.mutation_operators)
+
+        next_response, messages, reflexion_response_format = self._mutate(
+            framework, sampled_mutation
+        )
+
+        next_response = self._debug(messages, next_response, reflexion_response_format)
+
+        mutated_framework = Framework(
+            session=self.session,
+            framework_name=next_response["name"],
+            framework_code=next_response["code"],
+            framework_thought_process=next_response["thought"],
+            population=self.population,
+        )
+
+        return mutated_framework
+
+    def _mutate(self, framework: Framework, sampled_mutation: str):
+        """
+        Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
+
+        Args:
+            framework (Framework): The framework object to mutate.
+            sampled_mutation (str): The mutation operator selected for this mutation.
+
+        Returns:
+            tuple: A tuple containing the next_response (dict), the updated messages (list),
+                and the reflexion_response_format (str).
+        """
+
         base_prompt, base_prompt_response_format = get_base_prompt()
         messages = [
             {
@@ -109,32 +135,49 @@ class Mutator:
             print(e)
             return None
 
-        print("---New Framework!---")
-        print(next_response)
-        # Fix code if broken loop
-        mutated_framework = None
+        return next_response, messages, reflexion_response_format
+
+    def _debug(self, messages, next_response, reflexion_response_format):
+        """
+        Handles debugging for a given response during mutation.
+
+        Args:
+            messages: List of messages exchanged during the mutation process.
+            next_response: The generated response containing the framework code and metadata.
+            reflexion_response_format: The response format for reflection.
+
+        Returns:
+            dict: The updated next_response after debugging attempts.
+        """
+
         current_directory = os.path.dirname(os.path.abspath(__file__))
-        temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
+        temp_file = f"""
+            {current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py
+        """.strip()
+
         for _ in range(self.args.debug_max):
 
             try:
                 if "return self.forward" in next_response["code"]:
                     raise AgentSystemException(
-                        "The output of the forward function must not be the forward function itself, as it will recurse infinitely."
+                        """The output of the forward function must not be the forward function
+                        itself, as it will recurse infinitely."""
                     )
-                assert self.session is not None
-                acc_list = self.evaluator.evaluate_mocked_forward_function(
+                self.evaluator.evaluate_mocked_forward_function(
                     next_response["code"], temp_file
                 )
 
             except AgentSystemException as e:
-                print("During evaluation:")
-                print(e)
+                logging.error(f"Error during debugging: {e}")
                 messages.append({"role": "assistant", "content": str(next_response)})
                 messages.append(
                     {
                         "role": "user",
-                        "content": f"Error during evaluation:\n{e}\nCarefully consider where you went wrong in your latest implementation. Using insights from previous attempts, try to debug the current code to implement the same thought. Repeat your previous thought in 'thought', and put your thinking for debugging in 'debug_thought'",
+                        "content": f"""Error during evaluation:\n{e}\nCarefully consider where
+                        you went wrong in your latest implementation. Using insights from
+                        previous attempts, try to debug the current code to implement the
+                        same thought. Repeat your previous thought in 'thought', and put
+                        your thinking for debugging in 'debug_thought'""",
                     }
                 )
                 try:
@@ -149,22 +192,4 @@ class Mutator:
                     print("During LLM generate new solution:")
                     print(e)
 
-        # print("Mutated Framework:")
-        # print({
-        #     "session":self.session,
-        #     "framework_name":next_response["name"],
-        #     "framework_code":next_response["code"],
-        #     "framework_thought_process":next_response["thought"],
-        #     "population":self.population
-        # })
-        mutated_framework = Framework(
-            session=self.session,
-            framework_name=next_response["name"],
-            framework_code=next_response["code"],
-            framework_thought_process=next_response["thought"],
-            population=self.population,
-        )
-
-        # print("Successfully mutated:", mutated_framework)
-
-        return mutated_framework
+        return next_response
