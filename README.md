@@ -47,7 +47,7 @@
 
 ## Abstract
 
-The development of open-ended, adaptive artificial intelligence systems is a cornerstone of advancing toward Artificial Superhuman Intelligence (ASI). While many existing AI models excel at specific tasks, they often lack the ability to generate diverse and innovative solutions autonomously. Inspired by biological evolution and open-ended processes, AgentBreeder leverages Bayesian Illumination to efficiently automate the generation of novel Large Language Model (LLM) multi-agent frameworks.
+Open-Ended processes are those which lead to diverse, complex, and innovative solutions over time, and it has been proposed that open-endedness is an essential property of any Artificial Superhuman Intelligence (ASI). While many existing AI models excel at specific tasks, they often lack "Open-Endedness". Inspired by biological evolution and open-ended processes, AgentBreeder leverages Bayesian Illumination to efficiently automate the generation of novel Large Language Model (LLM) multi-agent frameworks.
 
 Multi-agent systems offer modularity, specialization, and enhanced control, enabling agents to collaborate and adapt dynamically. AgentBreeder builds upon the Automated Design of Agentic Systems (ADAS) framework by integrating three key innovations: graph-based genetic algorithms to enhance collaboration and architecture design, MAP-Elites for clustering and diversely sampling high-performing frameworks, and BOP-Elites for sample-efficient exploration. These techniques ensure the creation of diverse, high-performing agent frameworks while reducing computational costs.
 
