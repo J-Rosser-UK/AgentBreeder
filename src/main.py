@@ -7,6 +7,7 @@ from generator import initialize_population_id, generate_mutant
 from descriptor import Clusterer
 from base import initialize_session, Population, Framework
 from evaluator import Evaluator
+import os
 
 import warnings
 from sqlalchemy.exc import SAWarning
@@ -99,20 +100,27 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
+    current_directory = os.path.dirname(os.path.abspath(__file__))
     parser.add_argument(
         "--data_filename",
         type=str,
-        default="/home/j/Documents/AgentBreeder/src/data/mmlu_sample_3.csv",
+        default=f"{current_directory}/data/mmlu_sample_3.csv",
     )
     parser.add_argument("--shuffle_seed", type=int, default=0)
     parser.add_argument("--n_generation", type=int, default=100)
     parser.add_argument("--n_mutations", type=int, default=10)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
+    parser.add_argument(
+        "--population_id", type=str, default="dd615513-d3a0-43fd-bee3-31d3e87b7cc4"
+    )
 
     args = parser.parse_args()
 
-    population_id = "dd615513-d3a0-43fd-bee3-31d3e87b7cc4"
+    population_id = args.population_id
+    if population_id == "None":
+        population_id = None
+
     while True:
         # try:
         population_id = main(args, population_id)

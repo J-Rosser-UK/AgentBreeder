@@ -151,8 +151,9 @@ class Mutator:
         """
 
         current_directory = os.path.dirname(os.path.abspath(__file__))
+        parent_directory = os.path.dirname(current_directory)
         temp_file = f"""
-            {current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py
+            {parent_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py
         """.strip()
 
         for _ in range(self.args.debug_max):

@@ -53,13 +53,26 @@ Multi-agent systems offer modularity, specialization, and enhanced control, enab
 
 By combining evolutionary algorithms with Bayesian optimization, AgentBreeder demonstrates a scalable approach to fostering continuous learning and innovation in multi-agent systems. This methodology holds promise for accelerating the development of adaptive, creative AI systems that align with the principles of open-endedness.
 
-## Setup
+## Run with Docker
 ```
 git clone https://github.com/J-Rosser-UK/AgentBreeder
 
 cd AgentBreeder
 
-cd backend
+sudo docker build -t agent_breeder .
+
+sudo docker run -it agent_breeder
+
+```
+
+
+## Run directly
+```
+git clone https://github.com/J-Rosser-UK/AgentBreeder
+
+cd AgentBreeder
+
+cd src
 
 python -m venv venv 
 
@@ -68,11 +81,7 @@ venv/Scripts/activate // windows
 source venv/bin/activate // unix
 
 pip install -r requirements.txt
-```
-
-## Start
-
-``` 
-python main.py
+ 
+python src/main.py --population_id None
 ```
 
