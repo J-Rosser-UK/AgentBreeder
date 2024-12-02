@@ -4,11 +4,12 @@ from typing import List
 from base import Framework
 from chat import get_structured_json_response_from_gpt
 from prompts.mutation_base import get_base_prompt
-from prompts.mutation_reflexion import get_reflexion_prompt
+from prompts.mutation_reflexion import Reflexion_prompt_1
 import os
 import uuid
 from evaluator import AgentSystemException
 import logging
+import json
 
 
 class Mutator:
@@ -107,10 +108,11 @@ class Mutator:
                 retry=0,
             )
 
-            Reflexion_prompt_1, Reflexion_prompt_2, reflexion_response_format = (
-                get_reflexion_prompt(next_response)
-            )
             # Reflexion 1
+            Reflexion_prompt_1, reflexion_response_format = (
+                self._get_reflexion_prompt_1(next_response)
+            )
+
             messages.append({"role": "assistant", "content": str(next_response)})
             messages.append({"role": "user", "content": Reflexion_prompt_1})
             next_response = get_structured_json_response_from_gpt(
@@ -121,6 +123,10 @@ class Mutator:
                 retry=0,
             )
             # Reflexion 2
+            Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section,
+            revise the code further. Put your new reflection thinking in "reflection". Repeat the
+            previous "thought" and "name", and update the corrected version of the code in "code".
+            """
             messages.append({"role": "assistant", "content": str(next_response)})
             messages.append({"role": "user", "content": Reflexion_prompt_2})
             next_response = get_structured_json_response_from_gpt(
@@ -136,6 +142,39 @@ class Mutator:
             return None
 
         return next_response, messages, reflexion_response_format
+
+    def _get_reflexion_prompt_1(self, prev_example):
+
+        prev_example_str = (
+            "Here is the previous agent you tried:\n"
+            + json.dumps(prev_example)
+            + "\n\n"
+        )
+        r1 = (
+            Reflexion_prompt_1.replace("<<EXAMPLE>>", prev_example_str)
+            if prev_example
+            else Reflexion_prompt_1.replace("<<EXAMPLE>>", "")
+        )
+        reflexion_response_format = {
+            "reflection": """
+                Provide your thoughts on the interestingness of the architecture,
+                identify any mistakes in the implementation, and suggest improvements.
+            """,
+            "thought": """
+                Revise your previous proposal or propose a new architecture if necessary,
+                using the same format as the example response.
+            """,
+            "name": """
+                Provide a name for the revised or new architecture. (Don't put words like
+                'new' or 'improved' in the name.)
+            """,
+            "code": """
+                Provide the corrected code or an improved implementation. Make sure you
+                actually implement your fix and improvement in this code.
+            """,
+        }
+
+        return r1, reflexion_response_format
 
     def _debug(self, messages, next_response, reflexion_response_format):
         """

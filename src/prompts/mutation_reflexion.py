@@ -1,5 +1,3 @@
-import json
-
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
     "name": "Name of your proposed agent",
@@ -10,7 +8,7 @@ EXAMPLE = {
 }
 
 
-Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:"
+Reflexion_prompt_1 = f""""<<EXAMPLE>>Carefully review the proposed new architecture and reflect on the following points:"
 
 1. **Interestingness**: Assess whether your proposed architecture is interesting or innovative compared to existing methods in the archive. If you determine that the proposed architecture is not interesting, suggest a new architecture that addresses these shortcomings. 
 - Make sure to check the difference between the proposed architecture and previous attempts.
@@ -37,27 +35,3 @@ Your response should be organized as follows:
 
 "code": Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.
 """
-
-Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section, revise the code further.
-Your response should be organized as follows:
-Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
-"""
-
-
-def get_reflexion_prompt(prev_example):
-    prev_example_str = (
-        "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
-    )
-    r1 = (
-        Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)
-        if prev_example
-        else Reflexion_prompt_1.replace("[EXAMPLE]", "")
-    )
-    reflexion_response_format = {
-        "reflection": "Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements.",
-        "thought": "Revise your previous proposal or propose a new architecture if necessary, using the same format as the example response.",
-        "name": "Provide a name for the revised or new architecture. (Don't put words like 'new' or 'improved' in the name.)",
-        "code": "Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.",
-    }
-
-    return r1, Reflexion_prompt_2, reflexion_response_format
