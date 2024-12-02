@@ -1,4 +1,3 @@
-
 COT = {
     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
     "name": "Chain-of-Thought",
@@ -44,12 +43,13 @@ COT = {
     )
     
     return output["answer"]
-"""
+""",
 }
 
-COT_SC = {"thought": "While an LLM can arrive at the correct answer, its reasoning may vary. By repeatedly asking the same question with high temperature settings, we can generate different reasoning paths. We then combine multiple answers from these Chain-of-Thought (CoT) agents to produce a more accurate final answer through ensembling.",
-          "name": "Self-Consistency with Chain-of-Thought",
-          "code": """def forward(self, task: str) -> str:
+COT_SC = {
+    "thought": "While an LLM can arrive at the correct answer, its reasoning may vary. By repeatedly asking the same question with high temperature settings, we can generate different reasoning paths. We then combine multiple answers from these Chain-of-Thought (CoT) agents to produce a more accurate final answer through ensembling.",
+    "name": "Self-Consistency with Chain-of-Thought",
+    "code": """def forward(self, task: str) -> str:
     # Create a system agent to provide instructions
     system = self.Agent(
         agent_name='system',
@@ -103,8 +103,8 @@ COT_SC = {"thought": "While an LLM can arrive at the correct answer, its reasoni
     
     final_answer = Counter(possible_answers).most_common(1)[0][0]
     return final_answer
-"""
-          }
+""",
+}
 
 Reflexion = {
     "thought": "To enhance its performance, an LLM can iteratively improve its answer based on feedback. By reflecting on its previous attempts and incorporating feedback, the model can refine its reasoning and provide a more accurate solution.",
@@ -204,7 +204,7 @@ Reflexion = {
         )
     
     return output["answer"]
-"""
+""",
 }
 
 LLM_debate = {
@@ -252,12 +252,13 @@ LLM_debate = {
     output = final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
     
     return output["answer"]
-"""
+""",
 }
 
-Take_a_step_back = {"thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
-                    "name": "Step-back Abstraction",
-                    "code": """def forward(self, task: str) -> str:
+Take_a_step_back = {
+    "thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
+    "name": "Step-back Abstraction",
+    "code": """def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     principle_agent = self.Agent(agent_name='Principle Agent', temperature=0.8)
@@ -295,12 +296,13 @@ Take_a_step_back = {"thought": "Let LLM first think about the principles involve
     })
     
     return final_output["answer"]
-"""
-                    }
+""",
+}
 
-QD = {"thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
-      "name": "Quality-Diversity",
-      "code": """def forward(self, task: str) -> str:
+QD = {
+    "thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
+    "name": "Quality-Diversity",
+    "code": """def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     cot_agent = self.Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
@@ -357,12 +359,13 @@ QD = {"thought": "Similar to Quality-Diversity methods, let LLM generate multipl
     })
     
     return final_output["answer"]
-"""
-      }
+""",
+}
 
-Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
-                   "name": "Dynamic Assignment of Roles",
-                   "code": """def forward(self, task: str) -> str:
+Role_Assignment = {
+    "thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
+    "name": "Dynamic Assignment of Roles",
+    "code": """def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     routing_agent = self.Agent(agent_name='Routing Agent', temperature=0.8)
@@ -407,5 +410,5 @@ Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can 
     })
     
     return expert_output["answer"]
-"""
-                   }
+""",
+}

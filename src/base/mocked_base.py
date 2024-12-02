@@ -7,6 +7,7 @@ import inspect as py_inspect  # To avoid naming conflict with sqlalchemy.inspect
 from typing import Callable
 from base import Agent, Meeting, Chat  # Ensure these are properly imported
 
+
 def initialize_attributes_from_model(self, model_class, special_defaults={}):
     mapper = inspect(model_class)
     for column in mapper.columns:
@@ -39,12 +40,13 @@ def initialize_attributes_from_model(self, model_class, special_defaults={}):
 
         setattr(self, attr_name, default_value)
 
+
 class MockAgent:
-    def __init__(self, agent_name, model='gpt-4o-mini', temperature=0.5):
+    def __init__(self, agent_name, model="gpt-4o-mini", temperature=0.5):
         # Initialize attributes from Agent's columns
         special_defaults = {
-            'agent_id': str(uuid.uuid4()),
-            'agent_timestamp': datetime.datetime.now(),
+            "agent_id": str(uuid.uuid4()),
+            "agent_timestamp": datetime.datetime.now(),
         }
         initialize_attributes_from_model(self, Agent, special_defaults)
 
@@ -55,7 +57,7 @@ class MockAgent:
 
         # Generate random ID and append to agent_name
         characters = string.ascii_letters + string.digits
-        random_id = ''.join(random.choices(characters, k=4))
+        random_id = "".join(random.choices(characters, k=4))
         self.agent_name = f"{agent_name} {random_id}"
 
         # Initialize relationships
@@ -77,12 +79,13 @@ class MockAgent:
             response[key] = f"Random {key} value"
         return response
 
+
 class MockMeeting:
     def __init__(self, meeting_name):
         # Initialize attributes from Meeting's columns
         special_defaults = {
-            'meeting_id': str(uuid.uuid4()),
-            'meeting_timestamp': datetime.datetime.now(),
+            "meeting_id": str(uuid.uuid4()),
+            "meeting_timestamp": datetime.datetime.now(),
         }
         initialize_attributes_from_model(self, Meeting, special_defaults)
 
@@ -97,12 +100,13 @@ class MockMeeting:
     def __repr__(self):
         return f"Meeting {self.meeting_name} {self.meeting_id}"
 
+
 class MockChat:
     def __init__(self, content, agent=None, meeting=None):
         # Initialize attributes from Chat's columns
         special_defaults = {
-            'chat_id': str(uuid.uuid4()),
-            'chat_timestamp': datetime.datetime.now(),
+            "chat_id": str(uuid.uuid4()),
+            "chat_timestamp": datetime.datetime.now(),
         }
         initialize_attributes_from_model(self, Chat, special_defaults)
 
@@ -124,6 +128,7 @@ class MockChat:
 
     def __repr__(self):
         return f"Chat {self.chat_id}: {self.content}"
+
 
 # Example usage:
 

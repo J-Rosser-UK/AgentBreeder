@@ -6,7 +6,7 @@ EXAMPLE = {
     "code": """def forward(self, task):
     # Your code here
     return answer
-"""
+""",
 }
 
 
@@ -45,15 +45,19 @@ Put your new reflection thinking in "reflection". Repeat the previous "thought" 
 
 
 def get_reflexion_prompt(prev_example):
-    prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
-    r1 = Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str) if prev_example else Reflexion_prompt_1.replace("[EXAMPLE]", "")
+    prev_example_str = (
+        "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
+    )
+    r1 = (
+        Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)
+        if prev_example
+        else Reflexion_prompt_1.replace("[EXAMPLE]", "")
+    )
     reflexion_response_format = {
-                "reflection": "Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements.",
-                "thought": "Revise your previous proposal or propose a new architecture if necessary, using the same format as the example response.",
-                "name": "Provide a name for the revised or new architecture. (Don't put words like 'new' or 'improved' in the name.)",
-                "code": "Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.",
-            }
-    
+        "reflection": "Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements.",
+        "thought": "Revise your previous proposal or propose a new architecture if necessary, using the same format as the example response.",
+        "name": "Provide a name for the revised or new architecture. (Don't put words like 'new' or 'improved' in the name.)",
+        "code": "Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.",
+    }
+
     return r1, Reflexion_prompt_2, reflexion_response_format
-
-

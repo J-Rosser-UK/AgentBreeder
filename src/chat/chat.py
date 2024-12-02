@@ -10,16 +10,10 @@ load_dotenv(override=True)
 client = openai.OpenAI()
 
 
-
-# @backoff.on_exception(backoff.expo, openai.RateLimitError)
 def get_structured_json_response_from_gpt(
-        messages,
-        response_format,
-        model='gpt-4o-mini',
-        temperature=0.5,
-        retry=0
+    messages, response_format, model="gpt-4o-mini", temperature=0.5, retry=0
 ) -> dict:
-    
+
     properties = {}
     required = []
     for key, value in response_format.items():
@@ -27,43 +21,64 @@ def get_structured_json_response_from_gpt(
         required.append(key)
 
     # Add "Please use the "get_structured_response" function to structure the response." to the final message
-    messages.append({"role": "system", "content": "Please use the 'get_structured_response' function to structure the response."})
+    messages.append(
+        {
+            "role": "system",
+            "content": "Please use the 'get_structured_response' function to structure the response.",
+        }
+    )
 
     response = client.chat.completions.create(
-        model = model,
-        temperature = temperature,
+        model=model,
+        temperature=temperature,
         messages=messages,
-        functions = [
+        functions=[
             {
-                'name': 'get_structured_response',
-                'description': 'Get structured response from GPT.',
-                'parameters': {
-                    'type': 'object',
-                    'properties': properties,
-                    'required': required
-                }
+                "name": "get_structured_response",
+                "description": "Get structured response from GPT.",
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
             }
         ],
-            function_call = { "name": "get_structured_response" }
-        )
+        function_call={"name": "get_structured_response"},
+    )
 
     # Loading the response as a JSON object
     if not response.choices[0].message.function_call and retry < 3:
         logging.warning("Retrying due to missing function call.")
-        messages.append({"role": "system", "content": "YOU MUST use the 'get_structured_response' function to structure the response."})
-        response = get_structured_json_response_from_gpt(messages, response_format, model, temperature, retry + 1)
-    
+        messages.append(
+            {
+                "role": "system",
+                "content": "YOU MUST use the 'get_structured_response' function to structure the response.",
+            }
+        )
+        response = get_structured_json_response_from_gpt(
+            messages, response_format, model, temperature, retry + 1
+        )
+
     json_response = json.loads(response.choices[0].message.function_call.arguments)
     return json_response
 
 
 if __name__ == "__main__":
-    
+
     response = get_structured_json_response_from_gpt(
         messages=[
-            {"role": "system", "content": "Please think step by step and then solve the task."},
-            {"role": "user", "content": "What is the captial of France? A: Paris B: London C: Berlin D: Madrid."}
+            {
+                "role": "system",
+                "content": "Please think step by step and then solve the task.",
+            },
+            {
+                "role": "user",
+                "content": "What is the captial of France? A: Paris B: London C: Berlin D: Madrid.",
+            },
         ],
-        response_format={"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."},
+        response_format={
+            "thinking": "Your step by step thinking.",
+            "answer": "A single letter, A, B, C or D.",
+        },
     )
     print(response)

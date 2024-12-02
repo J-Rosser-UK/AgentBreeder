@@ -1,6 +1,14 @@
 import json
 from .utils import extract_class_code, extract_function_code
-from .initial_population import COT, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment
+from .initial_population import (
+    COT,
+    COT_SC,
+    Reflexion,
+    LLM_debate,
+    Take_a_step_back,
+    QD,
+    Role_Assignment,
+)
 import os
 
 EXAMPLE = {
@@ -9,14 +17,16 @@ EXAMPLE = {
     "code": """def forward(self, task):
     # Your code here
     return answer
-"""
+""",
 }
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 higher_directory = os.path.dirname(current_directory)
 
 Agent_code = extract_class_code(f"{higher_directory}/base/base.py", "Agent")
-get_structured_json_response_from_gpt_code = extract_function_code(f"{higher_directory}/chat/chat.py", "get_structured_json_response_from_gpt")
+get_structured_json_response_from_gpt_code = extract_function_code(
+    f"{higher_directory}/chat/chat.py", "get_structured_json_response_from_gpt"
+)
 
 prompt_base = """# Overview
 You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on the MMLU (Massive Multitask Language Understanding) benchmark, a challenging evaluation that assesses a model's ability to answer questions across a wide range of subjects and difficulty levels. It includes subjects from STEM, social sciences, humanities, and more.
@@ -159,8 +169,10 @@ Using the knowledge learned from the archive and the inspiration from academic l
 THINK OUTSIDE THE BOX. Give a concise, powerful answer.
 """
 prompt_base = prompt_base.replace("{{Agent_code}}", Agent_code)
-prompt_base = prompt_base.replace("{{get_structured_json_response_from_gpt_code}}", get_structured_json_response_from_gpt_code)
-
+prompt_base = prompt_base.replace(
+    "{{get_structured_json_response_from_gpt_code}}",
+    get_structured_json_response_from_gpt_code,
+)
 
 
 def get_init_archive():
@@ -174,12 +186,9 @@ def get_base_prompt(adaptive=False):
     prompt = prompt.replace("[EXAMPLE]", json.dumps(EXAMPLE))
 
     response_format = {
-            "thought": "The first key should be (thought), and it should capture your thought process for designing the next function. In the thought section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.",
-            "name": "The second key (name) corresponds to the name of your next agent architecture.",
-            "code": "Finally, the last key (code) corresponds to the exact forward() function in Python code that you would like to try. You must write a COMPLETE CODE in code: Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets."
-        }
+        "thought": "The first key should be (thought), and it should capture your thought process for designing the next function. In the thought section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.",
+        "name": "The second key (name) corresponds to the name of your next agent architecture.",
+        "code": "Finally, the last key (code) corresponds to the exact forward() function in Python code that you would like to try. You must write a COMPLETE CODE in code: Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets.",
+    }
 
     return prompt, response_format
-
-
-
