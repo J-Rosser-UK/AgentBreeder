@@ -13,6 +13,9 @@ class Illuminator():
 
         generation = population.generations[-1] 
 
+      
+        illuminated_frameworks_for_evaluation = []
+
         
         print(f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}")
        
@@ -31,7 +34,13 @@ class Illuminator():
             cluster_frameworks:list[Framework] = [
                 {"framework_name": fw.framework_name, "framework_thought_process": fw.framework_thought_process, "framework_code": fw.framework_code}
                  
-                 for fw in framework.cluster.frameworks]
+                 for fw in framework.cluster.frameworks if str(fw.framework_id) != str(framework.framework_id)]
+            
+            
+            if len(cluster_frameworks) <= 1:
+                illuminated_frameworks_for_evaluation.append(framework)
+                continue
+
 
             response_format = {
                 "thinking": "Your step by step thinking.",
@@ -42,7 +51,7 @@ class Illuminator():
                 {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
                 {"role": "user", "content": f"""
                     Given the following multi-agent frameworks defined in code, do you think there is a 50% or greater chance that the
-                    new framework will outperform them in a simulated environment? Please be generous and optimistic.
+                    new framework will outperform or equally perform against the best of them in a simulated environment? Please be generous and optimistic.
                 
                     Here are the frameworks in the cluster:
                     {cluster_frameworks}
@@ -58,8 +67,7 @@ class Illuminator():
                 },
             ]
             
-            # Generate new solution and do reflection
-            illuminated_frameworks_for_evaluation = []
+            
             try:
                 Y_or_N = get_structured_json_response_from_gpt(messages, response_format, model=self.args.model, temperature=0.5)
                 print(Y_or_N)
