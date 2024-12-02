@@ -3,8 +3,9 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from tqdm import tqdm
-from bayesian_illumination import Generator, initialize_population_id, generate_mutant
-from descriptor import Clusterer, Visualizer
+from generator import Generator, initialize_population_id, generate_mutant
+from descriptor import Clusterer
+from visualizer import Visualizer
 from base import initialize_session, Population, Framework
 from evaluator import Evaluator
 import time  # Added for restart delay
@@ -54,20 +55,14 @@ def main(args, population_id=None):
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
+        # with ThreadPoolExecutor(max_workers=1) as executor:
+        #     list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
+        for m in range(args.n_mutations):
+            generate_mutant(args, population_id)
 
         session, Base = initialize_session()
 
-        frameworks_for_evaluation = session.query(Framework).filter_by(
-            population_id=population_id,
-            framework_fitness=None
-        ).all()
-
-        print("Frameworks for evaluation: ", len(frameworks_for_evaluation))
-
-        evaluator.async_evaluate(frameworks_for_evaluation)
-
+        
         # Re-load the population object in this session
         population = session.query(Population).filter_by(
             population_id=population_id
@@ -75,6 +70,18 @@ def main(args, population_id=None):
 
         # Recluster the population
         clusterer.cluster(population)
+
+        frameworks_for_evaluation = session.query(Framework).filter_by(
+            population_id=population_id,
+            framework_fitness=None
+        ).all()
+
+
+        illuminated_frameworks_for_evaluation = evaluator.illuminate(population, frameworks_for_evaluation)
+
+        print("Illuminated frameworks for evaluation: ", len(illuminated_frameworks_for_evaluation))
+
+        evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
 
         session.close()
 
@@ -106,12 +113,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    population_id = "68d8c6e5-d514-4119-ba15-eaa12d09e3f0"
+    population_id = None
     while True:
-        try:
-            population_id = main(args, population_id)
-            break  # Exit the loop if successful
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
-            logging.info("Restarting the process...")
-            time.sleep(5)  # Optional: Add a small delay before restarting
+        # try:
+        population_id = main(args, population_id)
+        #     break  # Exit the loop if successful
+        # except Exception as e:
+        #     logging.error(f"An error occurred: {e}")
+        #     logging.info("Restarting the process...")
+        #     time.sleep(5)  # Optional: Add a small delay before restarting

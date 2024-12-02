@@ -27,7 +27,7 @@ import os
 Base = declarative_base()
 # Create engine and Base
 current_dir = os.path.dirname(os.path.abspath(__file__))
-engine = create_engine(f'sqlite:///{current_dir}/chat_database.db', connect_args={"check_same_thread": False})
+engine = create_engine(f'sqlite:///{current_dir}/illumination_database.db', connect_args={"check_same_thread": False})
 
 
 
@@ -74,7 +74,9 @@ class CustomBase(Base):
         if session:
             self.session = session
             # Add self to the session and commit
+          
             session.add(self)
+            
             session.commit()
 
     def validate_column_value(self, column_name, column_type, value):
@@ -120,10 +122,13 @@ class CustomBase(Base):
         session.add(self)
         session.commit()
     
+
 class AutoSaveList(list):
     def append(self, item):
         super().append(item)
-        session = object_session(item)
+        item_session = object_session(item)
+        # self_session = object_session(self)
+        session = item_session # if item_session else self_session
         session.add(item)
         session.commit()
 
@@ -152,6 +157,34 @@ class Chat(CustomBase):
     agent = relationship("Agent", back_populates="chats", collection_class=AutoSaveList)
     meeting = relationship("Meeting", back_populates="chats",collection_class=AutoSaveList)
 
+
+
+
+class Framework(CustomBase):
+    __tablename__ = 'framework'
+
+    framework_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The framework's unique identifier (UUID).")
+    framework_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the framework.")
+    framework_name = CustomColumn(String, label="The name of the framework.")
+    framework_code = CustomColumn(String, label="The code of the framework. Starting with def forward(self, task: str) -> str:")
+    framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
+    framework_generation = CustomColumn(Integer, label="The generation of the framework.")
+    population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
+    framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
+    framework_descriptor = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")
+    ci_lower = CustomColumn(Float, label="")
+    ci_upper = CustomColumn(Float, label="")
+    ci_median = CustomColumn(Float, label="")
+    ci_sample_size = CustomColumn(Float, label="")
+    ci_confidence_level = CustomColumn(Float, label="")
+    cluster_id = CustomColumn(String, ForeignKey('cluster.cluster_id'), label="The cluster's unique identifier (UUID).")
+    
+
+    # Relationships
+    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
+    population = relationship("Population", back_populates="frameworks", collection_class=AutoSaveList)
+
+
 class Cluster(CustomBase):
     __tablename__ = 'cluster'
 
@@ -165,6 +198,7 @@ class Cluster(CustomBase):
     # Relationships
     population = relationship("Population", back_populates="clusters", collection_class=AutoSaveList)
     generation = relationship("Generation", back_populates="clusters", collection_class=AutoSaveList)
+    
 
 
     @property
@@ -191,31 +225,6 @@ class Cluster(CustomBase):
 
 
     
-
-class Framework(CustomBase):
-    __tablename__ = 'framework'
-
-    framework_id = CustomColumn(String, primary_key=True, default=lambda: str(uuid.uuid4()), label="The framework's unique identifier (UUID).")
-    framework_timestamp = CustomColumn(DateTime, default=datetime.datetime.now(), label="The timestamp of the framework.")
-    framework_name = CustomColumn(String, label="The name of the framework.")
-    framework_code = CustomColumn(String, label="The code of the framework. Starting with def forward(self, task: str) -> str:")
-    framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
-    framework_generation = CustomColumn(Integer, label="The generation of the framework.")
-    population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
-    framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
-    framework_descriptor = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")
-    ci_lower = CustomColumn(Float, label="")
-    ci_upper = CustomColumn(Float, label="")
-    ci_median = CustomColumn(Float, label="")
-    ci_sample_size = CustomColumn(Float, label="")
-    ci_confidence_level = CustomColumn(Float, label="")
-    cluster_id = CustomColumn(String, ForeignKey('cluster.cluster_id'), label="The cluster's unique identifier (UUID).")
-    
-
-    # Relationships
-    meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
-    population = relationship("Population", back_populates="frameworks", collection_class=AutoSaveList)
-
 
 class Generation(CustomBase):
     __tablename__ = 'generation'

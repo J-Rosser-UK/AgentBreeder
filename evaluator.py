@@ -7,10 +7,11 @@ from pydantic import BaseModel
 import uuid
 import logging
 from utils import bootstrap_confidence_interval
-from base import Framework, initialize_session
+from base import Framework, initialize_session, Population
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+from chat import get_structured_json_response_from_gpt
 
 class MultipleChoiceQuestion(BaseModel):
     question_id: uuid.UUID
@@ -80,43 +81,9 @@ class Evaluator:
 
         return prompt
     
-    
 
+    def evaluate_mocked_forward_function(self, forward_function, temp_file) -> None:
         
-
-    def evaluate(self, session, framework):
-        
-        # Create a new session for this thread
-        logging.info(f"Evaluating framework: {framework.framework_name}")
-
-        # Create the agent framework in temporary code
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        temp_file = f"{current_directory}/temp/agent_system_temp_{framework.framework_name}_{framework.framework_id}.py"
-        forward_function = framework.framework_code
-
-        results_list = self.evaluate_forward_function(session, forward_function, temp_file)
-
-        confidence_level = 0.95
-        confidence_interval_string, ci_lower, ci_upper, median = bootstrap_confidence_interval(results_list, confidence_level=confidence_level)
-
-        framework.update(
-            ci_lower=ci_lower,
-            ci_upper=ci_upper,
-            ci_median=median,
-            ci_sample_size=len(results_list),
-            ci_confidence_level=confidence_level
-        )
-
-        logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
-
-        return median
-
-
-    
-    def evaluate_forward_function(self, session, forward_function, temp_file, batch_size = 2**10) -> list[int]:
-        
-       
-
         try:
         
             # Write the complete AgentSystem class to the file, including the forward function
@@ -124,13 +91,15 @@ class Evaluator:
                 f.write("import random\n")
                 f.write("import numpy as np\n")
                 f.write("import pandas\n\n")
-                f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
+                f.write(f"from mocked_base import MockAgent as Agent\n\n")
+                f.write(f"from mocked_base import MockMeeting as Meeting\n\n")
+                f.write(f"from mocked_base import MockChat as Chat\n\n")
                 f.write(f"from sqlalchemy.orm import Session\n\n")
                 f.write("class AgentSystem:\n")
-                f.write("    def __init__(self, session: Session):\n")
-                f.write("        self.Agent = Wrapper(Agent, session)\n")
-                f.write("        self.Meeting = Wrapper(Meeting, session)\n")
-                f.write("        self.Chat = Wrapper(Chat, session)\n")
+                f.write("    def __init__(self, session: Session = None):\n")
+                f.write("        self.Agent = Agent\n")
+                f.write("        self.Meeting = Meeting\n")
+                f.write("        self.Chat = Chat\n")
                 f.write("        self.session = session\n\n")
                 f.write("    " + forward_function.replace("\n", "\n    "))
                 f.write("\n\n")
@@ -148,17 +117,10 @@ class Evaluator:
             spec.loader.exec_module(module)
             AgentSystem = module.AgentSystem
 
-            results_list = []
-            for question in self.multiple_choice_questions[0: batch_size]:
-                agentSystem = AgentSystem(session)
+            agentSystem = AgentSystem()
 
-                task = self.format_question(question)
-                agent_framework_answer = agentSystem.forward(task)
-
-                if agent_framework_answer == question.correct_answer_letter:
-                    results_list.append(1)
-                else:
-                    results_list.append(0)
+            task = "Fake task"
+            agent_framework_answer = agentSystem.forward(task)
 
             # delete file at the end
             os.remove(temp_file)
@@ -166,7 +128,73 @@ class Evaluator:
         except Exception as e:
             raise AgentSystemException(f"Error evaluating framework: {e}")
         
-        return results_list
+
+    
+    def illuminate(self, population:Population, frameworks_for_evaluation:Framework):
+
+
+        generation = population.generations[-1] 
+
+        
+        print(f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}")
+       
+        for framework in frameworks_for_evaluation:
+
+            new_framework = {"framework_name": framework.framework_name, "framework_thought_process": framework.framework_thought_process, "framework_code": framework.framework_code}
+
+
+            framework_cluster = framework.cluster
+
+            cluster_frameworks:list[Framework] = [
+                {"framework_name": fw.framework_name, "framework_thought_process": fw.framework_thought_process, "framework_code": fw.framework_code}
+                 
+                 for fw in generation.frameworks if fw.cluster == framework_cluster]
+
+            messages = [
+                {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
+                {"role": "user", "content": f"""
+                    Given the following multi-agent frameworks defined in code, do you think there is a 50% or greater chance that the
+                    new framework will outperform them in a simulated environment?
+                
+                    Here are the frameworks in the cluster:
+                    {cluster_frameworks}
+
+                    Here is the new framework:
+                    {new_framework}
+                    
+                    """.strip() 
+                
+                },
+            ]
+
+            print(messages)
+
+            response_format = {
+                "thinking": "Your step by step thinking.",
+                "Will it outperform the other frameworks?": "A single letter, Y or N."
+            }
+
+            
+            # Generate new solution and do reflection
+            illuminated_frameworks_for_evaluation = []
+            try:
+                Y_or_N = get_structured_json_response_from_gpt(messages, response_format, model=self.args.model, temperature=0.5, retry=0)
+                if Y_or_N["Will it outperform the other frameworks"] == "Y":
+                    illuminated_frameworks_for_evaluation.append(Framework(
+                        framework_name=new_framework["framework_name"],
+                        framework_thought_process=new_framework["framework_thought_process"],
+                        framework_code=new_framework["framework_code"],
+                        population_id=population.population_id
+                    ))
+            except Exception as e:
+                logging.error(f"Error in illumination: {e}")
+                continue
+
+        return illuminated_frameworks_for_evaluation
+
+
+            
+
     
     def async_evaluate(self, frameworks_for_evaluation: list[Framework]):
 
@@ -187,7 +215,7 @@ class Evaluator:
 
         # use concurrent futures to multithread this and return updated framework_question_pairs
         with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(self.thread_eval, pair) for pair in framework_question_pairs]
+            futures = [executor.submit(self._thread_eval, pair) for pair in framework_question_pairs]
             for future in tqdm(futures, desc="Evaluating Async Frameworks"):
                 pair = future.result()
 
@@ -220,7 +248,7 @@ class Evaluator:
 
             logging.info(f"Framework: {framework.framework_name}, Confidence Interval: {confidence_interval_string}")
     
-    def thread_eval(self, pair):
+    def _thread_eval(self, pair):
 
         session, Base = initialize_session()
 
