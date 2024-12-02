@@ -16,7 +16,7 @@ import logging
 import logging
 
 # Disable logging for httpx
-logging.getLogger("httpx").disabled = True
+# logging.getLogger("httpx").disabled = True
 
 # Suppress all SAWarnings
 warnings.filterwarnings("ignore", category=SAWarning)
@@ -55,10 +55,9 @@ def main(args, population_id=None):
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
-        # with ThreadPoolExecutor(max_workers=1) as executor:
-        #     list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
-        for m in range(args.n_mutations):
-            generate_mutant(args, population_id)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            list(tqdm(executor.map(lambda _: generate_mutant(args, population_id), range(args.n_mutations)), desc="Mutations", total=args.n_mutations))
+        
 
         session, Base = initialize_session()
 

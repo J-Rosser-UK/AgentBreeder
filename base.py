@@ -126,11 +126,14 @@ class CustomBase(Base):
 class AutoSaveList(list):
     def append(self, item):
         super().append(item)
-        item_session = object_session(item)
-        # self_session = object_session(self)
-        session = item_session # if item_session else self_session
-        session.add(item)
-        session.commit()
+        if item:
+            print(item)
+            item_session = object_session(item)
+            if item_session:
+                # self_session = object_session(self)
+                session = item_session # if item_session else self_session
+                session.add(item)
+                session.commit()
 
     def extend(self, items):
         super().extend(items)
@@ -168,7 +171,6 @@ class Framework(CustomBase):
     framework_name = CustomColumn(String, label="The name of the framework.")
     framework_code = CustomColumn(String, label="The code of the framework. Starting with def forward(self, task: str) -> str:")
     framework_thought_process = CustomColumn(String, label="The thought process that went into creating the framework.")
-    framework_generation = CustomColumn(Integer, label="The generation of the framework.")
     population_id = CustomColumn(String, ForeignKey('population.population_id'), label="The population's unique identifier (UUID).")
     framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
     framework_descriptor = CustomColumn(JSON, label="The embedding of the framework as a list of floats.")

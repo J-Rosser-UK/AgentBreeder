@@ -160,7 +160,7 @@ You are deeply familiar with LLM prompting techniques and LLM agent works from t
 Observe the discovered architectures carefully and think about what insights, lessons, or stepping stones can be learned from them.
 Be creative to think about the next interesting architecture to try. You are encouraged to draw inspiration from related LLM agent papers or academic papers from other research areas.
 Using the knowledge learned from the archive and the inspiration from academic literature to give the next interesting architecture.
-THINK OUTSIDE THE BOX.
+THINK OUTSIDE THE BOX. Give a concise, powerful answer.
 """
 prompt_base = prompt_base.replace("{{Agent_code}}", Agent_code)
 prompt_base = prompt_base.replace("{{get_json_response_from_gpt_code}}", get_json_response_from_gpt_code)

@@ -77,17 +77,17 @@ class Generator:
         sample_framework = random.choice(self.population.elites)
    
         
-        # try:
-        mutant_framework = self.mutator(sample_framework)
-        ic(mutant_framework)
-        if mutant_framework:
-            mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
-
-            self.population.frameworks.append(mutant_framework)
+        try:
+            mutant_framework = self.mutator(sample_framework)
             
-        # except Exception as e:
-        #     print(f"Error mutating {sample_framework.framework_name} framework to {mutant_framework}: {e}")
-        #     mutant_framework = None
+            if mutant_framework:
+                mutant_framework.update(framework_descriptor = self.descriptor.generate(mutant_framework))
+
+                self.population.frameworks.append(mutant_framework)
+            
+        except Exception as e:
+            print(f"Error mutating {sample_framework.framework_name} framework to {mutant_framework}: {e}")
+            mutant_framework = None
         
         return mutant_framework
 
@@ -173,7 +173,7 @@ class Mutator:
         mutated_framework = None
         current_directory = os.path.dirname(os.path.abspath(__file__))
         temp_file = f"{current_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py"
-        for _ in range(0): #self.args.debug_max):
+        for _ in range(self.args.debug_max):
 
 
             try:
@@ -193,14 +193,14 @@ class Mutator:
                     print("During LLM generate new solution:")
                     print(e)
 
-        print("Mutated Framework:")
-        print({
-            "session":self.session,
-            "framework_name":next_response["name"],
-            "framework_code":next_response["code"],
-            "framework_thought_process":next_response["thought"],
-            "population":self.population
-        })
+        # print("Mutated Framework:")
+        # print({
+        #     "session":self.session,
+        #     "framework_name":next_response["name"],
+        #     "framework_code":next_response["code"],
+        #     "framework_thought_process":next_response["thought"],
+        #     "population":self.population
+        # })
         mutated_framework = Framework(
                 session=self.session,
                 framework_name=next_response["name"],
@@ -209,7 +209,7 @@ class Mutator:
                 population=self.population
             )
   
-        print("Successfully mutated:", mutated_framework)
+        # print("Successfully mutated:", mutated_framework)
 
 
         return mutated_framework
