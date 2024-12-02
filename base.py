@@ -220,9 +220,6 @@ class Cluster(CustomBase):
             .order_by(Framework.framework_fitness.desc())
             .first()
         )
-
-
-
     
 
 class Generation(CustomBase):

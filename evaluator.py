@@ -130,72 +130,7 @@ class Evaluator:
         
 
     
-    def illuminate(self, population:Population, frameworks_for_evaluation:Framework):
-
-
-        generation = population.generations[-1] 
-
-        
-        print(f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}")
-       
-        for framework in frameworks_for_evaluation:
-
-            new_framework = {"framework_name": framework.framework_name, "framework_thought_process": framework.framework_thought_process, "framework_code": framework.framework_code}
-
-
-            framework_cluster_id = framework.cluster_id
-
-            framework_cluster = framework.cluster
-
-            print(framework_cluster_id, framework_cluster)
-
-
-            cluster_frameworks:list[Framework] = [
-                {"framework_name": fw.framework_name, "framework_thought_process": fw.framework_thought_process, "framework_code": fw.framework_code}
-                 
-                 for fw in framework.cluster.frameworks]
-
-            messages = [
-                {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
-                {"role": "user", "content": f"""
-                    Given the following multi-agent frameworks defined in code, do you think there is a 50% or greater chance that the
-                    new framework will outperform them in a simulated environment?
-                
-                    Here are the frameworks in the cluster:
-                    {cluster_frameworks}
-
-                    Here is the new framework:
-                    {new_framework}
-                    
-                    """.strip() 
-                
-                },
-            ]
-
-            print(messages)
-
-            response_format = {
-                "thinking": "Your step by step thinking.",
-                "Will it outperform the other frameworks?": "A single letter, Y or N."
-            }
-
-            
-            # Generate new solution and do reflection
-            illuminated_frameworks_for_evaluation = []
-            try:
-                Y_or_N = get_structured_json_response_from_gpt(messages, response_format, model=self.args.model, temperature=0.5, retry=0)
-                if Y_or_N["Will it outperform the other frameworks"] == "Y":
-                    illuminated_frameworks_for_evaluation.append(Framework(
-                        framework_name=new_framework["framework_name"],
-                        framework_thought_process=new_framework["framework_thought_process"],
-                        framework_code=new_framework["framework_code"],
-                        population_id=population.population_id
-                    ))
-            except Exception as e:
-                logging.error(f"Error in illumination: {e}")
-                continue
-
-        return illuminated_frameworks_for_evaluation
+    
 
 
             

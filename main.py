@@ -12,6 +12,7 @@ import time  # Added for restart delay
 import warnings
 from sqlalchemy.exc import SAWarning
 import logging
+from illuminator import Illuminator
 
 import logging
 
@@ -28,6 +29,7 @@ def main(args, population_id=None):
     evaluator = Evaluator(args)
     clusterer = Clusterer()
     visualizer = Visualizer()
+    illuminator = Illuminator(args)
 
     # Initialize population_id only if it doesn't exist
     if not population_id:
@@ -76,7 +78,7 @@ def main(args, population_id=None):
         ).all()
 
 
-        illuminated_frameworks_for_evaluation = evaluator.illuminate(population, frameworks_for_evaluation)
+        illuminated_frameworks_for_evaluation = illuminator.illuminate(population, frameworks_for_evaluation)
 
         print("Illuminated frameworks for evaluation: ", len(illuminated_frameworks_for_evaluation))
 
@@ -102,8 +104,8 @@ if __name__ == "__main__":
     parser.add_argument('--save_dir', type=str, default='/home/j/Documents/AgentBreeder/results')
     parser.add_argument('--dataset_name', type=str, default="mmlu")
     parser.add_argument('--n_generation', type=int, default=100)
-    parser.add_argument('--n_mutations', type=int, default=3)
-    parser.add_argument('--debug_max', type=int, default=1)
+    parser.add_argument('--n_mutations', type=int, default=10)
+    parser.add_argument('--debug_max', type=int, default=3)
     parser.add_argument('--model', type=str, default='gpt-4o-mini')
     parser.add_argument('-mp', '--num_mutation_prompts', default=2)
     parser.add_argument('-ts', '--num_thinking_styles', default=4)
