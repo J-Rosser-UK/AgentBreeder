@@ -127,11 +127,8 @@ class AutoSaveList(list):
     def append(self, item):
         super().append(item)
         if item:
-            print(item)
-            item_session = object_session(item)
-            if item_session:
-                # self_session = object_session(self)
-                session = item_session # if item_session else self_session
+            session = object_session(item)
+            if session:
                 session.add(item)
                 session.commit()
 
@@ -185,6 +182,7 @@ class Framework(CustomBase):
     # Relationships
     meetings = relationship("Meeting", back_populates="framework", collection_class=AutoSaveList)
     population = relationship("Population", back_populates="frameworks", collection_class=AutoSaveList)
+    cluster = relationship("Cluster", back_populates="frameworks", collection_class=AutoSaveList)
 
 
 class Cluster(CustomBase):
@@ -200,8 +198,7 @@ class Cluster(CustomBase):
     # Relationships
     population = relationship("Population", back_populates="clusters", collection_class=AutoSaveList)
     generation = relationship("Generation", back_populates="clusters", collection_class=AutoSaveList)
-    
-
+    frameworks = relationship("Framework", back_populates="cluster", collection_class=AutoSaveList)
 
     @property
     def elite(self):

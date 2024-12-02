@@ -86,7 +86,7 @@ class Generator:
                 self.population.frameworks.append(mutant_framework)
             
         except Exception as e:
-            print(f"Error mutating {sample_framework.framework_name} framework to {mutant_framework}: {e}")
+            print(f"Error mutating {sample_framework.framework_name} framework: {e}")
             mutant_framework = None
         
         return mutant_framework
@@ -180,7 +180,7 @@ class Mutator:
                 if "return self.forward" in next_response["code"]:
                     raise AgentSystemException("The output of the forward function must not be the forward function itself, as it will recurse infinitely.")
                 assert self.session is not None
-                acc_list = self.evaluator.evaluate_mocked_forward_function(next_response["code"], temp_file, batch_size=1)
+                acc_list = self.evaluator.evaluate_mocked_forward_function(next_response["code"], temp_file)
                 
             except AgentSystemException as e:
                 print("During evaluation:")

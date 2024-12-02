@@ -143,12 +143,17 @@ class Evaluator:
             new_framework = {"framework_name": framework.framework_name, "framework_thought_process": framework.framework_thought_process, "framework_code": framework.framework_code}
 
 
+            framework_cluster_id = framework.cluster_id
+
             framework_cluster = framework.cluster
+
+            print(framework_cluster_id, framework_cluster)
+
 
             cluster_frameworks:list[Framework] = [
                 {"framework_name": fw.framework_name, "framework_thought_process": fw.framework_thought_process, "framework_code": fw.framework_code}
                  
-                 for fw in generation.frameworks if fw.cluster == framework_cluster]
+                 for fw in framework.cluster.frameworks]
 
             messages = [
                 {"role": "system", "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""},
