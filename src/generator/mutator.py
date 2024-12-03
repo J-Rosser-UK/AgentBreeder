@@ -203,8 +203,8 @@ class Mutator:
                         """The output of the forward function must not be the forward function
                         itself, as it will recurse infinitely."""
                     )
-                self.evaluator.evaluate_mocked_forward_function(
-                    next_response["code"], temp_file
+                self.evaluator.run_forward_pass(
+                    next_response["code"], temp_file, self.session
                 )
 
             except AgentSystemException as e:

@@ -34,7 +34,7 @@ Base = declarative_base()
 # Create engine and Base
 current_dir = os.path.dirname(os.path.abspath(__file__))
 engine = create_engine(
-    f"sqlite:///{current_dir}/illumination_database.db",
+    f"sqlite:///{current_dir}/illumination_database_2.db",
     connect_args={"check_same_thread": False},
 )
 
@@ -384,9 +384,9 @@ class Population(CustomBase):
 
         generation = self.generations[-1]
 
-        print(
-            f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}"
-        )
+        # print(
+        #     f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}"
+        # )
 
         # Find the elites from each cluster
         elites = [cluster.elite for cluster in generation.clusters]

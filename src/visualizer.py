@@ -29,6 +29,8 @@ class Visualizer:
             session.query(Framework).filter_by(population_id=population_id).all()
         )
 
+        print(len(frameworks))
+
         # Lists to store embeddings and other data
         embeddings = []
         cluster_ids = []
@@ -36,23 +38,38 @@ class Visualizer:
         framework_ids = []
         fitness_values = []
 
+        # count the number of unique cluster_ids
+        cluster_id_set = set()
         for fw in frameworks:
-            # Assuming framework_descriptor is a list of floats
-            embedding = fw.framework_descriptor
-            cluster_id = fw.cluster_id
-            fitness = fw.framework_fitness
+            cluster_id_set.add(fw.cluster_id)
+        print("Number of unique clusters: ", len(cluster_id_set))
+        print("Number of frameworks: ", len(frameworks))
 
-            if embedding and cluster_id and fitness is not None:
-                embeddings.append(embedding)
-                cluster_ids.append(cluster_id)
-                framework_names.append(fw.framework_name)
-                framework_ids.append(fw.framework_id)
-                fitness_values.append(fitness)
+        for fw in frameworks:
+
+            if (
+                fw.framework_descriptor
+                and fw.cluster_id
+                and fw.framework_fitness is not None
+            ):
+                # Assuming framework_descriptor is a list of floats
+                embedding = fw.framework_descriptor
+                cluster_id = fw.cluster_id
+                fitness = fw.framework_fitness
+
+                if embedding and cluster_id and fitness is not None:
+                    embeddings.append(embedding)
+                    cluster_ids.append(cluster_id)
+                    framework_names.append(fw.framework_name)
+                    framework_ids.append(fw.framework_id)
+                    fitness_values.append(fitness)
 
         # Convert lists to numpy arrays
         embeddings = np.array(embeddings)
         cluster_ids = np.array(cluster_ids)
         fitness_values = np.array(fitness_values)
+
+        print(embeddings)
 
         # Dimensionality reduction using UMAP
         if embeddings.shape[1] >= 3:
@@ -135,6 +152,8 @@ class Visualizer:
 if __name__ == "__main__":
 
     population_id = "dd615513-d3a0-43fd-bee3-31d3e87b7cc4"
+    # population_id = "68d8c6e5-d514-4119-ba15-eaa12d09e3f0"
+    population_id = "6a829b1e-5f06-4c0d-a110-74cfa1805c0f"
 
     random.seed(42)
 

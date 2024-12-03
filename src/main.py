@@ -8,10 +8,12 @@ from descriptor import Clusterer
 from base import initialize_session, Population, Framework
 from evaluator import Evaluator
 import os
+import uuid
 
 import warnings
 from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
+from sqlalchemy.orm import joinedload
 
 
 # Disable logging for httpx
@@ -31,24 +33,7 @@ def main(args, population_id=None):
     # Initialize population_id only if it doesn't exist
     if not population_id:
         population_id = initialize_population_id(args)
-    else:
-        session, Base = initialize_session()
-        frameworks_for_evaluation = (
-            session.query(Framework)
-            .filter_by(population_id=population_id, framework_fitness=None)
-            .all()
-        )
-
-        # Uncomment to evaluate any frameworks if evaluation was paused or stopped
-        # frameworks_for_evaluation.extend(session.query(Framework).filter_by(
-        #     population_id=population_id,
-        #     framework_fitness=-1
-        # ).limit(20))
-
-        print("Frameworks for evaluation: ", len(frameworks_for_evaluation))
-
-        evaluator.async_evaluate(frameworks_for_evaluation)
-        session.close()
+        print(f"Population ID: {population_id}")
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
@@ -81,11 +66,13 @@ def main(args, population_id=None):
         )
 
         illuminated_frameworks_for_evaluation = illuminator.illuminate(
-            population, frameworks_for_evaluation
+            session, population, frameworks_for_evaluation
         )
 
         print(
-            "Illuminated frameworks for evaluation: ",
+            "F",
+            len(frameworks_for_evaluation),
+            "I",
             len(illuminated_frameworks_for_evaluation),
         )
 
@@ -112,8 +99,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument(
-        "--population_id", type=str, default="dd615513-d3a0-43fd-bee3-31d3e87b7cc4"
+        "--population_id", type=str, default="6a829b1e-5f06-4c0d-a110-74cfa1805c0f"
     )
+    parser.add_argument("--db_url", type=str, default="sqlite:///data/illuminator.db")
 
     args = parser.parse_args()
 

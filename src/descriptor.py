@@ -15,7 +15,7 @@ load_dotenv(override=True)
 
 class Descriptor:
 
-    def __init__(self, model="text-embedding-3-small", output_dim=24):
+    def __init__(self, model="text-embedding-3-small", output_dim=12):
         """
         Initializes the Descriptor class.
 
@@ -112,16 +112,15 @@ class Clusterer:
             if not descriptor or len(descriptor) != mode_framework_shape:
                 embeddings[i] = np.zeros((int(mode_framework_shape),))
 
-        for i, descriptor in enumerate(embeddings):
-            print(f"Framework {i} descriptor shape: {np.shape(descriptor)}")
-
         embeddings = np.array(embeddings, dtype=np.float32)
-        print(f"Embeddings shape: {embeddings.shape}")
+        # print(f"Embeddings shape: {embeddings.shape}")
 
         labels = self.clusterer.fit_predict(embeddings)
 
         # get unique labels and assign them to the clusters
         unique_labels = np.unique(labels)
+
+        print("Number of unique clusters: ", len(unique_labels))
 
         if len(unique_labels) < 10:
             for framework in population.frameworks:

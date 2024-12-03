@@ -1,6 +1,8 @@
-from base import Population, Framework
+from base import Population, Framework, Cluster
 from chat import get_structured_json_response_from_gpt
 import logging
+from rich import print
+from sqlalchemy.orm import joinedload
 
 
 class Illuminator:
@@ -16,7 +18,9 @@ class Illuminator:
 
         self.args = args
 
-    def illuminate(self, population: Population, frameworks_for_evaluation: Framework):
+    def illuminate(
+        self, session, population: Population, frameworks_for_evaluation: Framework
+    ):
         """
         Evaluates frameworks in a population to determine which surrogates should
         proceed to further evaluation.
@@ -36,14 +40,23 @@ class Illuminator:
 
         illuminated_frameworks_for_evaluation = []
 
-        print(
-            f"""Number of clusters in generation {generation.generation_id}:
-            {len(generation.clusters)}"""
-        )
+        print(len(frameworks_for_evaluation))
 
         for framework in frameworks_for_evaluation:
 
+            if not framework.cluster_id:
+                continue
+
+            cluster_frameworks = (
+                session.query(Framework)
+                .filter_by(cluster_id=framework.cluster_id)
+                .all()
+            )
+
+            print("Cluster frameworks length: ", len(cluster_frameworks))
+
             new_framework = {
+                "framework_id": framework.framework_id,
                 "framework_name": framework.framework_name,
                 "framework_thought_process": framework.framework_thought_process,
                 "framework_code": framework.framework_code,
@@ -51,14 +64,22 @@ class Illuminator:
 
             cluster_frameworks: list[Framework] = [
                 {
+                    "framework_id": fw.framework_id,
                     "framework_name": fw.framework_name,
                     "framework_thought_process": fw.framework_thought_process,
                     "framework_code": fw.framework_code,
                     "framework_fitness": fw.framework_fitness,
                 }
-                for fw in framework.cluster.frameworks
+                for fw in cluster_frameworks
                 if str(fw.framework_id) != str(framework.framework_id)
             ]
+            if len(cluster_frameworks) > 1:
+                print("---------------------------")
+                print(f"New framework: {new_framework['framework_name']}")
+                print(
+                    f"Cluster frameworks: {[cluster_framework['framework_name'] for cluster_framework in cluster_frameworks]}"
+                )
+                print("---------------------------")
 
             if len(cluster_frameworks) <= 1:
                 illuminated_frameworks_for_evaluation.append(framework)

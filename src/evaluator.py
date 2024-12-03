@@ -10,6 +10,7 @@ from base import Framework, initialize_session
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
+from sqlalchemy.orm import Session
 
 
 class MultipleChoiceQuestion(BaseModel):
@@ -106,8 +107,8 @@ class Evaluator:
 
         return prompt
 
-    def evaluate_mocked_forward_function(
-        self, forward_function: str, temp_file: str
+    def run_forward_pass(
+        self, forward_function: str, temp_file: str, session: Session
     ) -> None:
         """
         Evaluates a forward function of an agent framework by executing it in a temporary
@@ -126,17 +127,14 @@ class Evaluator:
             # Write the complete AgentSystem class to the file, including the forward function
             with open(temp_file, "w") as f:
                 f.write("import random\n")
-                f.write("import numpy as np\n")
                 f.write("import pandas\n\n")
-                f.write(f"from mocked_base import MockAgent as Agent\n\n")
-                f.write(f"from mocked_base import MockMeeting as Meeting\n\n")
-                f.write(f"from mocked_base import MockChat as Chat\n\n")
+                f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
                 f.write(f"from sqlalchemy.orm import Session\n\n")
                 f.write("class AgentSystem:\n")
-                f.write("    def __init__(self, session: Session = None):\n")
-                f.write("        self.Agent = Agent\n")
-                f.write("        self.Meeting = Meeting\n")
-                f.write("        self.Chat = Chat\n")
+                f.write("    def __init__(self, session: Session):\n")
+                f.write("        self.Agent = Wrapper(Agent, session)\n")
+                f.write("        self.Meeting = Wrapper(Meeting, session)\n")
+                f.write("        self.Chat = Wrapper(Chat, session)\n")
                 f.write("        self.session = session\n\n")
                 f.write("    " + forward_function.replace("\n", "\n    "))
                 f.write("\n\n")
@@ -146,8 +144,8 @@ class Evaluator:
                 f.write("    " + "agent_system = AgentSystem()\n")
                 f.write(
                     "    "
-                    + """task = 'What should I have for dinner?
-                    A: soup B: burgers C: pizza D pasta'\n"""
+                    + """task = "What should I have for dinner?"""
+                    + """A: soup B: burgers C: pizza D: pasta"\n"""
                 )
                 f.write("    " + "output = agent_system.forward(task)\n")
                 f.write("    " + "print(output)\n")
@@ -160,10 +158,26 @@ class Evaluator:
             spec.loader.exec_module(module)
             AgentSystem = module.AgentSystem
 
-            agentSystem = AgentSystem()
+            agentSystem = AgentSystem(session)
 
-            task = "Fake task"
-            agentSystem.forward(task)
+            mcq = MultipleChoiceQuestion(
+                question_id=uuid.uuid4(),
+                question="Find the degree for the given field extension Q(sqrt(2), sqrt(3), sqrt(18)) over Q.",
+                A="0",
+                B="4",
+                C="2",
+                D="6",
+                correct_answer_letter="B",
+                subject="maths",
+            )
+
+            task = self.format_question(mcq)
+            forward_pass_output = agentSystem.forward(task)
+            print(forward_pass_output)
+            if forward_pass_output not in ["A", "B", "C", "D"]:
+                raise AgentSystemException(
+                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to return a single letter answer such as A, B, C, or D."
+                )
 
             # delete file at the end
             os.remove(temp_file)
@@ -312,8 +326,8 @@ class Evaluator:
                 f.write("    " + "agent_system = AgentSystem()\n")
                 f.write(
                     "    "
-                    + """task = 'What should I have for dinner?
-                    A: soup B: burgers C: pizza D pasta'\n"""
+                    + """task = "What should I have for dinner?"""
+                    + """A: soup B: burgers C: pizza D: pasta"\n"""
                 )
                 f.write("    " + "output = agent_system.forward(task)\n")
                 f.write("    " + "print(output)\n")
