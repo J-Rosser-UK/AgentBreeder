@@ -14,7 +14,7 @@ import warnings
 from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
 from sqlalchemy.orm import joinedload
-
+import time
 
 # Disable logging for httpx
 # logging.getLogger("httpx").disabled = True
@@ -34,6 +34,17 @@ def main(args, population_id=None):
     if not population_id:
         population_id = initialize_population_id(args)
         print(f"Population ID: {population_id}")
+    else:
+        session, Base = initialize_session()
+
+        # Re-load the population object in this session
+        population = (
+            session.query(Population).filter_by(population_id=population_id).one()
+        )
+        # Recluster the population
+        clusterer.cluster(population)
+
+        session.close()
 
     # Begin Bayesian Illumination...
     for i in tqdm(range(args.n_generation), desc="Generations"):
@@ -99,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument(
-        "--population_id", type=str, default="6a829b1e-5f06-4c0d-a110-74cfa1805c0f"
+        "--population_id", type=str, default="96173256-f843-4a3a-a128-54cb23f29e0d"
     )
     parser.add_argument("--db_url", type=str, default="sqlite:///data/illuminator.db")
 
@@ -110,10 +121,10 @@ if __name__ == "__main__":
         population_id = None
 
     while True:
-        # try:
-        population_id = main(args, population_id)
-        #     break  # Exit the loop if successful
-        # except Exception as e:
-        #     logging.error(f"An error occurred: {e}")
-        #     logging.info("Restarting the process...")
-        #     time.sleep(5)  # Optional: Add a small delay before restarting
+        try:
+            population_id = main(args, population_id)
+            break  # Exit the loop if successful
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            logging.info("Restarting the process...")
+            time.sleep(5)  # Optional: Add a small delay before restarting

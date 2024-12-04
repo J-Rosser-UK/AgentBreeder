@@ -55,20 +55,25 @@ class Generator:
         """
 
         sample_framework = random.choice(self.population.elites)
+        mutant_framework = None
+        if sample_framework:
 
-        try:
-            mutant_framework = self.mutator(sample_framework)
+            try:
+                mutant_framework = self.mutator(sample_framework)
 
-            if mutant_framework:
-                mutant_framework.update(
-                    framework_descriptor=self.descriptor.generate(mutant_framework)
-                )
+                if mutant_framework:
+                    mutant_framework.update(
+                        framework_descriptor=self.descriptor.generate(mutant_framework)
+                    )
 
-                self.population.frameworks.append(mutant_framework)
+                    self.population.frameworks.append(mutant_framework)
 
-        except Exception as e:
-            print(f"Error mutating {sample_framework.framework_name} framework: {e}")
-            mutant_framework = None
+            except Exception as e:
+                if sample_framework:
+                    print(
+                        f"Error mutating {sample_framework.framework_name} framework: {e}"
+                    )
+                    mutant_framework = None
 
         return mutant_framework
 

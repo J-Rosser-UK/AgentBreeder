@@ -122,7 +122,7 @@ class Clusterer:
 
         print("Number of unique clusters: ", len(unique_labels))
 
-        if len(unique_labels) < 10:
+        if len(embeddings) < 10:
             for framework in population.frameworks:
                 cluster = Cluster(
                     session=session,

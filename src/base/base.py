@@ -195,7 +195,7 @@ class Chat(CustomBase):
     )
     content = CustomColumn(String, label="The content of the chat.")
     chat_timestamp = CustomColumn(
-        DateTime, default=datetime.datetime.now(), label="The timestamp of the chat."
+        DateTime, default=datetime.datetime.utcnow, label="The timestamp of the chat."
     )
 
     # Relationships
@@ -216,7 +216,7 @@ class Framework(CustomBase):
     )
     framework_timestamp = CustomColumn(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.utcnow,
         label="The timestamp of the framework.",
     )
     framework_name = CustomColumn(String, label="The name of the framework.")
@@ -269,7 +269,9 @@ class Cluster(CustomBase):
         label="The cluster's unique identifier (UUID).",
     )
     cluster_timestamp = CustomColumn(
-        DateTime, default=datetime.datetime.now(), label="The timestamp of the cluster."
+        DateTime,
+        default=datetime.datetime.utcnow,
+        label="The timestamp of the cluster.",
     )
     cluster_name = CustomColumn(String, label="The name of the cluster.")
     cluster_description = CustomColumn(String, label="The description of the cluster.")
@@ -305,18 +307,18 @@ class Cluster(CustomBase):
 
         # Get the session associated with this object
         session = object_session(self)
-        if not session:
-            raise RuntimeError(
-                "Session is not available. Ensure the cluster object is attached to a session."
-            )
 
         # Query the Framework table for the highest fitness framework in this cluster
-        return (
+        elite = (
             session.query(Framework)
             .filter(Framework.cluster_id == self.cluster_id)
             .order_by(Framework.framework_fitness.desc())
             .first()
         )
+
+        print("Elite: ", elite)
+
+        return elite
 
 
 class Generation(CustomBase):
@@ -330,7 +332,7 @@ class Generation(CustomBase):
     )
     generation_timestamp = CustomColumn(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.utcnow,
         label="The timestamp of the generation.",
     )
     population_id = CustomColumn(
@@ -359,7 +361,7 @@ class Population(CustomBase):
     )
     population_timestamp = CustomColumn(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.utcnow,
         label="The timestamp of the population.",
     )
 
@@ -378,20 +380,31 @@ class Population(CustomBase):
     def elites(self) -> list[Framework]:
         """Returns from the most recent generation the elites from each cluster."""
 
+        session = object_session(self)
+
         # Find most recent generation
-        if self.generations == []:
-            return self.frameworks
+        most_recent_generation = (
+            session.query(Generation)
+            .filter_by(population_id=self.population_id)
+            .order_by(Generation.generation_id.desc())
+            .first()
+        )
 
-        generation = self.generations[-1]
+        if not most_recent_generation:
+            elites = self.frameworks
+            assert len(elites) > 0
+            return elites
 
-        # print(
-        #     f"Number of clusters in generation {generation.generation_id}: {len(generation.clusters)}"
-        # )
+        print("Generation", most_recent_generation.generation_id)
+
+        assert len(most_recent_generation.clusters) > 0
 
         # Find the elites from each cluster
-        elites = [cluster.elite for cluster in generation.clusters]
+        elites = [cluster.elite for cluster in most_recent_generation.clusters]
 
-        # print(elites)
+        assert len(elites) == len(most_recent_generation.clusters)
+
+        print("Elites: ", elites)
 
         return elites
 
@@ -407,7 +420,9 @@ class Meeting(CustomBase):
     )
     meeting_name = CustomColumn(String, label="The name of the meeting.")
     meeting_timestamp = CustomColumn(
-        DateTime, default=datetime.datetime.now(), label="The timestamp of the meeting."
+        DateTime,
+        default=datetime.datetime.utcnow,
+        label="The timestamp of the meeting.",
     )
     framework_id = CustomColumn(
         String,
@@ -445,7 +460,7 @@ class AgentsbyMeeting(CustomBase):
     )
     agents_by_meeting_timestamp = CustomColumn(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.utcnow,
         label="The timestamp of the agent's addition to the meeting.",
     )
 
@@ -471,7 +486,7 @@ class Agent(CustomBase):
     )
     agent_timestamp = CustomColumn(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.utcnow,
         label="The timestamp of the agent's creation.",
     )
 

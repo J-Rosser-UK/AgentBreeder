@@ -195,9 +195,10 @@ class Mutator:
             {parent_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py
         """.strip()
 
-        for _ in range(self.args.debug_max):
+        for d in range(self.args.debug_max):
 
             try:
+                print(d, next_response)
                 if "return self.forward" in next_response["code"]:
                     raise AgentSystemException(
                         """The output of the forward function must not be the forward function
@@ -206,6 +207,7 @@ class Mutator:
                 self.evaluator.run_forward_pass(
                     next_response["code"], temp_file, self.session
                 )
+                break
 
             except AgentSystemException as e:
                 logging.error(f"Error during debugging: {e}")

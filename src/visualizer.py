@@ -8,6 +8,7 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 from umap import UMAP
+import uuid
 
 
 class Visualizer:
@@ -45,17 +46,16 @@ class Visualizer:
         print("Number of unique clusters: ", len(cluster_id_set))
         print("Number of frameworks: ", len(frameworks))
 
+        null_cluster_id = str(uuid.uuid4())
         for fw in frameworks:
 
-            if (
-                fw.framework_descriptor
-                and fw.cluster_id
-                and fw.framework_fitness is not None
-            ):
+            if fw.framework_descriptor:
                 # Assuming framework_descriptor is a list of floats
                 embedding = fw.framework_descriptor
-                cluster_id = fw.cluster_id
-                fitness = fw.framework_fitness
+                cluster_id = fw.cluster_id if fw.cluster_id else null_cluster_id
+                fitness = (
+                    fw.framework_fitness if fw.framework_fitness is not None else -1
+                )
 
                 if embedding and cluster_id and fitness is not None:
                     embeddings.append(embedding)
@@ -154,6 +154,7 @@ if __name__ == "__main__":
     population_id = "dd615513-d3a0-43fd-bee3-31d3e87b7cc4"
     # population_id = "68d8c6e5-d514-4119-ba15-eaa12d09e3f0"
     population_id = "6a829b1e-5f06-4c0d-a110-74cfa1805c0f"
+    population_id = "790f1525-747b-4de6-8e9f-c89d0638eabc"
 
     random.seed(42)
 

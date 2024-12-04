@@ -44,6 +44,8 @@ class Illuminator:
 
         for framework in frameworks_for_evaluation:
 
+            framework.update(framework_fitness=-1)
+
             if not framework.cluster_id:
                 continue
 
