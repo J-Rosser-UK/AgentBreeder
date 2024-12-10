@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     random.seed(42)
 
-    session, Base = initialize_session()
+    session, Base = initialize_session(args.db_name)
 
     visualizer = Visualizer()
 

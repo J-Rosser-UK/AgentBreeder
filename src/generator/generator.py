@@ -3,14 +3,15 @@ from base import Framework, Population, initialize_session
 from prompts.mutation_base import get_init_archive
 from rich import print
 from descriptor import Descriptor
-from evaluator import Evaluator
+from evals import Evaluator
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 from icecream import ic
 from .mutator import Mutator
+from evals import Evaluator
 
 
 def generate_mutant(args, population_id):
-    session, Base = initialize_session()
+    session, Base = initialize_session(args.db_name)
     generator = Generator(args, session, population_id)
     mutant_framework = generator()
     session.close()
@@ -88,12 +89,13 @@ def initialize_population_id(args) -> str:
     Returns:
         str: The unique ID of the initialized population.
     """
-    session, Base = initialize_session()
+    session, Base = initialize_session(args.db_name)
 
     archive = get_init_archive()
 
     population = Population(session=session)
     descriptor = Descriptor()
+    evaluator = Evaluator(args)
 
     for framework in archive:
         framework = Framework(
@@ -109,6 +111,16 @@ def initialize_population_id(args) -> str:
         framework.update(framework_descriptor=descriptor.generate(framework))
 
     population_id = str(population.population_id)
+
+    frameworks_for_evaluation = (
+        session.query(Framework)
+        .filter_by(population_id=population_id, framework_fitness=None)
+        .all()
+    )
+
+    # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+    evaluator.inspect_evaluate(frameworks_for_evaluation[0:1])
+
     session.close()
 
     return population_id

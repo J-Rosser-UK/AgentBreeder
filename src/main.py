@@ -6,7 +6,7 @@ from tqdm import tqdm
 from generator import initialize_population_id, generate_mutant
 from descriptor import Clusterer
 from base import initialize_session, Population, Framework
-from evaluator import Evaluator
+from evals import Evaluator
 import os
 import uuid
 
@@ -35,7 +35,7 @@ def main(args, population_id=None):
         population_id = initialize_population_id(args)
         print(f"Population ID: {population_id}")
     else:
-        session, Base = initialize_session()
+        session, Base = initialize_session(args.db_name)
 
         # Re-load the population object in this session
         population = (
@@ -62,7 +62,7 @@ def main(args, population_id=None):
                 )
             )
 
-        session, Base = initialize_session()
+        session, Base = initialize_session(args.db_name)
 
         # Re-load the population object in this session
         population = (
@@ -89,7 +89,8 @@ def main(args, population_id=None):
             len(illuminated_frameworks_for_evaluation),
         )
 
-        evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+        # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation)
 
         session.close()
 
@@ -109,12 +110,13 @@ if __name__ == "__main__":
     parser.add_argument("--shuffle_seed", type=int, default=0)
     parser.add_argument("--n_generation", type=int, default=100)
     parser.add_argument("--n_mutations", type=int, default=10)
+    parser.add_argument("--n_evals", type=int, default=5)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument(
         "--population_id", type=str, default="96173256-f843-4a3a-a128-54cb23f29e0d"
     )
-    parser.add_argument("--db_url", type=str, default="sqlite:///data/illuminator.db")
+    parser.add_argument("--db_name", type=str, default="illuminator.db")
 
     args = parser.parse_args()
 
