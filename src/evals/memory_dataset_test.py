@@ -8,11 +8,12 @@ import random
 from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
+from inspect_ai._eval.eval import eval
 
 
 class EvaluateMMLU:
 
-    def __call__(
+    def __init__(
         self,
         split: Union[Literal["test"], Literal["dev"], Literal["validation"]] = "test",
         shuffle: bool = False,
@@ -31,13 +32,13 @@ class EvaluateMMLU:
         # filter dataset if requested
         subjects = subjects if isinstance(subjects, list) else [subjects]
         if len(subjects) > 0:
-            return dataset.filter(
+            self.dataset = dataset.filter(
                 name=f"{dataset.name}-{'-'.join(subjects)}",
                 predicate=lambda sample: sample.metadata is not None
                 and sample.metadata.get("subject") in subjects,
             )
         else:
-            return dataset
+            self.dataset = dataset
 
     def record_to_sample(self, record: dict[str, Any]) -> Sample:
         """
@@ -88,30 +89,26 @@ class EvaluateMMLU:
             metadata={"subject": record["subject"]},
         )
 
+    @solver
+    def match_solver(self) -> Solver:
+        async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-@solver
-def match_solver() -> Solver:
-    async def solve(state: TaskState, generate: Generate) -> TaskState:
+            # set state.output.completion to a letter from A-D
+            state.output.completion = random.choice(["A", "B", "C", "D"])
 
-        # set state.output.completion to a letter from A-D
-        state.output.completion = random.choice(["A", "B", "C", "D"])
+            return state
 
-        return state
+        return solve
 
-    return solve
-
-
-dataset = EvaluateMMLU()
-
-
-@task
-def match_task():
-    return Task(
-        dataset=dataset(),
-        solver=match_solver(),
-        scorer=match(),
-    )
+    @task
+    def match_task(self):
+        return Task(
+            dataset=self.dataset,
+            solver=self.match_solver(),
+            scorer=match(),
+        )
 
 
 if __name__ == "__main__":
-    dataset = EvaluateMMLU()
+    e = EvaluateMMLU()
+    eval(e.match_task(), model="openai/gpt-3.5-turbo", limit=1000)
