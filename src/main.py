@@ -89,7 +89,8 @@ def main(args, population_id=None):
             len(illuminated_frameworks_for_evaluation),
         )
 
-        evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+        # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation)
 
         session.close()
 

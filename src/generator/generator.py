@@ -7,6 +7,7 @@ from evaluator import Evaluator
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 from icecream import ic
 from .mutator import Mutator
+from evaluator import Evaluator
 
 
 def generate_mutant(args, population_id):
@@ -94,6 +95,7 @@ def initialize_population_id(args) -> str:
 
     population = Population(session=session)
     descriptor = Descriptor()
+    evaluator = Evaluator(args)
 
     for framework in archive:
         framework = Framework(
@@ -109,6 +111,16 @@ def initialize_population_id(args) -> str:
         framework.update(framework_descriptor=descriptor.generate(framework))
 
     population_id = str(population.population_id)
+
+    frameworks_for_evaluation = (
+        session.query(Framework)
+        .filter_by(population_id=population_id, framework_fitness=None)
+        .all()
+    )
+
+    # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
+    evaluator.inspect_evaluate(frameworks_for_evaluation[0:1])
+
     session.close()
 
     return population_id

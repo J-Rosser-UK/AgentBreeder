@@ -9,6 +9,12 @@ from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 from inspect_ai._eval.eval import eval
+import os
+import importlib.util
+import uuid
+from sqlalchemy.orm import Session
+from base import initialize_session
+from inspect_ai._eval.eval import EvalLog
 
 
 class EvaluateMMLU:
@@ -90,25 +96,114 @@ class EvaluateMMLU:
         )
 
     @solver
-    def match_solver(self) -> Solver:
+    def match_solver(self, framework) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            # set state.output.completion to a letter from A-D
-            state.output.completion = random.choice(["A", "B", "C", "D"])
+            session, Base = initialize_session()
+
+            # Create the agent framework in temporary code
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            parent_directory = os.path.dirname(current_directory)
+            temp_file = f"""
+                {parent_directory}/temp/agent_system_temp_
+                {framework.framework_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
+
+            forward_function = framework.framework_code
+
+            if "return self.forward" in forward_function:
+                return 0
+
+            try:
+
+                # Write the complete AgentSystem class to the file, including the forward function
+                with open(temp_file, "w") as f:
+                    f.write("import random\n")
+                    f.write("import pandas\n\n")
+                    f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
+                    f.write(f"from sqlalchemy.orm import Session\n\n")
+                    f.write("class AgentSystem:\n")
+                    f.write("    def __init__(self, session: Session):\n")
+                    f.write("        self.Agent = Wrapper(Agent, session)\n")
+                    f.write("        self.Meeting = Wrapper(Meeting, session)\n")
+                    f.write("        self.Chat = Wrapper(Chat, session)\n")
+                    f.write("        self.session = session\n\n")
+                    f.write("    " + forward_function.replace("\n", "\n    "))
+                    f.write("\n\n")
+                    f.write("if __name__ == '__main__':\n")
+                    f.write("    " + "from base import initialize_session\n")
+                    f.write("    " + "session, Base = initialize_session\n")
+                    f.write("    " + "agent_system = AgentSystem()\n")
+                    f.write(
+                        "    "
+                        + """task = "What should I have for dinner?"""
+                        + """A: soup B: burgers C: pizza D: pasta"\n"""
+                    )
+                    f.write("    " + "output = agent_system.forward(task)\n")
+                    f.write("    " + "print(output)\n")
+
+                # Import the AgentSystem class from the temp file
+                spec = importlib.util.spec_from_file_location(
+                    "agent_system_temp", temp_file
+                )
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                AgentSystem = module.AgentSystem
+
+                agentSystem = AgentSystem(session)
+
+                task = state.input
+                state.output.completion = agentSystem.forward(task)
+
+            except Exception as e:
+
+                print("Error during evaluation:", e)
+
+            finally:
+
+                # delete file at the end
+                os.remove(temp_file)
+
+                session.close()
 
             return state
 
         return solve
 
     @task
-    def match_task(self):
+    def match_task(self, framework):
         return Task(
             dataset=self.dataset,
-            solver=self.match_solver(),
+            solver=self.match_solver(framework),
             scorer=match(),
         )
+
+    def evaluate(self, framework, limit=1000):
+
+        # Run the evaluation
+        results = eval(
+            self.match_task(framework),
+            model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
+            limit=limit,
+            log_dir="./logs",  # specify where logs are stored
+            log_format="eval",  # choose log format ("eval" or "json")
+            score=True,  # ensure scoring is enabled
+        )
+
+        # 'results' is a list of EvalLog objects (usually one per task)
+        # Each EvalLog contains metrics for the entire task/dataset.
+        for res in results:
+            if res.results and res.results.scores:
+                print("Final metrics for the entire dataset:")
+                for score in res.results.scores:
+                    print(f"Score: {score.name}")
+                    for metric_name, metric in score.metrics.items():
+                        print(f"  {metric_name}: {metric.value}")
+                        if metric_name == "accuracy":
+                            accuracy = metric.value
+
+        return accuracy
 
 
 if __name__ == "__main__":
     e = EvaluateMMLU()
-    eval(e.match_task(), model="openai/gpt-3.5-turbo", limit=1000)
+    e.evaluate()

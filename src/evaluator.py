@@ -11,6 +11,7 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from sqlalchemy.orm import Session
+from evals.memory_dataset_test import EvaluateMMLU
 
 
 class MultipleChoiceQuestion(BaseModel):
@@ -184,6 +185,17 @@ class Evaluator:
 
         except Exception as e:
             raise AgentSystemException(f"Error evaluating framework: {e}")
+
+    def inspect_evaluate(self, frameworks_for_evaluation: list[Framework]):
+
+        e = EvaluateMMLU()
+        for framework in tqdm(frameworks_for_evaluation):
+            LIMIT = 5
+            accuracy = e.evaluate(framework, limit=LIMIT)
+            framework.update(
+                ci_sample_size=LIMIT,
+                framework_fitness=accuracy,
+            )
 
     def async_evaluate(self, frameworks_for_evaluation: list[Framework]):
         """
