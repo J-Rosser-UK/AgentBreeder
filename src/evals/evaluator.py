@@ -30,10 +30,9 @@ class Evaluator:
 
         e = EvaluateMMLU(self.args)
         for framework in tqdm(frameworks_for_evaluation):
-            LIMIT = 5
-            accuracy = e.evaluate(framework, limit=LIMIT)
+            accuracy = e.evaluate(framework, limit=self.args.n_evals)
             framework.update(
-                ci_sample_size=LIMIT,
+                ci_sample_size=self.args.n_evals,
                 framework_fitness=accuracy,
             )
 
