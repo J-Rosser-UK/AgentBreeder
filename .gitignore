@@ -1,6 +1,7 @@
 # Custom
 *.env
 *venv
+*logs
 *.sql
 *.db
 *.db-journal

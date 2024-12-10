@@ -21,10 +21,13 @@ class EvaluateMMLU:
 
     def __init__(
         self,
+        args=None,
         split: Union[Literal["test"], Literal["dev"], Literal["validation"]] = "test",
         shuffle: bool = False,
         subjects: Union[list[str], str] = [],
     ) -> Dataset:
+
+        self.args = args
 
         dataset = hf_dataset(
             path="cais/mmlu",
@@ -99,7 +102,7 @@ class EvaluateMMLU:
     def match_solver(self, framework) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            session, Base = initialize_session()
+            session, Base = initialize_session(self.args.db_name)
 
             # Create the agent framework in temporary code
             current_directory = os.path.dirname(os.path.abspath(__file__))
