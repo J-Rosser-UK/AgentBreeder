@@ -34,7 +34,7 @@ Base = declarative_base()
 # Create engine and Base
 current_dir = os.path.dirname(os.path.abspath(__file__))
 engine = create_engine(
-    f"sqlite:///{current_dir}/illumination_database_2.db",
+    f"sqlite:///{current_dir}/chat_database.db",
     connect_args={"check_same_thread": False},
 )
 

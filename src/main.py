@@ -44,10 +44,12 @@ def main(args, population_id=None):
         # Recluster the population
         clusterer.cluster(population)
 
+        print(f"Reloaded population ID: {population.population_id}")
+
         session.close()
 
     # Begin Bayesian Illumination...
-    for i in tqdm(range(args.n_generation), desc="Generations"):
+    for _ in tqdm(range(args.n_generation), desc="Generations"):
         with ThreadPoolExecutor(max_workers=5) as executor:
             list(
                 tqdm(
