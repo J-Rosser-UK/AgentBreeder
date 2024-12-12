@@ -1,7 +1,8 @@
 import random
 from base import Framework, Population, initialize_session
 from prompts.mutation_base import get_init_archive
-from rich import print
+
+# from rich import print
 from descriptor import Descriptor
 from evals import Evaluator
 from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
@@ -119,7 +120,7 @@ def initialize_population_id(args) -> str:
     )
 
     # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
-    evaluator.inspect_evaluate(frameworks_for_evaluation[0:1])
+    evaluator.inspect_evaluate(frameworks_for_evaluation)
 
     session.close()
 

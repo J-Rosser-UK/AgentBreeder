@@ -28,8 +28,8 @@ class Evaluator:
 
     def inspect_evaluate(self, frameworks_for_evaluation: list[Framework]):
 
-        e = EvaluateMMLU(self.args)
         for framework in tqdm(frameworks_for_evaluation):
+            e = EvaluateMMLU(self.args)
             accuracy = e.evaluate(framework, limit=self.args.n_evals)
             framework.update(
                 ci_sample_size=self.args.n_evals,

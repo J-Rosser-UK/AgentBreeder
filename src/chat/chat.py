@@ -9,6 +9,8 @@ import os
 load_dotenv(override=True)
 client = openai.OpenAI()
 
+# https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py
+
 
 def get_structured_json_response_from_gpt(
     messages, response_format, model="gpt-4o-mini", temperature=0.5, retry=0

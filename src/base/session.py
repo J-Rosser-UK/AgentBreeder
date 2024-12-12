@@ -33,7 +33,7 @@ def initialize_session(db_name: str):
 
     # Create tables
     Base.metadata.create_all(engine)
-    print(Base.metadata.tables.keys())
+    # print(Base.metadata.tables.keys())
 
     assert len(Base.metadata.tables.keys()) > 0
 

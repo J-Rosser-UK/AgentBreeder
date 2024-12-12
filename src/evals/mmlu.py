@@ -1,20 +1,21 @@
 from inspect_ai import Task, task
-from inspect_ai.dataset import MemoryDataset, Sample
-from inspect_ai.scorer import model_graded_fact
-from inspect_ai.solver import generate, system_message
+from inspect_ai.dataset import Sample
 from inspect_ai.solver import solver, Solver, TaskState, Generate
 from inspect_ai.scorer import match
+from inspect_ai.model import GenerateConfig
 import random
 from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
+
+# from .quiet_eval import eval
+
 from inspect_ai._eval.eval import eval
 import os
 import importlib.util
 import uuid
-from sqlalchemy.orm import Session
 from base import initialize_session
-from inspect_ai._eval.eval import EvalLog
+import contextlib
 
 
 class EvaluateMMLU:
@@ -33,7 +34,7 @@ class EvaluateMMLU:
             path="cais/mmlu",
             name="all",
             split=split,
-            sample_fields=self.record_to_sample,
+            sample_fields=self._record_to_sample,
             shuffle=shuffle,
             seed=42,
         )
@@ -49,7 +50,7 @@ class EvaluateMMLU:
         else:
             self.dataset = dataset
 
-    def record_to_sample(self, record: dict[str, Any]) -> Sample:
+    def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         """
         Convert a record containing a multiple-choice question into a `Sample` object.
 
@@ -178,19 +179,22 @@ class EvaluateMMLU:
             dataset=self.dataset,
             solver=self.match_solver(framework),
             scorer=match(),
+            config=GenerateConfig(temperature=0.5),
         )
 
     def evaluate(self, framework, limit=1000):
 
-        # Run the evaluation
-        results = eval(
-            self.match_task(framework),
-            model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
-            limit=limit,
-            log_dir="./logs",  # specify where logs are stored
-            log_format="eval",  # choose log format ("eval" or "json")
-            score=True,  # ensure scoring is enabled
-        )
+        # Run the evaluation while hiding any print outputs
+        with open(os.devnull, "w") as devnull:
+            with contextlib.redirect_stdout(devnull):
+                results = eval(
+                    self.match_task(framework),
+                    model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
+                    limit=limit,
+                    log_dir="./logs",  # specify where logs are stored
+                    log_format="eval",  # choose log format ("eval" or "json")
+                    score=True,  # ensure scoring is enabled
+                )
 
         # 'results' is a list of EvalLog objects (usually one per task)
         # Each EvalLog contains metrics for the entire task/dataset.
@@ -205,8 +209,3 @@ class EvaluateMMLU:
                             accuracy = metric.value
 
         return accuracy
-
-
-if __name__ == "__main__":
-    e = EvaluateMMLU()
-    e.evaluate()
