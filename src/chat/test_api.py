@@ -3,7 +3,7 @@ import httpx
 from tqdm import tqdm
 
 URL = "http://localhost:8000/gpt"
-RATE_LIMIT = 20  # requests per second
+RATE_LIMIT = 1000  # requests per second
 NUM_REQUESTS = 100
 
 
@@ -35,8 +35,10 @@ async def make_request(
         # Update the "sending" progress bar just before sending
         send_pbar.update(1)
         response = await client.post(URL, json=payload, timeout=None)
+
         response.raise_for_status()  # Will raise if the request failed
         data = response.json()
+        print(f"{i}: Received response for {question}: {data}")
         return i, data
 
 
