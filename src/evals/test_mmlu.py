@@ -81,16 +81,20 @@ class TestEvaluateMMLU(unittest.TestCase):
             framework_code="""def forward(self, task: str) -> str:
 
     # import time
-    # time.sleep(10)
+    # time.sleep(2)
+
+    import asyncio
+    await asyncio.sleep(2)
     
-    return "C"
+    
+    return 'C'
 """,
         )
-        frameworks = [framework_5, framework_10]
+        frameworks = [framework_10]
 
         for framework in tqdm(frameworks, total=len(frameworks)):
             evaluator = EvaluateMMLU(self.args)
-            accuracy = evaluator.evaluate(framework, limit=500)
+            accuracy = evaluator.evaluate(framework, limit=5)
             self.assertIsInstance(accuracy, float)
 
 

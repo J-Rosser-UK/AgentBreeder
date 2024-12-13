@@ -6,7 +6,7 @@ import random
 import string
 from sqlalchemy.orm import object_session
 from .base import CustomBase, CustomColumn, AutoSaveList
-from chat import get_structured_json_response_from_gemini
+from chat import get_structured_json_response_from_gpt
 
 
 class Chat(CustomBase):
@@ -381,7 +381,7 @@ class Agent(CustomBase):
 
         messages = self.chat_history
 
-        response_json = get_structured_json_response_from_gemini(
+        response_json = get_structured_json_response_from_gpt(
             messages=messages, response_format=response_format, temperature=0.5
         )
 

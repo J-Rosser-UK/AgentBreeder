@@ -113,9 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
-    parser.add_argument(
-        "--population_id", type=str, default="96173256-f843-4a3a-a128-54cb23f29e0d"
-    )
+    parser.add_argument("--population_id", type=str, default="None")
     parser.add_argument("--db_name", type=str, default="illuminator.db")
 
     args = parser.parse_args()
