@@ -39,7 +39,8 @@ import sys
 
 sys.path.append("")
 sys.path.append("src")
-from src.base import initialize_session
+
+from src.base.models import Agent, Meeting, Chat
 
 MMLU_MULTISHOT_PROMPT_TEMPLATE = r"""
 The following are multiple choice questions about {subject_name}.
@@ -54,24 +55,6 @@ MMLU_MULTISHOT_QUESTION_TEMPLATE = r"""
 {choices}
 Answer: {answer}
 """.strip()
-
-
-@task
-def mmlu_0_shot(subjects: str | list[str] = [], cot: bool = False) -> Task:
-    """
-    Inspect Task implementation for MMLU, with 0-shot prompting.
-
-    Args:
-        subjects (str | list[str]): Subjects to filter to
-        cot (bool): Whether to use chain of thought
-    """
-    return Task(
-        # (shuffle so that --limit draws from multiple subjects)
-        dataset=get_mmlu_dataset("test", shuffle=True, subjects=subjects),
-        solver=multiple_choice(cot=cot),
-        scorer=choice(),
-        config=GenerateConfig(temperature=0.5),
-    )
 
 
 @task
@@ -91,7 +74,7 @@ def mmlu_5_shot(subjects: str | list[str] = []) -> Task:
             # for the tokens 'A', 'B', 'C' and 'D' and pick the greatest one. We
             # instead get a simple completion, given logprobs are not supported
             # by many models supported by Inspect.
-            # generate(max_tokens=1),
+            generate(max_tokens=1),
         ],
         scorer=exact(),
         config=GenerateConfig(temperature=0),
@@ -111,17 +94,21 @@ def mmlu_5_shot_solver() -> Solver:
         Solver: A solver that uses the dev dataset to generate a prompt with
           5 example answered questions.
     """
-    session, Base = initialize_session("gsm8k")
-    import time
 
-    time.sleep(10)
-    # send a get request for wikipedia
-    response = requests.get(
-        "https://en.wikipedia.org/wiki/Python_(programming_language)"
-    )
     dev_dataset = get_mmlu_dataset("dev", shuffle=False)
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        agent = Agent(agent_name="system", temperature=0.8)
+        meeting = Meeting(meeting_name="debate")
+        agent.meetings.append(meeting)
+        meeting.chats.append(
+            Chat(
+                agent=agent,
+                content="Please think step by step and solve the task: {task}",
+            )
+        )
+
+        agent.forward(response_format={"thinking": "Your step-by-step thinking."})
         # e.g. "abstract_algebra" -> "abstract algebra"
         subject_name = state.metadata["subject"].replace("_", " ")
 
@@ -244,7 +231,7 @@ from inspect_ai._eval.eval import eval
 results = eval(
     mmlu_5_shot(),
     model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
-    limit=100,
+    limit=10,
     log_dir="./logs",  # specify where logs are stored
     log_format="eval",  # choose log format ("eval" or "json")
     score=True,  # ensure scoring is enable

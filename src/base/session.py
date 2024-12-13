@@ -5,14 +5,10 @@ from sqlalchemy.orm import sessionmaker
 from .base import Base, Wrapper  # noqa
 
 from .tables import (
-    Chat,
     Framework,
     Cluster,
     Generation,
     Population,
-    Meeting,
-    AgentsbyMeeting,
-    Agent,
 )  # noqa
 
 
