@@ -39,7 +39,9 @@ import sys
 
 sys.path.append("")
 sys.path.append("src")
-from src.base import initialize_session
+from src.base import initialize_session, Agent, Meeting, Chat
+
+from src.chat.chat import get_structured_json_response_from_gpt
 
 MMLU_MULTISHOT_PROMPT_TEMPLATE = r"""
 The following are multiple choice questions about {subject_name}.
@@ -111,17 +113,47 @@ def mmlu_5_shot_solver() -> Solver:
         Solver: A solver that uses the dev dataset to generate a prompt with
           5 example answered questions.
     """
-    session, Base = initialize_session("gsm8k")
-    import time
 
-    time.sleep(10)
-    # send a get request for wikipedia
-    response = requests.get(
-        "https://en.wikipedia.org/wiki/Python_(programming_language)"
-    )
     dev_dataset = get_mmlu_dataset("dev", shuffle=False)
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+
+        session, Base = initialize_session("test")
+        agent = Agent(
+            session, agent_name="system", model="gpt-4o-mini", temperature=0.5
+        )
+        meeting = Meeting(session, meeting_name="main")
+        meeting.agents.append(agent)
+
+        meeting.chats.append(
+            Chat(agent=agent, content="Please solve this task: 23 * 4:")
+        )
+
+        response = await agent.forward(
+            response_format={
+                "thinking": "Your step by step reasoning",
+                "answer": "Single letter A, B, C, or D",
+            }
+        )
+        print(response)
+        session.close()
+
+        response = await get_structured_json_response_from_gpt(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Please think step by step and then solve the task.",
+                },
+                {
+                    "role": "user",
+                    "content": "What is the captial of France? A: Paris B: London C: Berlin D: Madrid.",
+                },
+            ],
+            response_format={
+                "thinking": "Your step by step thinking.",
+                "answer": "A single letter, A, B, C or D.",
+            },
+        )
         # e.g. "abstract_algebra" -> "abstract algebra"
         subject_name = state.metadata["subject"].replace("_", " ")
 

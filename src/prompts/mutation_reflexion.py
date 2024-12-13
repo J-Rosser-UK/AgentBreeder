@@ -1,7 +1,7 @@
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
     "name": "Name of your proposed agent",
-    "code": """def forward(self, task):
+    "code": """async def forward(self, task):
     # Your code here
     return answer
 """,

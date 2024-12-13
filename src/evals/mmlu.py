@@ -124,7 +124,8 @@ class EvaluateMMLU:
                 # Write the complete AgentSystem class to the file, including the forward function
                 with open(temp_file, "w") as f:
                     f.write("import random\n")
-                    f.write("import pandas\n\n")
+                    f.write("import pandas\n")
+                    f.write("import asyncio\n\n")
                     f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
                     f.write(f"from sqlalchemy.orm import Session\n\n")
                     f.write("class AgentSystem:\n")
@@ -144,7 +145,9 @@ class EvaluateMMLU:
                         + """task = "What should I have for dinner?"""
                         + """A: soup B: burgers C: pizza D: pasta"\n"""
                     )
-                    f.write("    " + "output = agent_system.forward(task)\n")
+                    f.write(
+                        "    " + "output = asyncio.run(agent_system.forward(task))\n"
+                    )
                     f.write("    " + "print(output)\n")
 
                 # Import the AgentSystem class from the temp file
@@ -158,7 +161,7 @@ class EvaluateMMLU:
                 agentSystem = AgentSystem(session)
 
                 task = state.input
-                state.output.completion = agentSystem.forward(task)
+                state.output.completion = await agentSystem.forward(task)
 
             except Exception as e:
 

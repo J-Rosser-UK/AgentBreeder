@@ -1,7 +1,7 @@
 COT = {
     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
     "name": "Chain-of-Thought",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create a system agent to provide instructions
     system = self.Agent(
         agent_name='system',
@@ -27,7 +27,7 @@ COT = {
     )
     
     # Get response from COT agent
-    output = cot_agent.forward(
+    output = await cot_agent.forward(
         response_format={
             "thinking": "Your step by step thinking.",
             "answer": "A single letter, A, B, C or D."
@@ -49,7 +49,7 @@ COT = {
 COT_SC = {
     "thought": "While an LLM can arrive at the correct answer, its reasoning may vary. By repeatedly asking the same question with high temperature settings, we can generate different reasoning paths. We then combine multiple answers from these Chain-of-Thought (CoT) agents to produce a more accurate final answer through ensembling.",
     "name": "Self-Consistency with Chain-of-Thought",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create a system agent to provide instructions
     system = self.Agent(
         agent_name='system',
@@ -81,7 +81,7 @@ COT_SC = {
         )
         
         # Get response from current COT agent
-        output = cot_agents[i].forward(
+        output = await cot_agents[i].forward(
             response_format={
                 "thinking": "Your step by step thinking.",
                 "answer": "A single letter, A, B, C or D."
@@ -109,7 +109,7 @@ COT_SC = {
 Reflexion = {
     "thought": "To enhance its performance, an LLM can iteratively improve its answer based on feedback. By reflecting on its previous attempts and incorporating feedback, the model can refine its reasoning and provide a more accurate solution.",
     "name": "Self-Refine (Reflexion)",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create system and agent instances
     system = self.Agent(
         agent_name='system',
@@ -140,7 +140,7 @@ Reflexion = {
         )
     )
     
-    output = cot_agent.forward(
+    output = await cot_agent.forward(
         response_format={
             "thinking": "Your step by step thinking.",
             "answer": "A single letter, A, B, C or D."
@@ -164,7 +164,7 @@ Reflexion = {
             )
         )
         
-        critic_output = critic_agent.forward(
+        critic_output = await critic_agent.forward(
             response_format={
                 "feedback": "Your detailed feedback.",
                 "correct": "Either 'CORRECT' or 'INCORRECT'"
@@ -189,7 +189,7 @@ Reflexion = {
             )
         )
         
-        output = cot_agent.forward(
+        output = await cot_agent.forward(
             response_format={
                 "thinking": "Your step by step thinking.",
                 "answer": "A single letter, A, B, C or D."
@@ -210,7 +210,7 @@ Reflexion = {
 LLM_debate = {
     "thought": "By letting different LLMs debate with each other, we can leverage their diverse perspectives to find better solutions for tasks.",
     "name": "LLM Debate",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
 
     # Create a system agent to provide instructions
     system = self.Agent(agent_name = 'system', temperature=0.8)
@@ -239,17 +239,17 @@ LLM_debate = {
         for i in range(len(debate_agents)):
             if r == 0 and i == 0:
                 meeting.chats.append(self.Chat(agent=system, content=f"Please think step by step and then solve the task: {task}"))
-                output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
                 
             else:
                 meeting.chats.append(self.Chat(agent=system, content=f"Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer. Reminder, the task is: {task}"))
-                output = debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
 
             meeting.chats.append(self.Chat(agent=debate_agents[i], content=output["thinking"]+output["response"]))
 
     # Make the final decision based on all debate results and solutions
     meeting.chats.append(self.Chat(agent=system, content="Given all the above thinking and answers, reason over them carefully and provide a final answer."))
-    output = final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
+    output = await final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
     
     return output["answer"]
 """,
@@ -258,7 +258,7 @@ LLM_debate = {
 Take_a_step_back = {
     "thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
     "name": "Step-back Abstraction",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     principle_agent = self.Agent(agent_name='Principle Agent', temperature=0.8)
@@ -274,7 +274,7 @@ Take_a_step_back = {
         content="What are the physics, chemistry or biology principles and concepts involved in solving this task? First think step by step. Then list all involved principles and explain them."
     ))
     
-    principle_output = principle_agent.forward(response_format={
+    principle_output = await principle_agent.forward(response_format={
         "thinking": "Your step by step thinking about the principles.",
         "principles": "List and explanation of the principles involved."
     })
@@ -290,7 +290,7 @@ Take_a_step_back = {
         content=f"Given the question and the involved principles above, think step by step and then solve the task: {task}"
     ))
     
-    final_output = cot_agent.forward(response_format={
+    final_output = await cot_agent.forward(response_format={
         "thinking": "Your step by step thinking.",
         "answer": "A single letter, A, B, C or D."
     })
@@ -302,7 +302,7 @@ Take_a_step_back = {
 QD = {
     "thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
     "name": "Quality-Diversity",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     cot_agent = self.Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
@@ -320,7 +320,7 @@ QD = {
         content=f"Please think step by step and then solve the task: {task}"
     ))
     
-    output = cot_agent.forward(response_format={
+    output = await cot_agent.forward(response_format={
         "thinking": "Your step by step thinking.",
         "answer": "A single letter, A, B, C or D."
     })
@@ -337,7 +337,7 @@ QD = {
             content=f"Given previous attempts, try to come up with another interesting way to solve the task: {task}"
         ))
         
-        output = cot_agent.forward(response_format={
+        output = await cot_agent.forward(response_format={
             "thinking": "Your step by step thinking with a new approach.",
             "answer": "A single letter, A, B, C or D."
         })
@@ -353,7 +353,7 @@ QD = {
         content="Given all the above solutions, reason over them carefully and provide a final answer."
     ))
     
-    final_output = final_decision_agent.forward(response_format={
+    final_output = await final_decision_agent.forward(response_format={
         "thinking": "Your step by step thinking comparing all solutions.",
         "answer": "A single letter, A, B, C or D."
     })
@@ -365,7 +365,7 @@ QD = {
 Role_Assignment = {
     "thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
     "name": "Dynamic Assignment of Roles",
-    "code": """def forward(self, task: str) -> str:
+    "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = self.Agent(agent_name='system', temperature=0.8)
     routing_agent = self.Agent(agent_name='Routing Agent', temperature=0.8)
@@ -387,7 +387,7 @@ Role_Assignment = {
         content="Given the task, please choose an Expert to answer the question. Choose from: Physics, Chemistry, Biology Expert, or Science Generalist."
     ))
     
-    routing_output = routing_agent.forward(response_format={
+    routing_output = await routing_agent.forward(response_format={
         "choice": "One of: physics, chemistry, biology, or general"
     })
     
@@ -404,7 +404,7 @@ Role_Assignment = {
         content=f"Please think step by step and then solve the task: {task}"
     ))
     
-    expert_output = selected_expert.forward(response_format={
+    expert_output = await selected_expert.forward(response_format={
         "thinking": "Your step by step thinking.",
         "answer": "A single letter, A, B, C or D."
     })

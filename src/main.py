@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload
 import time
 
 # Disable logging for httpx
-# logging.getLogger("httpx").disabled = True
+logging.getLogger("httpx").disabled = True
 
 # Suppress all SAWarnings
 warnings.filterwarnings("ignore", category=SAWarning)

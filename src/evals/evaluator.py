@@ -6,6 +6,7 @@ from tqdm import tqdm
 from sqlalchemy.orm import Session
 from .mmlu import EvaluateMMLU
 from textwrap import dedent
+import asyncio
 
 
 class AgentSystemException(Exception):
@@ -104,7 +105,7 @@ class Evaluator:
             """
             )
 
-            forward_pass_output = agentSystem.forward(task)
+            forward_pass_output = asyncio.run(agentSystem.forward(task))
             print(forward_pass_output)
             if forward_pass_output not in ["A", "B", "C", "D"]:
                 raise AgentSystemException(

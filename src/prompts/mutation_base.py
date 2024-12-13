@@ -14,7 +14,7 @@ import os
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
     "name": "Name of your proposed agent",
-    "code": """def forward(self, task):
+    "code": """async def forward(self, task):
     # Your code here
     return answer
 """,
@@ -169,10 +169,10 @@ Using the knowledge learned from the archive and the inspiration from academic l
 THINK OUTSIDE THE BOX. Give a concise, powerful answer.
 """
 prompt_base = prompt_base.replace("{{Agent_code}}", Agent_code)
-prompt_base = prompt_base.replace(
-    "{{get_structured_json_response_from_gpt_code}}",
-    get_structured_json_response_from_gpt_code,
-)
+# prompt_base = prompt_base.replace(
+#     "{{get_structured_json_response_from_gpt_code}}",
+#     get_structured_json_response_from_gpt_code,
+# )
 
 
 def get_init_archive():

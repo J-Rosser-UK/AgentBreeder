@@ -66,7 +66,7 @@ class TestEvaluateMMLU(unittest.TestCase):
         framework_5 = Framework(
             framework_name="test_framework",
             framework_id="test_id",
-            framework_code="""def forward(self, task: str) -> str:
+            framework_code="""async def forward(self, task: str) -> str:
 
     # import time
     # time.sleep(5)
@@ -78,7 +78,7 @@ class TestEvaluateMMLU(unittest.TestCase):
         framework_10 = Framework(
             framework_name="test_framework",
             framework_id="test_id",
-            framework_code="""def forward(self, task: str) -> str:
+            framework_code="""async def forward(self, task: str) -> str:
 
     # import time
     # time.sleep(2)

@@ -7,6 +7,9 @@ import string
 from sqlalchemy.orm import object_session
 from .base import CustomBase, CustomColumn, AutoSaveList
 from chat import get_structured_json_response_from_gpt
+import asyncio
+from functools import wraps
+import threading
 
 
 class Chat(CustomBase):
@@ -375,13 +378,13 @@ class Agent(CustomBase):
         chats = [to_chat(chat) for chat in chats]
         return chats
 
-    def forward(self, response_format) -> dict:
+    async def forward(self, response_format) -> dict:
 
         # logging.info(f"Agent {self.agent_name} is thinking...")
 
         messages = self.chat_history
 
-        response_json = get_structured_json_response_from_gpt(
+        response_json = await get_structured_json_response_from_gpt(
             messages=messages, response_format=response_format, temperature=0.5
         )
 
