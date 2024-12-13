@@ -8,8 +8,30 @@ import os
 
 load_dotenv(override=True)
 client = openai.OpenAI()
+import requests
+
+URL = "http://localhost:8000/gpt"
 
 # https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py
+
+
+# def get_structured_json_response_from_gpt(
+#     messages, response_format, model="gpt-4o-mini", temperature=0.5, retry=0
+# ) -> dict:
+#     logging.info("Getting structured JSON response from GPT.")
+#     payload = {
+#         "messages": messages,
+#         "response_format": response_format,
+#         "model": model,
+#         "temperature": temperature,
+#     }
+
+#     response = requests.post(URL, json=payload, timeout=None)
+#     data = response.json()["result"]
+
+#     logging.info(data)
+
+#     return data
 
 
 def get_structured_json_response_from_gpt(

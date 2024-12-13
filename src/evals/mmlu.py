@@ -108,9 +108,11 @@ class EvaluateMMLU:
             # Create the agent framework in temporary code
             current_directory = os.path.dirname(os.path.abspath(__file__))
             parent_directory = os.path.dirname(current_directory)
-            temp_file = f"""
-                {parent_directory}/temp/agent_system_temp_
+            temp_file = (
+                f"""{parent_directory}/temp/agent_system_temp_"""
+                + f"""
                 {framework.framework_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
+            )
 
             forward_function = framework.framework_code
 
@@ -185,19 +187,21 @@ class EvaluateMMLU:
     def evaluate(self, framework, limit=1000):
 
         # Run the evaluation while hiding any print outputs
-        with open(os.devnull, "w") as devnull:
-            with contextlib.redirect_stdout(devnull):
-                results = eval(
-                    self.match_task(framework),
-                    model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
-                    limit=limit,
-                    log_dir="./logs",  # specify where logs are stored
-                    log_format="eval",  # choose log format ("eval" or "json")
-                    score=True,  # ensure scoring is enabled
-                )
+        # with open(os.devnull, "w") as devnull:
+        #     with contextlib.redirect_stdout(devnull):
+        results = eval(
+            self.match_task(framework),
+            model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
+            limit=limit,
+            log_dir="./logs",  # specify where logs are stored
+            log_format="eval",  # choose log format ("eval" or "json")
+            score=True,  # ensure scoring is enable
+        )
 
         # 'results' is a list of EvalLog objects (usually one per task)
         # Each EvalLog contains metrics for the entire task/dataset.
+        accuracy = -2
+        print(results)
         for res in results:
             if res.results and res.results.scores:
                 print("Final metrics for the entire dataset:")
