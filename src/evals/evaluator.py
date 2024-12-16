@@ -37,7 +37,7 @@ class Evaluator:
                 framework_fitness=accuracy,
             )
 
-    def run_forward_pass(
+    async def run_forward_pass(
         self, forward_function: str, temp_file: str, session: Session
     ) -> None:
         """
@@ -57,6 +57,7 @@ class Evaluator:
             # Write the complete AgentSystem class to the file, including the forward function
             with open(temp_file, "w") as f:
                 f.write("import random\n")
+                f.write("import asyncio\n")
                 f.write("import pandas\n\n")
                 f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
                 f.write(f"from sqlalchemy.orm import Session\n\n")
@@ -77,7 +78,7 @@ class Evaluator:
                     + """task = "What should I have for dinner?"""
                     + """A: soup B: burgers C: pizza D: pasta"\n"""
                 )
-                f.write("    " + "output = agent_system.forward(task)\n")
+                f.write("    " + "output = asyncio.run(agent_system.forward(task))\n")
                 f.write("    " + "print(output)\n")
 
             # Import the AgentSystem class from the temp file
@@ -105,8 +106,8 @@ class Evaluator:
             """
             )
 
-            forward_pass_output = asyncio.run(agentSystem.forward(task))
-            print(forward_pass_output)
+            forward_pass_output = await agentSystem.forward(task)
+
             if forward_pass_output not in ["A", "B", "C", "D"]:
                 raise AgentSystemException(
                     f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to return a single letter answer such as A, B, C, or D."

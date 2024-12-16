@@ -32,7 +32,7 @@ async def get_structured_json_response_from_gpt(
     response = await client.post(URL, json=payload, timeout=None)
 
     data = response.json()["result"]
-    print(data)
+    # print(data)
 
     # logging.info(data)
 

@@ -35,7 +35,7 @@ class Mutator:
         self.session = session
         self.population = population
 
-    def __call__(self, framework: Framework) -> List[Framework]:
+    async def mutate(self, framework: Framework) -> Framework:
         """
         Applies a mutation to a given framework.
 
@@ -43,16 +43,18 @@ class Mutator:
             framework (Framework): The framework object to mutate.
 
         Returns:
-            List[Framework]: A list containing the mutated framework objects.
+            Framework: The mutated framework object. Returns None if the mutation fails.
         """
 
         sampled_mutation = random.choice(self.mutation_operators)
 
-        next_response, messages, reflexion_response_format = self._mutate(
+        next_response, messages, reflexion_response_format = await self._mutate(
             framework, sampled_mutation
         )
 
-        next_response = self._debug(messages, next_response, reflexion_response_format)
+        next_response = await self._debug(
+            messages, next_response, reflexion_response_format
+        )
 
         mutated_framework = Framework(
             session=self.session,
@@ -64,7 +66,7 @@ class Mutator:
 
         return mutated_framework
 
-    def _mutate(self, framework: Framework, sampled_mutation: str):
+    async def _mutate(self, framework: Framework, sampled_mutation: str):
         """
         Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
 
@@ -100,7 +102,7 @@ class Mutator:
 
         # Generate new solution and do reflection
         try:
-            next_response: dict[str, str] = get_structured_json_response_from_gpt(
+            next_response: dict[str, str] = await get_structured_json_response_from_gpt(
                 messages,
                 base_prompt_response_format,
                 model=self.args.model,
@@ -115,7 +117,7 @@ class Mutator:
 
             messages.append({"role": "assistant", "content": str(next_response)})
             messages.append({"role": "user", "content": Reflexion_prompt_1})
-            next_response = get_structured_json_response_from_gpt(
+            next_response = await get_structured_json_response_from_gpt(
                 messages,
                 reflexion_response_format,
                 model=self.args.model,
@@ -129,7 +131,7 @@ class Mutator:
             """
             messages.append({"role": "assistant", "content": str(next_response)})
             messages.append({"role": "user", "content": Reflexion_prompt_2})
-            next_response = get_structured_json_response_from_gpt(
+            next_response = await get_structured_json_response_from_gpt(
                 messages,
                 reflexion_response_format,
                 model=self.args.model,
@@ -176,7 +178,7 @@ class Mutator:
 
         return r1, reflexion_response_format
 
-    def _debug(self, messages, next_response, reflexion_response_format):
+    async def _debug(self, messages, next_response, reflexion_response_format):
         """
         Handles debugging for a given response during mutation.
 
@@ -204,13 +206,13 @@ class Mutator:
                         """The output of the forward function must not be the forward function
                         itself, as it will recurse infinitely."""
                     )
-                self.evaluator.run_forward_pass(
+                await self.evaluator.run_forward_pass(
                     next_response["code"], temp_file, self.session
                 )
                 break
 
             except AgentSystemException as e:
-                logging.error(f"Error during debugging: {e}")
+                logging.info(f"Debugging meta agent's code: {e}")
                 messages.append({"role": "assistant", "content": str(next_response)})
                 messages.append(
                     {
@@ -223,7 +225,7 @@ class Mutator:
                     }
                 )
                 try:
-                    next_response = get_structured_json_response_from_gpt(
+                    next_response = await get_structured_json_response_from_gpt(
                         messages,
                         reflexion_response_format,
                         model=self.args.model,
@@ -231,7 +233,6 @@ class Mutator:
                         retry=0,
                     )
                 except Exception as e:
-                    print("During LLM generate new solution:")
-                    print(e)
+                    print(f"Error during debugging: {e}")
 
         return next_response

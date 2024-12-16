@@ -9,14 +9,24 @@ from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
 from icecream import ic
 from .mutator import Mutator
 from evals import Evaluator
+from descriptor import Clusterer
+import asyncio
+import logging
 
 
-def generate_mutant(args, population_id):
+async def generate_mutant(args, population_id):
     session, Base = initialize_session(args.db_name)
     generator = Generator(args, session, population_id)
-    mutant_framework = generator()
+    mutant_framework = await generator()
     session.close()
     return mutant_framework
+
+
+# The async part of the logic
+async def run_generation(args, population_id):
+    tasks = [generate_mutant(args, population_id) for _ in range(args.n_mutations)]
+    results = await asyncio.gather(*tasks)
+    return results
 
 
 class Generator:
@@ -48,7 +58,7 @@ class Generator:
             args, session, self.population, self.mutation_operators, self.evaluator
         )
 
-    def __call__(self) -> Framework:
+    async def __call__(self) -> Framework:
         """
         Generates a mutated framework from the population by sampling and applying mutations.
 
@@ -59,9 +69,11 @@ class Generator:
         sample_framework = random.choice(self.population.elites)
         mutant_framework = None
         if sample_framework:
+            logging.info(f"Mutating {sample_framework.framework_name} framework...")
+            print(f"Mutating {sample_framework.framework_name} framework...")
 
             try:
-                mutant_framework = self.mutator(sample_framework)
+                mutant_framework = await self.mutator.mutate(sample_framework)
 
                 if mutant_framework:
                     mutant_framework.update(
@@ -97,6 +109,7 @@ def initialize_population_id(args) -> str:
     population = Population(session=session)
     descriptor = Descriptor()
     evaluator = Evaluator(args)
+    clusterer = Clusterer()
 
     for framework in archive:
         framework = Framework(
@@ -121,6 +134,11 @@ def initialize_population_id(args) -> str:
 
     # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
     evaluator.inspect_evaluate(frameworks_for_evaluation)
+
+    # Re-load the population object in this session
+    population = session.query(Population).filter_by(population_id=population_id).one()
+    # Recluster the population
+    clusterer.cluster(population)
 
     session.close()
 

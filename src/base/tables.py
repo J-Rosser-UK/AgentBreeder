@@ -144,6 +144,9 @@ class Cluster(CustomBase):
         # Get the session associated with this object
         session = object_session(self)
 
+        print("Cluster ID: ", self.cluster_id)
+        print("Session: ", session)
+
         # Query the Framework table for the highest fitness framework in this cluster
         elite = (
             session.query(Framework)
@@ -151,6 +154,9 @@ class Cluster(CustomBase):
             .order_by(Framework.framework_fitness.desc())
             .first()
         )
+
+        if not elite:
+            raise ValueError("No elite found in cluster.")
 
         print("Elite: ", elite)
 
@@ -222,7 +228,7 @@ class Population(CustomBase):
         most_recent_generation = (
             session.query(Generation)
             .filter_by(population_id=self.population_id)
-            .order_by(Generation.generation_id.desc())
+            .order_by(Generation.generation_timestamp.desc())
             .first()
         )
 

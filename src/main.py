@@ -3,12 +3,13 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from tqdm import tqdm
-from generator import initialize_population_id, generate_mutant
+from generator import initialize_population_id, generate_mutant, run_generation
 from descriptor import Clusterer
 from base import initialize_session, Population, Framework
 from evals import Evaluator
 import os
 import uuid
+import asyncio
 
 import warnings
 from sqlalchemy.exc import SAWarning
@@ -41,8 +42,32 @@ def main(args, population_id=None):
         population = (
             session.query(Population).filter_by(population_id=population_id).one()
         )
-        # Recluster the population
-        clusterer.cluster(population)
+        # # Recluster the population
+        # clusterer.cluster(population)
+
+        frameworks_for_evaluation = (
+            session.query(Framework).filter_by(population_id=population_id).all()
+        )
+
+        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
+            population, frameworks_for_evaluation
+        )
+
+        # Perform the query correctly
+        illuminated_frameworks_for_evaluation = (
+            session.query(Framework)  # Start the query
+            .filter(
+                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+            )  # Apply the filter
+            .all()  # Fetch all results
+        )
+
+        print(
+            "fw for eval",
+            len(frameworks_for_evaluation),
+            "ilfw for eval",
+            len(illuminated_frameworks_for_evaluation),
+        )
 
         print(f"Reloaded population ID: {population.population_id}")
 
@@ -50,17 +75,9 @@ def main(args, population_id=None):
 
     # Begin Bayesian Illumination...
     for _ in tqdm(range(args.n_generation), desc="Generations"):
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            list(
-                tqdm(
-                    executor.map(
-                        lambda _: generate_mutant(args, population_id),
-                        range(args.n_mutations),
-                    ),
-                    desc="Mutations",
-                    total=args.n_mutations,
-                )
-            )
+
+        # Generate a new batch of mutants
+        asyncio.run(run_generation(args, population_id))
 
         session, Base = initialize_session(args.db_name)
 
@@ -78,8 +95,17 @@ def main(args, population_id=None):
             .all()
         )
 
-        illuminated_frameworks_for_evaluation = illuminator.illuminate(
-            session, population, frameworks_for_evaluation
+        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
+            population, frameworks_for_evaluation
+        )
+
+        # Perform the query correctly
+        illuminated_frameworks_for_evaluation = (
+            session.query(Framework)  # Start the query
+            .filter(
+                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+            )  # Apply the filter
+            .all()  # Fetch all results
         )
 
         print(
@@ -90,7 +116,7 @@ def main(args, population_id=None):
         )
 
         # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
-        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation)
+        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation_ids)
 
         session.close()
 
@@ -109,7 +135,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--shuffle_seed", type=int, default=0)
     parser.add_argument("--n_generation", type=int, default=100)
-    parser.add_argument("--n_mutations", type=int, default=10)
+    parser.add_argument("--n_mutations", type=int, default=1)
     parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
@@ -123,10 +149,10 @@ if __name__ == "__main__":
         population_id = None
 
     while True:
-        try:
-            population_id = main(args, population_id)
-            break  # Exit the loop if successful
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
-            logging.info("Restarting the process...")
-            time.sleep(5)  # Optional: Add a small delay before restarting
+        # try:
+        population_id = main(args, population_id)
+        #     break  # Exit the loop if successful
+        # except Exception as e:
+        #     logging.error(f"An error occurred: {e}")
+        #     logging.info("Restarting the process...")
+        #     time.sleep(5)  # Optional: Add a small delay before restarting
