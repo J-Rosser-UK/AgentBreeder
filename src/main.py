@@ -43,31 +43,31 @@ def main(args, population_id=None):
             session.query(Population).filter_by(population_id=population_id).one()
         )
         # # Recluster the population
-        # clusterer.cluster(population)
+        clusterer.cluster(population)
 
-        frameworks_for_evaluation = (
-            session.query(Framework).filter_by(population_id=population_id).all()
-        )
+        # frameworks_for_evaluation = (
+        #     session.query(Framework).filter_by(population_id=population_id).all()
+        # )
 
-        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
-            population, frameworks_for_evaluation
-        )
+        # illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
+        #     population, frameworks_for_evaluation
+        # )
 
-        # Perform the query correctly
-        illuminated_frameworks_for_evaluation = (
-            session.query(Framework)  # Start the query
-            .filter(
-                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
-            )  # Apply the filter
-            .all()  # Fetch all results
-        )
+        # # Perform the query correctly
+        # illuminated_frameworks_for_evaluation = (
+        #     session.query(Framework)  # Start the query
+        #     .filter(
+        #         Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+        #     )  # Apply the filter
+        #     .all()  # Fetch all results
+        # )
 
-        print(
-            "fw for eval",
-            len(frameworks_for_evaluation),
-            "ilfw for eval",
-            len(illuminated_frameworks_for_evaluation),
-        )
+        # print(
+        #     "fw for eval",
+        #     len(frameworks_for_evaluation),
+        #     "ilfw for eval",
+        #     len(illuminated_frameworks_for_evaluation),
+        # )
 
         print(f"Reloaded population ID: {population.population_id}")
 
@@ -109,14 +109,14 @@ def main(args, population_id=None):
         )
 
         print(
-            "F",
+            "fws",
             len(frameworks_for_evaluation),
-            "I",
+            "ilfws",
             len(illuminated_frameworks_for_evaluation),
         )
 
         # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
-        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation_ids)
+        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation)
 
         session.close()
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--shuffle_seed", type=int, default=0)
     parser.add_argument("--n_generation", type=int, default=100)
-    parser.add_argument("--n_mutations", type=int, default=1)
+    parser.add_argument("--n_mutations", type=int, default=20)
     parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")

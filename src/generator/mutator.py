@@ -101,47 +101,47 @@ class Mutator:
         ]
 
         # Generate new solution and do reflection
-        try:
-            next_response: dict[str, str] = await get_structured_json_response_from_gpt(
-                messages,
-                base_prompt_response_format,
-                model=self.args.model,
-                temperature=0.5,
-                retry=0,
-            )
+        # try:
+        next_response: dict[str, str] = await get_structured_json_response_from_gpt(
+            messages,
+            base_prompt_response_format,
+            model=self.args.model,
+            temperature=0.5,
+            retry=0,
+        )
 
-            # Reflexion 1
-            Reflexion_prompt_1, reflexion_response_format = (
-                self._get_reflexion_prompt_1(next_response)
-            )
+        # Reflexion 1
+        Reflexion_prompt_1, reflexion_response_format = self._get_reflexion_prompt_1(
+            next_response
+        )
 
-            messages.append({"role": "assistant", "content": str(next_response)})
-            messages.append({"role": "user", "content": Reflexion_prompt_1})
-            next_response = await get_structured_json_response_from_gpt(
-                messages,
-                reflexion_response_format,
-                model=self.args.model,
-                temperature=0.5,
-                retry=0,
-            )
-            # Reflexion 2
-            Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section,
-            revise the code further. Put your new reflection thinking in "reflection". Repeat the
-            previous "thought" and "name", and update the corrected version of the code in "code".
-            """
-            messages.append({"role": "assistant", "content": str(next_response)})
-            messages.append({"role": "user", "content": Reflexion_prompt_2})
-            next_response = await get_structured_json_response_from_gpt(
-                messages,
-                reflexion_response_format,
-                model=self.args.model,
-                temperature=0.5,
-                retry=0,
-            )
-        except Exception as e:
-            print("During LLM generate new solution:")
-            print(e)
-            return None
+        messages.append({"role": "assistant", "content": str(next_response)})
+        messages.append({"role": "user", "content": Reflexion_prompt_1})
+        next_response = await get_structured_json_response_from_gpt(
+            messages,
+            reflexion_response_format,
+            model=self.args.model,
+            temperature=0.5,
+            retry=0,
+        )
+        # Reflexion 2
+        Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section,
+        revise the code further. Put your new reflection thinking in "reflection". Repeat the
+        previous "thought" and "name", and update the corrected version of the code in "code".
+        """
+        messages.append({"role": "assistant", "content": str(next_response)})
+        messages.append({"role": "user", "content": Reflexion_prompt_2})
+        next_response = await get_structured_json_response_from_gpt(
+            messages,
+            reflexion_response_format,
+            model=self.args.model,
+            temperature=0.5,
+            retry=0,
+        )
+        # except Exception as e:
+        #     print("During LLM generate new solution:")
+        #     print(e)
+        #     return None
 
         return next_response, messages, reflexion_response_format
 
