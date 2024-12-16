@@ -74,6 +74,7 @@ def call_openai_sync(messages, response_format, model=MODEL, temperature=0.5, re
         model=model,
         temperature=temperature,
         messages=messages,
+        max_tokens=2000,
         functions=[
             {
                 "name": "get_structured_response",
@@ -85,6 +86,7 @@ def call_openai_sync(messages, response_format, model=MODEL, temperature=0.5, re
                 },
             }
         ],
+        timeout=60,
         function_call={"name": "get_structured_response"},
     )
 

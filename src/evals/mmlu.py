@@ -179,21 +179,22 @@ class EvaluateMMLU:
         return solve
 
     @task
-    def match_task(self, framework):
+    def match_task(self, framework, i, N):
         return Task(
+            name=f"{i} of {N} {framework.framework_name}",
             dataset=self.dataset,
             solver=self.match_solver(framework),
             scorer=match(),
             config=GenerateConfig(temperature=0.5),
         )
 
-    def evaluate(self, framework, limit=1000):
+    def evaluate(self, framework, i=1, N=1, limit=1000):
 
         # Run the evaluation while hiding any print outputs
         # with open(os.devnull, "w") as devnull:
         #     with contextlib.redirect_stdout(devnull):
         results = eval(
-            self.match_task(framework),
+            self.match_task(framework, i, N),
             model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
             limit=limit,
             log_dir="./logs",  # specify where logs are stored
