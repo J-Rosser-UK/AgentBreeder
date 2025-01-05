@@ -27,10 +27,12 @@ class Evaluator:
         """
         self.args = args
 
-    def inspect_evaluate(self, frameworks_for_evaluation: list[Framework]):
+    def inspect_evaluate(
+        self, frameworks_for_evaluation: list[Framework], dataset=EvaluateMMLU
+    ):
 
         for i, framework in tqdm(enumerate(frameworks_for_evaluation)):
-            e = EvaluateMMLU(self.args)
+            e = dataset(self.args)
             accuracy = e.evaluate(
                 framework,
                 i + 1,

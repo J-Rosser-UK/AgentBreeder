@@ -86,22 +86,22 @@ class Generator:
             logging.info(f"Mutating {sample_framework.framework_name} framework...")
             print(f"Mutating {sample_framework.framework_name} framework...")
 
-            # try:
-            mutant_framework = await self.mutator.mutate(sample_framework)
+            try:
+                mutant_framework = await self.mutator.mutate(sample_framework)
 
-            if mutant_framework:
-                mutant_framework.update(
-                    framework_descriptor=self.descriptor.generate(mutant_framework)
-                )
+                if mutant_framework:
+                    mutant_framework.update(
+                        framework_descriptor=self.descriptor.generate(mutant_framework)
+                    )
 
-                self.population.frameworks.append(mutant_framework)
+                    self.population.frameworks.append(mutant_framework)
 
-            # except Exception as e:
-            #     if sample_framework:
-            #         print(
-            #             f"Error mutating {sample_framework.framework_name} framework: {e}"
-            #         )
-            #         mutant_framework = None
+            except Exception as e:
+                if sample_framework:
+                    print(
+                        f"Error mutating {sample_framework.framework_name} framework: {e}"
+                    )
+                    mutant_framework = None
 
         return mutant_framework
 

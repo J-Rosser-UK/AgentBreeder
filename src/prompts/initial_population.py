@@ -30,7 +30,7 @@ COT = {
     output = await cot_agent.forward(
         response_format={
             "thinking": "Your step by step thinking.",
-            "answer": "A single letter, A, B, C or D."
+            "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
         }
     )
     
@@ -84,7 +84,7 @@ COT_SC = {
         output = await cot_agents[i].forward(
             response_format={
                 "thinking": "Your step by step thinking.",
-                "answer": "A single letter, A, B, C or D."
+                "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
             }
         )
         
@@ -143,7 +143,7 @@ Reflexion = {
     output = await cot_agent.forward(
         response_format={
             "thinking": "Your step by step thinking.",
-            "answer": "A single letter, A, B, C or D."
+            "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
         }
     )
     
@@ -192,7 +192,7 @@ Reflexion = {
         output = await cot_agent.forward(
             response_format={
                 "thinking": "Your step by step thinking.",
-                "answer": "A single letter, A, B, C or D."
+                "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
             }
         )
         
@@ -239,17 +239,17 @@ LLM_debate = {
         for i in range(len(debate_agents)):
             if r == 0 and i == 0:
                 meeting.chats.append(self.Chat(agent=system, content=f"Please think step by step and then solve the task: {task}"))
-                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."})
                 
             else:
                 meeting.chats.append(self.Chat(agent=system, content=f"Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer. Reminder, the task is: {task}"))
-                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "A single letter, A, B, C or D."})
+                output = await debate_agents[i].forward(response_format={"thinking": "Your step by step thinking.", "response": "Your final response.", "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."})
 
             meeting.chats.append(self.Chat(agent=debate_agents[i], content=output["thinking"]+output["response"]))
 
     # Make the final decision based on all debate results and solutions
     meeting.chats.append(self.Chat(agent=system, content="Given all the above thinking and answers, reason over them carefully and provide a final answer."))
-    output = await final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "A single letter, A, B, C or D."})
+    output = await final_decision_agent.forward(response_format = {"thinking": "Your step by step thinking.", "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."})
     
     return output["answer"]
 """,
@@ -292,7 +292,7 @@ Take_a_step_back = {
     
     final_output = await cot_agent.forward(response_format={
         "thinking": "Your step by step thinking.",
-        "answer": "A single letter, A, B, C or D."
+        "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
     })
     
     return final_output["answer"]
@@ -322,7 +322,7 @@ QD = {
     
     output = await cot_agent.forward(response_format={
         "thinking": "Your step by step thinking.",
-        "answer": "A single letter, A, B, C or D."
+        "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
     })
     
     meeting.chats.append(self.Chat(
@@ -339,7 +339,7 @@ QD = {
         
         output = await cot_agent.forward(response_format={
             "thinking": "Your step by step thinking with a new approach.",
-            "answer": "A single letter, A, B, C or D."
+            "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
         })
         
         meeting.chats.append(self.Chat(
@@ -355,7 +355,7 @@ QD = {
     
     final_output = await final_decision_agent.forward(response_format={
         "thinking": "Your step by step thinking comparing all solutions.",
-        "answer": "A single letter, A, B, C or D."
+        "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
     })
     
     return final_output["answer"]
@@ -406,7 +406,7 @@ Role_Assignment = {
     
     expert_output = await selected_expert.forward(response_format={
         "thinking": "Your step by step thinking.",
-        "answer": "A single letter, A, B, C or D."
+        "answer": "An answer given in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. Whatever is required."
     })
     
     return expert_output["answer"]

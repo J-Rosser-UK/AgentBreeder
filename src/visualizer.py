@@ -156,10 +156,11 @@ if __name__ == "__main__":
     # population_id = "6a829b1e-5f06-4c0d-a110-74cfa1805c0f"
     # population_id = "790f1525-747b-4de6-8e9f-c89d0638eabc"
     # population_id = "96173256-f843-4a3a-a128-54cb23f29e0d"
+    population_id = "ec5e48eb-1df2-4713-b453-ed59bb20a947"
 
     random.seed(42)
 
-    session, Base = initialize_session(args.db_name)
+    session, Base = initialize_session("illuminator.db")
 
     visualizer = Visualizer()
 

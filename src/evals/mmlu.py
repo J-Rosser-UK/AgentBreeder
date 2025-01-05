@@ -7,8 +7,7 @@ import random
 from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
-
-# from .quiet_eval import eval
+import re
 
 from inspect_ai._eval.eval import eval
 import os
@@ -108,10 +107,11 @@ class EvaluateMMLU:
             # Create the agent framework in temporary code
             current_directory = os.path.dirname(os.path.abspath(__file__))
             parent_directory = os.path.dirname(current_directory)
+            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", framework.framework_name)
             temp_file = (
                 f"""{parent_directory}/temp/agent_system_temp_"""
                 + f"""
-                {framework.framework_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
+                {cleaned_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
             )
 
             forward_function = framework.framework_code
@@ -138,8 +138,8 @@ class EvaluateMMLU:
                     f.write("\n\n")
                     f.write("if __name__ == '__main__':\n")
                     f.write("    " + "from base import initialize_session\n")
-                    f.write("    " + "session, Base = initialize_session\n")
-                    f.write("    " + "agent_system = AgentSystem()\n")
+                    f.write("    " + "session, Base = initialize_session()\n")
+                    f.write("    " + "agent_system = AgentSystem(session)\n")
                     f.write(
                         "    "
                         + """task = "What should I have for dinner?"""
@@ -188,7 +188,7 @@ class EvaluateMMLU:
             config=GenerateConfig(temperature=0.5),
         )
 
-    def evaluate(self, framework, i=1, N=1, limit=1000):
+    def evaluate(self, framework, i=1, N=1, limit=10):
 
         # Run the evaluation while hiding any print outputs
         # with open(os.devnull, "w") as devnull:

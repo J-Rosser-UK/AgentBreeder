@@ -10,6 +10,7 @@ import uuid
 from evals import AgentSystemException
 import logging
 import json
+import re
 
 
 class Mutator:
@@ -101,47 +102,47 @@ class Mutator:
         ]
 
         # Generate new solution and do reflection
-        # try:
-        next_response: dict[str, str] = await get_structured_json_response_from_gpt(
-            messages,
-            base_prompt_response_format,
-            model=self.args.model,
-            temperature=0.5,
-            retry=0,
-        )
+        try:
+            next_response: dict[str, str] = await get_structured_json_response_from_gpt(
+                messages,
+                base_prompt_response_format,
+                model=self.args.model,
+                temperature=0.5,
+                retry=0,
+            )
 
-        # Reflexion 1
-        Reflexion_prompt_1, reflexion_response_format = self._get_reflexion_prompt_1(
-            next_response
-        )
+            # Reflexion 1
+            Reflexion_prompt_1, reflexion_response_format = (
+                self._get_reflexion_prompt_1(next_response)
+            )
 
-        messages.append({"role": "assistant", "content": str(next_response)})
-        messages.append({"role": "user", "content": Reflexion_prompt_1})
-        next_response = await get_structured_json_response_from_gpt(
-            messages,
-            reflexion_response_format,
-            model=self.args.model,
-            temperature=0.5,
-            retry=0,
-        )
-        # Reflexion 2
-        Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section,
-        revise the code further. Put your new reflection thinking in "reflection". Repeat the
-        previous "thought" and "name", and update the corrected version of the code in "code".
-        """
-        messages.append({"role": "assistant", "content": str(next_response)})
-        messages.append({"role": "user", "content": Reflexion_prompt_2})
-        next_response = await get_structured_json_response_from_gpt(
-            messages,
-            reflexion_response_format,
-            model=self.args.model,
-            temperature=0.5,
-            retry=0,
-        )
-        # except Exception as e:
-        #     print("During LLM generate new solution:")
-        #     print(e)
-        #     return None
+            messages.append({"role": "assistant", "content": str(next_response)})
+            messages.append({"role": "user", "content": Reflexion_prompt_1})
+            next_response = await get_structured_json_response_from_gpt(
+                messages,
+                reflexion_response_format,
+                model=self.args.model,
+                temperature=0.5,
+                retry=0,
+            )
+            # Reflexion 2
+            Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section,
+            revise the code further. Put your new reflection thinking in "reflection". Repeat the
+            previous "thought" and "name", and update the corrected version of the code in "code".
+            """
+            messages.append({"role": "assistant", "content": str(next_response)})
+            messages.append({"role": "user", "content": Reflexion_prompt_2})
+            next_response = await get_structured_json_response_from_gpt(
+                messages,
+                reflexion_response_format,
+                model=self.args.model,
+                temperature=0.5,
+                retry=0,
+            )
+        except Exception as e:
+            print("During LLM generate new solution:")
+            print(e)
+            return None
 
         return next_response, messages, reflexion_response_format
 
@@ -193,14 +194,15 @@ class Mutator:
 
         current_directory = os.path.dirname(os.path.abspath(__file__))
         parent_directory = os.path.dirname(current_directory)
+        cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", next_response["name"])
         temp_file = f"""
-            {parent_directory}/temp/agent_system_temp_{next_response['name']}_{uuid.uuid4()}.py
+            {parent_directory}/temp/agent_system_temp_{cleaned_name}_{uuid.uuid4()}.py
         """.strip()
 
         for d in range(self.args.debug_max):
 
             try:
-                print(d, next_response)
+
                 if "return self.forward" in next_response["code"]:
                     raise AgentSystemException(
                         """The output of the forward function must not be the forward function
