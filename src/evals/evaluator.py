@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from .mmlu import EvaluateMMLU
 from textwrap import dedent
 import asyncio
+import logging
 
 
 class AgentSystemException(Exception):
@@ -39,9 +40,12 @@ class Evaluator:
                 len(frameworks_for_evaluation),
                 limit=self.args.n_evals,
             )
+
+            framework.update(
+                framework_fitness=accuracy,
+            )
             framework.update(
                 ci_sample_size=self.args.n_evals,
-                framework_fitness=accuracy,
             )
 
     async def run_forward_pass(
@@ -113,11 +117,21 @@ class Evaluator:
             """
             )
 
-            forward_pass_output = await agentSystem.forward(task)
+            try:
+                forward_pass_output = await asyncio.wait_for(
+                    agentSystem.forward(task), timeout=180  # Timeout set to 180 seconds
+                )
+
+            except TimeoutError:
+                logging.info(f"Time expired for {temp_file}")
+                print(f"Time expired for {temp_file}")
+                raise AgentSystemException(
+                    "Time expired, please ensure the forward function executes within the time limit of 3 minutes."
+                )
 
             if forward_pass_output not in ["A", "B", "C", "D"]:
                 raise AgentSystemException(
-                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to return a single letter answer such as A, B, C, or D."
+                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to ensure the output matches the expected format."
                 )
 
             # delete file at the end

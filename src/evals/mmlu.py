@@ -8,13 +8,14 @@ from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 import re
-
+import asyncio
 from inspect_ai._eval.eval import eval
 import os
 import importlib.util
 import uuid
 from base import initialize_session
 import contextlib
+import logging
 
 
 class EvaluateMMLU:
@@ -160,18 +161,25 @@ class EvaluateMMLU:
 
                 agentSystem = AgentSystem(session)
 
+                # Set a timeout of 3 minutes (180 seconds)
                 task = state.input
-                state.output.completion = await agentSystem.forward(task)
+                state.output.completion = await asyncio.wait_for(
+                    agentSystem.forward(task), timeout=180  # Timeout set to 180 seconds
+                )
+
+            except TimeoutError:
+                logging.info(f"Time expired for {temp_file}")
+                print(f"Time expired for {temp_file}")
+
+                state.output.completion = "Time Expired"
 
             except Exception as e:
-
                 print("Error during evaluation:", e)
+                state.output.completion = f"Error: {str(e)}"
 
             finally:
-
                 # delete file at the end
                 os.remove(temp_file)
-
                 session.close()
 
             return state

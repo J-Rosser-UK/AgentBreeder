@@ -45,29 +45,29 @@ def main(args, population_id=None):
         # # Recluster the population
         clusterer.cluster(population)
 
-        # frameworks_for_evaluation = (
-        #     session.query(Framework).filter_by(population_id=population_id).all()
-        # )
+        frameworks_for_evaluation = (
+            session.query(Framework).filter_by(population_id=population_id).all()
+        )
 
-        # illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
-        #     population, frameworks_for_evaluation
-        # )
+        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
+            population, frameworks_for_evaluation
+        )
 
-        # # Perform the query correctly
-        # illuminated_frameworks_for_evaluation = (
-        #     session.query(Framework)  # Start the query
-        #     .filter(
-        #         Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
-        #     )  # Apply the filter
-        #     .all()  # Fetch all results
-        # )
+        # Perform the query correctly
+        illuminated_frameworks_for_evaluation = (
+            session.query(Framework)  # Start the query
+            .filter(
+                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+            )  # Apply the filter
+            .all()  # Fetch all results
+        )
 
-        # print(
-        #     "fw for eval",
-        #     len(frameworks_for_evaluation),
-        #     "ilfw for eval",
-        #     len(illuminated_frameworks_for_evaluation),
-        # )
+        print(
+            "fw for eval",
+            len(frameworks_for_evaluation),
+            "ilfw for eval",
+            len(illuminated_frameworks_for_evaluation),
+        )
 
         print(f"Reloaded population ID: {population.population_id}")
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--db_name", type=str, default="illuminator.db")
+    parser.add_argument("--db_name", type=str, default="crossover.db")
 
     args = parser.parse_args()
 

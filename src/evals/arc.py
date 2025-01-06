@@ -8,6 +8,8 @@ from inspect_ai.dataset import Dataset, MemoryDataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 import re
+import asyncio
+import logging
 
 from inspect_ai._eval.eval import eval
 import os
@@ -288,13 +290,21 @@ class EvaluateARC:
 
                 agentSystem = AgentSystem(session)
 
+                # Set a timeout of 3 minutes (180 seconds)
                 task = state.input
+                state.output.completion = await asyncio.wait_for(
+                    agentSystem.forward(task), timeout=180  # Timeout set to 180 seconds
+                )
 
-                state.output.completion = await agentSystem.forward(task)
+            except TimeoutError:
+                logging.info(f"Time expired for {temp_file}")
+                print(f"Time expired for {temp_file}")
+
+                state.output.completion = "Time Expired"
 
             except Exception as e:
-
                 print("Error during evaluation:", e)
+                state.output.completion = f"Error: {str(e)}"
 
             finally:
 

@@ -50,7 +50,7 @@ class Mutator:
         try:
 
             framework_response, messages, reflexion_response_format = (
-                await random.choice[self._mutate(), self._crossover()]
+                await random.choice([self._mutate, self._crossover])()
             )
 
             framework_response = await self._debug(
@@ -67,7 +67,7 @@ class Mutator:
         except Exception as e:
 
             print(f"Error evolving framework: {e}")
-            mutant_framework = None
+            mutated_framework = None
 
         return mutated_framework
 
@@ -76,8 +76,7 @@ class Mutator:
         Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
 
         Args:
-            framework (Framework): The framework object to mutate.
-            sampled_mutation (str): The mutation operator selected for this mutation.
+            None
 
         Returns:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
@@ -101,6 +100,11 @@ class Mutator:
                 {base_prompt}
              
                 Here is the framework I would like you to mutate:
+
+                ---------------
+                Framework: {framework.framework_name}
+                {framework.framework_thought_process}
+                ---------------
                 {framework.framework_code}
 
                 The mutation I would like to apply is:
@@ -114,11 +118,10 @@ class Mutator:
 
     async def _crossover(self):
         """
-        Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
+        Applies crossover to two frameworks and refines the result using reflexion-based prompts.
 
         Args:
-            framework (Framework): The framework object to mutate.
-            sampled_mutation (str): The mutation operator selected for this mutation.
+            None
 
         Returns:
             tuple: A tuple containing the next_response (dict), the updated messages (list),

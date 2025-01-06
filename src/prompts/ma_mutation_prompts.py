@@ -18,13 +18,13 @@ multi_agent_system_mutation_prompts = [
     "Introduce asymmetrical power dynamics by giving certain agents additional capabilities",  # Foerster et al., "Learning with Opponent-Learning Awareness," AAMAS 2018
     "Allow agents to form coalitions and dynamically shift alliances",  # Shehory & Kraus, "Methods for Task Allocation via Agent Coalition Formation," AIJ 1998
     "Model bounded rationality by limiting computation or memory capacity of agents",  # Simon, "Models of Bounded Rationality," MIT Press 1982
-    "Double the number of agents in the system",
-    "Half the number of agents in the system",
-    "Add critics to question every decision made by the agents",
-    "Remove critics from the system",
-    "Make the agentic system more efficient",
-    "Make all the prompts (Chat) more descriptive and detailed",
-    "Make all the prompts (Chat) more concise and to the point",
-    "Add an element of debate to the system",
-    "Make the agentic system more cooperative",
+    # "Double the number of agents in the system",
+    # "Half the number of agents in the system",
+    # "Add critics to question every decision made by the agents",
+    # "Remove critics from the system",
+    # "Make the agentic system more efficient",
+    # "Make all the prompts (Chat) more descriptive and detailed",
+    # "Make all the prompts (Chat) more concise and to the point",
+    # "Add an element of debate to the system",
+    # "Make the agentic system more cooperative",
 ]
