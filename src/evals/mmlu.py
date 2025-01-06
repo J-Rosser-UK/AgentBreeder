@@ -16,6 +16,13 @@ import uuid
 from base import initialize_session
 import contextlib
 import logging
+from inspect_ai.scorer import Score, scorer
+from inspect_ai.scorer import Score, scorer
+from inspect_ai.scorer import (
+    accuracy,
+    stderr,
+)  # or any other built-in metrics you'd like
+from chat import get_structured_json_response_from_gpt
 
 
 class EvaluateMMLU:
@@ -88,7 +95,7 @@ class EvaluateMMLU:
 
         # Combine question and choices into a single prompt
         prompt = f"{question_prompt}\n{choices_prompt}\n\n"
-        prompt += f"Provide your answer as a single letter in the range A-{chr(65 + len(record['choices']) - 1)}."
+        prompt += f"OUTPUT ANSWER FORMAT: Provide your final answer as a single letter in the range A-{chr(65 + len(record['choices']) - 1)}."
 
         # Determine the correct answer letter
         correct_answer_letter = chr(65 + record["answer"])
@@ -186,13 +193,60 @@ class EvaluateMMLU:
 
         return solve
 
+    @staticmethod
+    @scorer(metrics=[accuracy(), stderr()])
+    def llm_match():
+        async def score(state, target):
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+                Given this task:
+                 {state.input}
+                with the correct answer being {target.text}.
+
+                Did this user correctly answer the question? YES or NO. Here is their answer: {state.output.completion}.
+                """,
+                },
+            ]
+            response_format = {
+                "thinking": "One sentence of step-by-step reasoning.",
+                "is_match": "One word, YES or NO.",
+            }
+
+            response = await get_structured_json_response_from_gpt(
+                messages,
+                response_format,
+                model="gpt-4o-mini",
+                temperature=0.5,
+                retry=0,
+            )
+
+            if "yes" in response.get("is_match", "").lower():
+                accuracy = 1
+            else:
+                accuracy = 0
+
+            return Score(
+                name="llm_match",
+                value=accuracy,
+                answer=state.output.completion,
+                explanation=f"Is answer correct? {response['is_match']}",
+            )
+
+        return score
+
     @task
     def match_task(self, framework, i, N):
         return Task(
             name=f"{i} of {N} {framework.framework_name}",
             dataset=self.dataset,
             solver=self.match_solver(framework),
-            scorer=match(),
+            scorer=self.llm_match(),
             config=GenerateConfig(temperature=0.5),
         )
 

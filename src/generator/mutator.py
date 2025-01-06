@@ -109,6 +109,11 @@ class Mutator:
 
                 The mutation I would like to apply is:
                 {sampled_mutation}
+
+                Ensure that the new forward functions outputs a response as a
+                STRING in the exact format as specified in the task. This could be
+                either a single letter (e.g. A, B, C, D) or a word or phrase, or a 
+                short piece of code.
                 
                 """.strip(),
             },
@@ -159,7 +164,12 @@ class Mutator:
                 Framework 2: {framework_2.framework_name}
                 {framework_2.framework_thought_process}
                 ---------------
-                {framework_2.framework_code}                
+                {framework_2.framework_code}   
+
+                Ensure that the new forward functions outputs a response as a
+                STRING in the exact format as specified in the task. This could be
+                either a single letter (e.g. A, B, C, D) or a word or phrase, or a 
+                short piece of code.             
                 """.strip(),
             },
         ]

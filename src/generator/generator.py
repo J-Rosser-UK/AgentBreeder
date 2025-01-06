@@ -10,7 +10,7 @@ from prompts.mutation_base import get_init_archive
 # from rich import print
 from descriptor import Descriptor
 from evals import Evaluator
-from prompts.ma_mutation_prompts import multi_agent_system_mutation_prompts
+from prompts.mutation_prompts import multi_agent_system_mutation_prompts
 from icecream import ic
 from .mutator import Mutator
 from evals import Evaluator

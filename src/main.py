@@ -128,13 +128,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     current_directory = os.path.dirname(os.path.abspath(__file__))
-    parser.add_argument(
-        "--data_filename",
-        type=str,
-        default=f"{current_directory}/data/mmlu_sample_3.csv",
-    )
+    parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--shuffle_seed", type=int, default=0)
-    parser.add_argument("--n_generation", type=int, default=100)
+    parser.add_argument("--n_generation", type=int, default=5)
     parser.add_argument("--n_mutations", type=int, default=10)
     parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)

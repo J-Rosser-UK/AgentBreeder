@@ -29,7 +29,7 @@ get_structured_json_response_from_gpt_code = extract_function_code(
 )
 
 prompt_base = """# Overview
-You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on the MMLU (Massive Multitask Language Understanding) benchmark, a challenging evaluation that assesses a model's ability to answer questions across a wide range of subjects and difficulty levels. It includes subjects from STEM, social sciences, humanities, and more.
+You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on various benchmarks e.g. MMLU.
 
 ## An example question from MMLU:
 
@@ -73,7 +73,7 @@ class AgentArchitecture:
         - task (str): Task description.
         
         Returns:
-        - Answer (str): Your FINAL Answer. Return as a string.
+        - Answer (str): Your FINAL Answer. Return as a string in the exact format as specified in the task.
         \"""
         pass
 ```
@@ -104,7 +104,7 @@ Here are some mistakes you may make:
 1. DO NOT try to manually process agent outputs:
 ```python
 # WRONG:
-output = agent.forward(...)
+output = await agent.forward(...)
 processed = process_output(output["thinking"])  # Don't process outputs manually
 ```
 
@@ -134,6 +134,18 @@ if output["answer"] == "A":  # Don't inspect content directly
     return "A"
 ```
 
+5. DO NOT output a dictionary with multiple keys:
+```python
+# WRONG:
+async def forward(self, task):
+    ...
+    output:dict = await agent.forward(response_format={
+    "thinking": "Your step by step reasoning",
+    "answer": "Your final answer explicitly in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. THIS SHOULD NOT BE A SENTENCE AND SHOULD NOT INCLUDE ANY THINKING."
+})
+    return {"answer": output["answer"], "thinking": output["thinking"]}  # Don't output multiple keys
+```
+
 ## CORRECT implementation patterns:
 
 1. Proper agent creation and meeting setup:
@@ -156,9 +168,19 @@ meeting.chats.append(Chat(
 ```python
 output = agent.forward(response_format={
     "thinking": "Your step by step reasoning",
-    "answer": "Single letter A, B, C, or D"
+    "answer": "Your final answer explicitly in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. THIS SHOULD NOT BE A SENTENCE AND SHOULD NOT INCLUDE ANY THINKING."
 })
 return output["answer"]
+```
+
+4. Return the answer as a string:
+```python
+async def forward(self, task):
+    output = await agent.forward(response_format={
+    "thinking": "Your step by step reasoning",
+    "answer": "Your final answer explicitly in the required answer format as stated in the task. This could be a single letter, a few words or a piece of code. THIS SHOULD NOT BE A SENTENCE AND SHOULD NOT INCLUDE ANY THINKING."
+})
+    return output["answer"]
 ```
 
 # Your task
