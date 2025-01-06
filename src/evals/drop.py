@@ -1,0 +1,2 @@
+class EvaluateDROP:
+    pass

@@ -7,23 +7,30 @@ import random
 from inspect_ai.dataset import Dataset, MemoryDataset
 from typing import Any, Literal, Union
 from textwrap import dedent
+import numpy as np
+
+from typing import cast
+from inspect_ai.scorer import Metric, Score, metric
+import textwrap
 import re
 import asyncio
 import logging
-
+import ast
 from inspect_ai._eval.eval import eval
 import os
 import importlib.util
 import uuid
 from base import initialize_session
 import contextlib
+from typing import List
 
 from inspect_ai.scorer import Score, scorer
 from inspect_ai.scorer import (
     accuracy,
     stderr,
+    bootstrap_std,
 )  # or any other built-in metrics you'd like
-
+import re
 
 import os
 from pathlib import Path
@@ -42,6 +49,7 @@ from inspect_ai.dataset._dataset import (
     RecordToSample,
 )
 from inspect_ai.dataset._util import data_to_samples, record_to_sample_fn
+from .metrics import ci_lower, ci_upper, median
 
 
 def easy_hf_dataset(
@@ -156,7 +164,8 @@ class EvaluateARC:
 
         self.dataset = dataset
 
-    def _format_grid(self, grid: list[list[int]]) -> str:
+    @staticmethod
+    def _grid_2_str(grid: list[list[int]]) -> str:
         """Helper function to format grid into a string representation."""
         return "\n".join([" ".join(map(str, row)) for row in grid])
 
@@ -186,8 +195,8 @@ class EvaluateARC:
         # Construct examples section
         examples = []
         for i, example in enumerate(record["train"]):
-            input_grid = self._format_grid(example["input"])
-            output_grid = self._format_grid(example["output"])
+            input_grid = EvaluateARC._grid_2_str(example["input"])
+            output_grid = EvaluateARC._grid_2_str(example["output"])
             examples.append(
                 f"### Example {i}:\nInput:\n{input_grid}\nOutput:\n{output_grid}\n"
             )
@@ -195,7 +204,7 @@ class EvaluateARC:
         examples = "\n".join(examples)
 
         # Construct test section
-        test_input = self._format_grid(record["test"][0]["input"])
+        test_input = record["test"][0]["input"]
 
         # Build the full task prompt
         task_prompt = dedent(
@@ -204,28 +213,33 @@ class EvaluateARC:
             You are solving an ARC (Abstraction and Reasoning Corpus) task.
 
             ### Instructions:
-            Given some example input and output grids, determine the transformation rule and apply it to predict the output grid for the given test input.
+            Given some example input and output grids, determine the transformation rule and return a transformation function which only uses built-in python libraries to perform the transformation.
 
             ## Examples:
             {examples}
 
-            ## Test Problem:
-            Input:
-            {test_input}
+            
 
-            Analyze the transformation rules based on the provided examples and determine what the output should be for the test problem.
+            Analyze the transformation rules and return the transformation function in the format:
+```
+def transform(grid: list[list[int]]) -> list[list[int]]:
+    # Your code here
+    return transformed_grid
+```
+
+            Do not simply return the grid as the output and ensure the return value is "transformed_grid". You must provide a function that can transform any input grid.
             """
         ).strip()
 
-        print("Task rpompt", task_prompt)
+        # print("Task rpompt", task_prompt)
 
         # Return formatted sample
         return Sample(
             input=task_prompt,
             target=str(
-                self._format_grid(record["test"][0]["output"])
+                EvaluateARC._grid_2_str(list(record["test"][0]["output"]))
             ),  # Expected test output
-            metadata={"task_id": task_id},
+            metadata={"task_id": task_id, "test_input": test_input},
         )
 
     @solver
@@ -308,6 +322,8 @@ class EvaluateARC:
 
             finally:
 
+                print("OUTPUT", state.output.completion)
+
                 # delete file at the end
                 os.remove(temp_file)
 
@@ -328,19 +344,44 @@ class EvaluateARC:
         )
 
     @staticmethod
-    @scorer(metrics=[accuracy(), stderr()])
+    @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
     def percentage_match():
         async def score(state, target):
-            solution_str = target.text
-            solution_grid = EvaluateARC._parse_grid(solution_str)
-
-            prediction_str = state.output.completion
             try:
-                prediction_grid = EvaluateARC._parse_grid(prediction_str)
-            except Exception:
-                prediction_grid = []
+                transformation_code = state.output.completion
 
-            pct = EvaluateARC._get_percentage_match(solution_grid, prediction_grid)
+                # print("transformation_code", transformation_code)
+
+                # Extract the transformation function from the code
+                test_input = state.metadata["test_input"]
+
+                # Dynamically execute the code and extract the function namespace
+                namespace = {}
+                exec(transformation_code, namespace)
+                transform = namespace["transform"]
+
+                # Run the function on the test input
+                prediction_grid = transform(test_input)
+
+                # Display the output
+                # print("Prediction:", prediction_grid)
+
+                solution_str = target.text
+
+                prediction_str = str(EvaluateARC._grid_2_str(prediction_grid))
+
+                pct = EvaluateARC._get_percentage_match(
+                    EvaluateARC._parse_grid(solution_str),
+                    EvaluateARC._parse_grid(prediction_str),
+                )
+                # hard match
+                if pct == 1.0:
+                    pct = 1.0
+                else:
+                    pct = 0
+            except Exception as e:
+                print("Error during ARC scoring:", e)
+                pct = 0
 
             return Score(
                 name="percentage_match",
@@ -426,5 +467,11 @@ class EvaluateARC:
                         print(f"  {metric_name}: {metric.value}")
                         if metric_name == "accuracy":
                             accuracy = metric.value
+                        elif metric_name == "ci_lower":
+                            ci_lower = metric.value
+                        elif metric_name == "ci_upper":
+                            ci_upper = metric.value
+                        elif metric_name == "median":
+                            median = metric.value
 
-        return accuracy
+        return accuracy, ci_lower, ci_upper, median

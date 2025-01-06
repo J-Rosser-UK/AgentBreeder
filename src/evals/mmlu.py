@@ -23,6 +23,7 @@ from inspect_ai.scorer import (
     stderr,
 )  # or any other built-in metrics you'd like
 from chat import get_structured_json_response_from_gpt
+from .metrics import ci_lower, ci_upper, median
 
 
 class EvaluateMMLU:
@@ -194,7 +195,7 @@ class EvaluateMMLU:
         return solve
 
     @staticmethod
-    @scorer(metrics=[accuracy(), stderr()])
+    @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
     def llm_match():
         async def score(state, target):
             messages = [
@@ -277,5 +278,11 @@ class EvaluateMMLU:
                         print(f"  {metric_name}: {metric.value}")
                         if metric_name == "accuracy":
                             accuracy = metric.value
+                        elif metric_name == "ci_lower":
+                            ci_lower = metric.value
+                        elif metric_name == "ci_upper":
+                            ci_upper = metric.value
+                        elif metric_name == "median":
+                            median = metric.value
 
-        return accuracy
+        return accuracy, ci_lower, ci_upper, median

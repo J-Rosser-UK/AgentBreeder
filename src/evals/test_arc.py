@@ -12,6 +12,7 @@ from tqdm import tqdm
 import uuid
 from base import initialize_session
 from prompts.initial_population import COT_SC
+import re
 
 
 class TestEvaluateARC(unittest.TestCase):
@@ -142,9 +143,33 @@ class TestEvaluateARC(unittest.TestCase):
             framework_code=COT_SC["code"],
         )
         # framework = self.session.query(Framework).first()
-        accuracy = self.evaluator.evaluate(framework, limit=10)
+        accuracy = self.evaluator.evaluate(framework, limit=1)
         print("accuracy", accuracy)
         self.assertIsInstance(accuracy, float)
+
+
+#     def test_extract_function(self):
+#         function = """ alsdfakjdslk
+# asdkfljsfjlj
+# def transform(grid: list[list[int]]) -> list[list[int]]:
+#     transformed_grid = [[0] * 9 for _ in range(9)]
+#     for i in range(3):
+#         for j in range(3):
+#             transformed_grid[i*3:(i+1)*3][j*3:(j+1)*3] = [[grid[i][j]] * 3 for _ in range(3)]
+#     return transformed_grid
+#       asdlfjasdlj
+# """
+#         output = EvaluateARC.extract_function_code(function)
+
+#         expected = """def transform(grid: list[list[int]]) -> list[list[int]]:
+#     transformed_grid = [[0] * 9 for _ in range(9)]
+#     for i in range(3):
+#         for j in range(3):
+#             transformed_grid[i*3:(i+1)*3][j*3:(j+1)*3] = [[grid[i][j]] * 3 for _ in range(3)]
+#     return transformed_grid
+# """
+#         self.assertEqual(output, expected)
+#         print(output)
 
 
 if __name__ == "__main__":

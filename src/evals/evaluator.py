@@ -4,10 +4,16 @@ import importlib.util
 from base import Framework
 from tqdm import tqdm
 from sqlalchemy.orm import Session
-from .mmlu import EvaluateMMLU
+
 from textwrap import dedent
 import asyncio
 import logging
+
+from evals.arc import EvaluateARC
+from evals.mmlu import EvaluateMMLU
+from evals.drop import EvaluateDROP
+from evals.gpqa import EvaluateGPQA
+from evals.mgsm import EvaluateMGSM
 
 
 class AgentSystemException(Exception):
@@ -27,14 +33,22 @@ class Evaluator:
             dataset file paths and model settings.
         """
         self.args = args
+        self.datasets = {
+            "arc": EvaluateARC,
+            "mmlu": EvaluateMMLU,
+            "drop": EvaluateDROP,
+            "gpqa": EvaluateGPQA,
+            "mgsm": EvaluateMGSM,
+        }
 
     def inspect_evaluate(
-        self, frameworks_for_evaluation: list[Framework], dataset=EvaluateMMLU
+        self,
+        frameworks_for_evaluation: list[Framework],
     ):
-
+        dataset = self.datasets[self.args.dataset]
         for i, framework in tqdm(enumerate(frameworks_for_evaluation)):
             e = dataset(self.args)
-            accuracy = e.evaluate(
+            accuracy, ci_lower, ci_upper, median = e.evaluate(
                 framework,
                 i + 1,
                 len(frameworks_for_evaluation),
@@ -46,6 +60,13 @@ class Evaluator:
             )
             framework.update(
                 ci_sample_size=self.args.n_evals,
+            )
+
+            framework.update(
+                ci_lower=ci_lower,
+                ci_upper=ci_upper,
+                ci_median=median,
+                ci_confidence_level=0.95,
             )
 
     async def run_forward_pass(
@@ -131,7 +152,7 @@ class Evaluator:
 
             if forward_pass_output not in ["A", "B", "C", "D"]:
                 raise AgentSystemException(
-                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to ensure the output matches the expected format."
+                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to ensure the output of the function is a string which is in the required format given in the task e.g. a letter, phrase or piece of code."
                 )
 
             # delete file at the end
