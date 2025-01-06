@@ -4,7 +4,7 @@ from inspect_ai.solver import solver, Solver, TaskState, Generate
 from inspect_ai.scorer import match
 from inspect_ai.model import GenerateConfig
 import random
-from inspect_ai.dataset import Dataset, hf_dataset
+from inspect_ai.dataset import Dataset, MemoryDataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 import re
@@ -23,6 +23,108 @@ from inspect_ai.scorer import (
 )  # or any other built-in metrics you'd like
 
 
+import os
+from pathlib import Path
+from typing import Any
+
+from inspect_ai._util.appdirs import inspect_cache_dir
+from inspect_ai._util.error import pip_dependency_error
+from inspect_ai._util.file import safe_filename
+from inspect_ai._util.hash import mm3_hash
+from inspect_ai._util.version import verify_required_version
+
+from inspect_ai.dataset._dataset import (
+    Dataset,
+    FieldSpec,
+    MemoryDataset,
+    RecordToSample,
+)
+from inspect_ai.dataset._util import data_to_samples, record_to_sample_fn
+
+
+def easy_hf_dataset(
+    path: str,
+    split: str,
+    name: str | None = None,
+    data_dir: str | None = None,
+    revision: str | None = None,
+    sample_fields: FieldSpec | RecordToSample | None = None,
+    auto_id: bool = False,
+    shuffle: bool = False,
+    seed: int | None = None,
+    limit: int | None = None,
+    trust: bool = False,
+    cached: bool = True,
+    **kwargs: Any,
+) -> Dataset:
+
+    # Ensure required HuggingFace datasets version
+    FEATURE = "Hugging Face Datasets"
+    PACKAGE = "datasets"
+    VERSION = "2.16.0"
+    try:
+        import datasets
+    except ImportError:
+        raise pip_dependency_error(FEATURE, [PACKAGE])
+    verify_required_version(FEATURE, PACKAGE, VERSION)
+
+    # Resolve data-to-sample function
+    data_to_sample = record_to_sample_fn(sample_fields)
+
+    # Generate cache directory for dataset
+    dataset_hash = mm3_hash(f"{path}{name}{data_dir}{split}{kwargs}")
+    datasets_cache_dir = inspect_cache_dir("hf_datasets")
+    dataset_cache_dir = os.path.join(
+        datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
+    )
+
+    # Load dataset from cache or HuggingFace Hub
+    if os.path.exists(dataset_cache_dir) and cached and revision is None:
+        dataset = datasets.load_from_disk(dataset_cache_dir)
+    else:
+        print(f"Loading dataset {path} from Hugging Face...")
+        dataset = datasets.load_dataset(
+            path=path,
+            name=name,
+            data_dir=data_dir,
+            split=split,
+            revision=revision,
+            trust_remote_code=trust,
+            **kwargs,
+        )
+        dataset.save_to_disk(dataset_cache_dir)
+
+    # Filter dataset for grid size <= 5x5
+    def filter_grid_size(example):
+        for g in example.get("train", []) + example.get("test", []):
+            grid = g.get("input", {})
+
+            if len(grid) > 5:
+                return False
+            else:
+                for row in grid:
+                    if len(row) > 5:
+                        return False
+        return True
+
+    dataset = dataset.filter(filter_grid_size)
+
+    # Shuffle if requested
+    if shuffle:
+        dataset = dataset.shuffle(seed=seed)
+
+    # Limit if requested
+    if limit:
+        dataset = dataset.select(range(limit))
+
+    # Return filtered dataset
+    return MemoryDataset(
+        samples=data_to_samples(dataset.to_list(), data_to_sample, auto_id),
+        name=Path(path).stem if Path(path).exists() else path,
+        location=path,
+    )
+
+
 class EvaluateARC:
 
     def __init__(
@@ -37,7 +139,8 @@ class EvaluateARC:
 
         self.args = args
 
-        dataset = hf_dataset(
+        # Load dataset
+        dataset = easy_hf_dataset(
             path="dataartist/arc-agi",
             name="default",
             split=split,
@@ -45,6 +148,9 @@ class EvaluateARC:
             shuffle=shuffle,
             seed=seed,
         )
+
+        # Print length before filtering
+        print("Original dataset size:", len(dataset))
 
         self.dataset = dataset
 
@@ -109,7 +215,7 @@ class EvaluateARC:
             """
         ).strip()
 
-        # print("Task rpompt", task_prompt)
+        print("Task rpompt", task_prompt)
 
         # Return formatted sample
         return Sample(
@@ -135,11 +241,8 @@ class EvaluateARC:
                 + f"""
                 {cleaned_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
             )
-            print(temp_file)
 
             forward_function = framework.framework_code
-            # print(forward_function)
-            # assert 1 == 2
 
             if "return self.forward" in forward_function:
                 return 0

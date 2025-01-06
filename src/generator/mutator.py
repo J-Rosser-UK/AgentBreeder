@@ -36,7 +36,7 @@ class Mutator:
         self.session = session
         self.population = population
 
-    async def mutate(self, framework: Framework) -> Framework:
+    async def mutate(self) -> Framework:
         """
         Applies a mutation to a given framework.
 
@@ -47,27 +47,31 @@ class Mutator:
             Framework: The mutated framework object. Returns None if the mutation fails.
         """
 
-        sampled_mutation = random.choice(self.mutation_operators)
+        try:
 
-        next_response, messages, reflexion_response_format = await self._mutate(
-            framework, sampled_mutation
-        )
+            framework_response, messages, reflexion_response_format = (
+                await random.choice[self._mutate(), self._crossover()]
+            )
 
-        next_response = await self._debug(
-            messages, next_response, reflexion_response_format
-        )
+            framework_response = await self._debug(
+                messages, framework_response, reflexion_response_format
+            )
 
-        mutated_framework = Framework(
-            session=self.session,
-            framework_name=next_response["name"],
-            framework_code=next_response["code"],
-            framework_thought_process=next_response["thought"],
-            population=self.population,
-        )
+            mutated_framework = Framework(
+                session=self.session,
+                framework_name=framework_response["name"],
+                framework_code=framework_response["code"],
+                framework_thought_process=framework_response["thought"],
+                population=self.population,
+            )
+        except Exception as e:
+
+            print(f"Error evolving framework: {e}")
+            mutant_framework = None
 
         return mutated_framework
 
-    async def _mutate(self, framework: Framework, sampled_mutation: str):
+    async def _mutate(self):
         """
         Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
 
@@ -79,6 +83,11 @@ class Mutator:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
                 and the reflexion_response_format (str).
         """
+        framework = random.choice(self.population.elites)
+        logging.info(f"Mutating {framework.framework_name} framework...")
+        print(f"Mutating {framework.framework_name} framework...")
+
+        sampled_mutation = random.choice(self.mutation_operators)
 
         base_prompt, base_prompt_response_format = get_base_prompt()
         messages = [
@@ -100,6 +109,61 @@ class Mutator:
                 """.strip(),
             },
         ]
+
+        return await self._evolve(messages, base_prompt_response_format)
+
+    async def _crossover(self):
+        """
+        Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
+
+        Args:
+            framework (Framework): The framework object to mutate.
+            sampled_mutation (str): The mutation operator selected for this mutation.
+
+        Returns:
+            tuple: A tuple containing the next_response (dict), the updated messages (list),
+                and the reflexion_response_format (str).
+        """
+        framework_1 = random.choice(self.population.elites)
+        framework_2 = random.choice(self.population.elites)
+        logging.info(
+            f"Crossing over {framework_1.framework_name} and {framework_2.framework_name} frameworks..."
+        )
+        print(
+            f"Crossing over {framework_1.framework_name} and {framework_2.framework_name} frameworks..."
+        )
+
+        base_prompt, base_prompt_response_format = get_base_prompt()
+        messages = [
+            {
+                "role": "system",
+                "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
+            },
+            {
+                "role": "user",
+                "content": f"""
+                {base_prompt}
+             
+                Here are the two frameworks I'd like you to crossover/combine into a novel new framework:
+
+                ---------------
+                Framework 1: {framework_1.framework_name}
+                {framework_1.framework_thought_process}
+                ---------------
+                {framework_1.framework_code}
+
+                ---------------
+                Framework 2: {framework_2.framework_name}
+                {framework_2.framework_thought_process}
+                ---------------
+                {framework_2.framework_code}                
+                """.strip(),
+            },
+        ]
+
+        return await self._evolve(messages, base_prompt_response_format)
+
+    async def _evolve(self, messages, base_prompt_response_format):
 
         # Generate new solution and do reflection
         try:

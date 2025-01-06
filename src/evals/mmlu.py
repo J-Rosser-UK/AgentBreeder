@@ -204,7 +204,7 @@ class EvaluateMMLU:
 
         # 'results' is a list of EvalLog objects (usually one per task)
         # Each EvalLog contains metrics for the entire task/dataset.
-        accuracy = -2
+        accuracy = -2.0
         print(results)
         for res in results:
             if res.results and res.results.scores:
