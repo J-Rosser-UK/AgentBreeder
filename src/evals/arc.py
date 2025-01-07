@@ -1,7 +1,5 @@
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
-from inspect_ai.solver import solver, Solver, TaskState, Generate
-from inspect_ai.scorer import match
 from inspect_ai.model import GenerateConfig
 import random
 from inspect_ai.dataset import Dataset, MemoryDataset
@@ -10,29 +8,11 @@ from textwrap import dedent
 import numpy as np
 
 from typing import cast
-from inspect_ai.scorer import Metric, Score, metric
-import textwrap
-import re
-import asyncio
-import logging
-import ast
+from inspect_ai.scorer import Metric, Score, metric, accuracy, scorer
+
 from inspect_ai._eval.eval import eval
 import os
-import importlib.util
-import uuid
-from base import initialize_session
-import contextlib
-from typing import List
 
-from inspect_ai.scorer import Score, scorer
-from inspect_ai.scorer import (
-    accuracy,
-    stderr,
-    bootstrap_std,
-)  # or any other built-in metrics you'd like
-import re
-
-import os
 from pathlib import Path
 from typing import Any
 
@@ -50,113 +30,35 @@ from inspect_ai.dataset._dataset import (
 )
 from inspect_ai.dataset._util import data_to_samples, record_to_sample_fn
 from .metrics import ci_lower, ci_upper, median
+from .inspect_base import InspectBase
 
 
-def easy_hf_dataset(
-    path: str,
-    split: str,
-    name: str | None = None,
-    data_dir: str | None = None,
-    revision: str | None = None,
-    sample_fields: FieldSpec | RecordToSample | None = None,
-    auto_id: bool = False,
-    shuffle: bool = False,
-    seed: int | None = None,
-    limit: int | None = None,
-    trust: bool = False,
-    cached: bool = True,
-    **kwargs: Any,
-) -> Dataset:
-
-    # Ensure required HuggingFace datasets version
-    FEATURE = "Hugging Face Datasets"
-    PACKAGE = "datasets"
-    VERSION = "2.16.0"
-    try:
-        import datasets
-    except ImportError:
-        raise pip_dependency_error(FEATURE, [PACKAGE])
-    verify_required_version(FEATURE, PACKAGE, VERSION)
-
-    # Resolve data-to-sample function
-    data_to_sample = record_to_sample_fn(sample_fields)
-
-    # Generate cache directory for dataset
-    dataset_hash = mm3_hash(f"{path}{name}{data_dir}{split}{kwargs}")
-    datasets_cache_dir = inspect_cache_dir("hf_datasets")
-    dataset_cache_dir = os.path.join(
-        datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
-    )
-
-    # Load dataset from cache or HuggingFace Hub
-    if os.path.exists(dataset_cache_dir) and cached and revision is None:
-        dataset = datasets.load_from_disk(dataset_cache_dir)
-    else:
-        print(f"Loading dataset {path} from Hugging Face...")
-        dataset = datasets.load_dataset(
-            path=path,
-            name=name,
-            data_dir=data_dir,
-            split=split,
-            revision=revision,
-            trust_remote_code=trust,
-            **kwargs,
-        )
-        dataset.save_to_disk(dataset_cache_dir)
-
-    # Filter dataset for grid size <= 5x5
-    def filter_grid_size(example):
-        for g in example.get("train", []) + example.get("test", []):
-            grid = g.get("input", {})
-
-            if len(grid) > 5:
-                return False
-            else:
-                for row in grid:
-                    if len(row) > 5:
-                        return False
-        return True
-
-    dataset = dataset.filter(filter_grid_size)
-
-    # Shuffle if requested
-    if shuffle:
-        dataset = dataset.shuffle(seed=seed)
-
-    # Limit if requested
-    if limit:
-        dataset = dataset.select(range(limit))
-
-    # Return filtered dataset
-    return MemoryDataset(
-        samples=data_to_samples(dataset.to_list(), data_to_sample, auto_id),
-        name=Path(path).stem if Path(path).exists() else path,
-        location=path,
-    )
-
-
-class EvaluateARC:
+class EvaluateARC(InspectBase):
 
     def __init__(
         self,
         args=None,
-        split: Union[
-            Literal["test"], Literal["dev"], Literal["validation"]
-        ] = "evaluation",
-        shuffle: bool = False,
-        seed: int = 42,
+        split: Union[Literal["validation"], Literal["test"]] = "validation",
+        shuffle: bool = True,
+        limit: int = 1000,
     ) -> Dataset:
 
         self.args = args
+
+        split_mapping = {
+            "validation": "training",
+            "test": "evaluation",
+        }
 
         # Load dataset
         dataset = easy_hf_dataset(
             path="dataartist/arc-agi",
             name="default",
-            split=split,
+            split=split_mapping[split],
             sample_fields=self._record_to_sample,
             shuffle=shuffle,
-            seed=seed,
+            seed=self.args.random_seed,
+            limit=limit,
         )
 
         # Print length before filtering
@@ -172,22 +74,6 @@ class EvaluateARC:
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         """
         Convert a record containing ARC task data into a Sample object.
-
-        Parameters
-        ----------
-        record : dict[str, Any]
-            A dictionary containing:
-            - "train": list[dict] - List of example pairs (input, output).
-            - "test": list[dict] - Test input grid.
-            - "id": str - Identifier for the task.
-
-        Returns
-        -------
-        Sample
-            A Sample object with:
-            - input: The formatted ARC task description.
-            - target: The correct output grid as a string (for evaluation purposes).
-            - metadata: A dictionary containing the task ID.
         """
 
         task_id = record["id"]
@@ -213,21 +99,26 @@ class EvaluateARC:
             You are solving an ARC (Abstraction and Reasoning Corpus) task.
 
             ### Instructions:
-            Given some example input and output grids, determine the transformation rule and return a transformation function which only uses built-in python libraries to perform the transformation.
+            Given some example input and output grids, determine the transformation rule and return
+            a transformation function which only uses built-in python libraries to perform the
+            transformation on the Test Input.
 
             ## Examples:
             {examples}
 
+            ## Test Input:
+            {EvaluateARC._grid_2_str(test_input)}
+
             
 
-            Analyze the transformation rules and return the transformation function in the format:
+            Analyze the transformation rules and Test Input and return the transformation function in the format:
 ```
 def transform(grid: list[list[int]]) -> list[list[int]]:
     # Your code here
     return transformed_grid
 ```
 
-            Do not simply return the grid as the output and ensure the return value is "transformed_grid". You must provide a function that can transform any input grid.
+            Do not simply return the grid as the output and ensure the return value is "transformed_grid". You must provide a function that can transform the input grid in question.
             """
         ).strip()
 
@@ -241,97 +132,6 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
             ),  # Expected test output
             metadata={"task_id": task_id, "test_input": test_input},
         )
-
-    @solver
-    def match_solver(self, framework) -> Solver:
-        async def solve(state: TaskState, generate: Generate) -> TaskState:
-
-            session, Base = initialize_session(self.args.db_name)
-
-            # Create the agent framework in temporary code
-            current_directory = os.path.dirname(os.path.abspath(__file__))
-            parent_directory = os.path.dirname(current_directory)
-            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", framework.framework_name)
-            temp_file = (
-                f"""{parent_directory}/temp/agent_system_temp_"""
-                + f"""
-                {cleaned_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
-            )
-
-            forward_function = framework.framework_code
-
-            if "return self.forward" in forward_function:
-                return 0
-
-            try:
-
-                # Write the complete AgentSystem class to the file, including the forward function
-                with open(temp_file, "w") as f:
-                    f.write("import random\n")
-                    f.write("import pandas\n")
-                    f.write("import asyncio\n\n")
-                    f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
-                    f.write(f"from sqlalchemy.orm import Session\n\n")
-                    f.write("class AgentSystem:\n")
-                    f.write("    def __init__(self, session: Session):\n")
-                    f.write("        self.Agent = Wrapper(Agent, session)\n")
-                    f.write("        self.Meeting = Wrapper(Meeting, session)\n")
-                    f.write("        self.Chat = Wrapper(Chat, session)\n")
-                    f.write("        self.session = session\n\n")
-                    f.write("    " + forward_function.replace("\n", "\n    "))
-                    f.write("\n\n")
-                    f.write("if __name__ == '__main__':\n")
-                    f.write("    " + "from base import initialize_session\n")
-                    f.write("    " + "session, Base = initialize_session()\n")
-                    f.write("    " + "agent_system = AgentSystem(session)\n")
-                    f.write(
-                        "    "
-                        + """task = "What should I have for dinner?"""
-                        + """A: soup B: burgers C: pizza D: pasta"\n"""
-                    )
-                    f.write(
-                        "    " + "output = asyncio.run(agent_system.forward(task))\n"
-                    )
-                    f.write("    " + "print(output)\n")
-
-                # Import the AgentSystem class from the temp file
-                spec = importlib.util.spec_from_file_location(
-                    "agent_system_temp", temp_file
-                )
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                AgentSystem = module.AgentSystem
-
-                agentSystem = AgentSystem(session)
-
-                # Set a timeout of 3 minutes (180 seconds)
-                task = state.input
-                state.output.completion = await asyncio.wait_for(
-                    agentSystem.forward(task), timeout=180  # Timeout set to 180 seconds
-                )
-
-            except TimeoutError:
-                logging.info(f"Time expired for {temp_file}")
-                print(f"Time expired for {temp_file}")
-
-                state.output.completion = "Time Expired"
-
-            except Exception as e:
-                print("Error during evaluation:", e)
-                state.output.completion = f"Error: {str(e)}"
-
-            finally:
-
-                print("OUTPUT", state.output.completion)
-
-                # delete file at the end
-                os.remove(temp_file)
-
-                session.close()
-
-            return state
-
-        return solve
 
     @task
     def match_task(self, framework, i, N):
@@ -445,33 +245,85 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
         # Prevent division by zero
         return float(score) / total if total > 0 else 0.0
 
-    def evaluate(self, framework, i=1, N=1, limit=1000):
 
-        results = eval(
-            self.match_task(framework, i, N),
-            model="openai/gpt-3.5-turbo",
-            limit=limit,
-            log_dir="./logs",
-            log_format="eval",
-            score=True,
+def easy_hf_dataset(
+    path: str,
+    split: str,
+    name: str | None = None,
+    data_dir: str | None = None,
+    revision: str | None = None,
+    sample_fields: FieldSpec | RecordToSample | None = None,
+    auto_id: bool = False,
+    shuffle: bool = False,
+    seed: int | None = None,
+    limit: int | None = None,
+    trust: bool = False,
+    cached: bool = True,
+    **kwargs: Any,
+) -> Dataset:
+
+    # Ensure required HuggingFace datasets version
+    FEATURE = "Hugging Face Datasets"
+    PACKAGE = "datasets"
+    VERSION = "2.16.0"
+    try:
+        import datasets
+    except ImportError:
+        raise pip_dependency_error(FEATURE, [PACKAGE])
+    verify_required_version(FEATURE, PACKAGE, VERSION)
+
+    # Resolve data-to-sample function
+    data_to_sample = record_to_sample_fn(sample_fields)
+
+    # Generate cache directory for dataset
+    dataset_hash = mm3_hash(f"{path}{name}{data_dir}{split}{kwargs}")
+    datasets_cache_dir = inspect_cache_dir("hf_datasets")
+    dataset_cache_dir = os.path.join(
+        datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
+    )
+
+    # Load dataset from cache or HuggingFace Hub
+    if os.path.exists(dataset_cache_dir) and cached and revision is None:
+        dataset = datasets.load_from_disk(dataset_cache_dir)
+    else:
+        print(f"Loading dataset {path} from Hugging Face...")
+        dataset = datasets.load_dataset(
+            path=path,
+            name=name,
+            data_dir=data_dir,
+            split=split,
+            revision=revision,
+            trust_remote_code=trust,
+            **kwargs,
         )
+        dataset.save_to_disk(dataset_cache_dir)
 
-        accuracy = -2
-        print(results)
-        for res in results:
-            if res.results and res.results.scores:
-                print("Final metrics for the entire dataset:")
-                for score in res.results.scores:
-                    print(f"Score: {score.name}")
-                    for metric_name, metric in score.metrics.items():
-                        print(f"  {metric_name}: {metric.value}")
-                        if metric_name == "accuracy":
-                            accuracy = metric.value
-                        elif metric_name == "ci_lower":
-                            ci_lower = metric.value
-                        elif metric_name == "ci_upper":
-                            ci_upper = metric.value
-                        elif metric_name == "median":
-                            median = metric.value
+    # Filter dataset for grid size <= 5x5
+    def filter_grid_size(example):
+        for g in example.get("train", []) + example.get("test", []):
+            grid = g.get("input", {})
 
-        return accuracy, ci_lower, ci_upper, median
+            if len(grid) > 5:
+                return False
+            else:
+                for row in grid:
+                    if len(row) > 5:
+                        return False
+        return True
+
+    dataset = dataset.filter(filter_grid_size)
+
+    # Shuffle if requested
+    if shuffle:
+        dataset = dataset.shuffle(seed=seed)
+
+    # Limit if requested
+    if limit:
+        dataset = dataset.select(range(limit))
+
+    # Return filtered dataset
+    return MemoryDataset(
+        samples=data_to_samples(dataset.to_list(), data_to_sample, auto_id),
+        name=Path(path).stem if Path(path).exists() else path,
+        location=path,
+    )

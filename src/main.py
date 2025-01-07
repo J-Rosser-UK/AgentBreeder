@@ -25,7 +25,7 @@ warnings.filterwarnings("ignore", category=SAWarning)
 
 
 def main(args, population_id=None):
-    random.seed(args.shuffle_seed)
+    random.seed(args.random_seed)
 
     evaluator = Evaluator(args)
     clusterer = Clusterer()
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     current_directory = os.path.dirname(os.path.abspath(__file__))
     parser.add_argument("--current_dir", type=str, default=current_directory)
-    parser.add_argument("--shuffle_seed", type=int, default=0)
+    parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
     parser.add_argument("--n_mutations", type=int, default=20)
     parser.add_argument("--n_evals", type=int, default=10)
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
     parser.add_argument("--db_name", type=str, default="ARCcrossover.db")
-    parser.add_argument("--dataset", type=str, default="mmlu")
+    parser.add_argument("--dataset", type=str, default="arc")
 
     args = parser.parse_args()
 

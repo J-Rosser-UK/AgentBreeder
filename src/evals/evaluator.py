@@ -34,21 +34,27 @@ class Evaluator:
         """
         self.args = args
         self.datasets = {
-            "arc": EvaluateARC,
-            "mmlu": EvaluateMMLU,
-            "drop": EvaluateDROP,
-            "gpqa": EvaluateGPQA,
-            "mgsm": EvaluateMGSM,
+            "arc": EvaluateARC(
+                args=self.args, split="validation", shuffle=True, limit=20
+            ),  # 20 questions in validation set, 60 in test set
+            # "gpqa": EvaluateGPQA(args=self.args, split="validation", shuffle=True, limit=32), # 32 questions in validation set, 166 in test set
+            "mmlu": EvaluateMMLU(
+                args=self.args, split="validation", shuffle=True, limit=20
+            ),  # 128 questions in validation set, 800 in test set
+            # "drop": EvaluateDROP(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
+            # "mgsm": EvaluateMGSM(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
         }
+
+        self.dataset = self.datasets[args.dataset]
 
     def inspect_evaluate(
         self,
         frameworks_for_evaluation: list[Framework],
     ):
-        dataset = self.datasets[self.args.dataset]
+        evaluator = self.datasets[self.args.dataset]
         for i, framework in tqdm(enumerate(frameworks_for_evaluation)):
-            e = dataset(self.args)
-            accuracy, ci_lower, ci_upper, median = e.evaluate(
+
+            accuracy, ci_lower, ci_upper, median = evaluator.evaluate(
                 framework,
                 i + 1,
                 len(frameworks_for_evaluation),
