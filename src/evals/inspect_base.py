@@ -93,7 +93,7 @@ class InspectBase(ABC):
                 # Set a timeout of 3 minutes (180 seconds)
                 task = state.input
                 state.output.completion = await asyncio.wait_for(
-                    agentSystem.forward(task), timeout=180  # Timeout set to 180 seconds
+                    agentSystem.forward(task), timeout=180
                 )
 
             except TimeoutError:
