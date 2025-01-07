@@ -53,6 +53,58 @@ Multi-agent systems offer modularity, specialization, and enhanced control, enab
 
 By combining evolutionary algorithms with Bayesian optimization, AgentBreeder demonstrates a scalable approach to fostering continuous learning and innovation in multi-agent systems. This methodology holds promise for accelerating the development of adaptive, creative AI systems that align with the principles of open-endedness.
 
+## Directory Structure
+```
+AgentBreeder/
+  ├── README.md
+  ├── Dockerfile
+  ├── LICENSE
+  ├── requirements.txt
+  ├── .env.sample
+  ├── .flake8
+  ├── assets/
+  │   └── source.txt
+  └── src/
+      ├── descriptor.py
+      ├── illuminator.py
+      ├── main.py
+      ├── visualizer.py
+      ├── base/
+      │   ├── __init__.py
+      │   ├── base.py
+      │   ├── session.py
+      │   └── tables.py
+      ├── chat/
+      │   ├── __init__.py
+      │   ├── api.py
+      │   ├── chat.py
+      │   ├── test_api.py
+      │   └── test_api_requests.py
+      ├── evals/
+      │   ├── __init__.py
+      │   ├── arc.py
+      │   ├── drop.py
+      │   ├── evaluator.py
+      │   ├── gpqa.py
+      │   ├── inspect_base.py
+      │   ├── metrics.py
+      │   ├── mgsm.py
+      │   ├── mmlu.py
+      │   ├── test_arc.py
+      │   └── test_mmlu.py
+      ├── generator/
+      │   ├── __init__.py
+      │   ├── generator.py
+      │   └── mutator.py
+      └── prompts/
+          ├── initial_population.py
+          ├── mutation_base.py
+          ├── mutation_prompts.py
+          ├── mutation_reflexion.py
+          └── utils.py
+
+```
+
 ## Run with Docker
 ```
 git clone https://github.com/J-Rosser-UK/AgentBreeder
