@@ -46,7 +46,7 @@ class Illuminator:
             list[System]: A list of systems deemed suitable for further evaluation
             based on the illumination process.
         """
-        session, Base = initialize_session(self.args.db_name)
+        session, Base = initialize_session()
 
         generation = population.generations[-1]
         illuminated_systems_for_evaluation = []

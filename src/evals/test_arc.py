@@ -37,7 +37,7 @@ class TestEvaluateARC(unittest.TestCase):
         self.args = parser.parse_args()
 
         self.evaluator = EvaluateARC(args=self.args, split="validation", limit=1)
-        self.session, _ = initialize_session(self.args.db_name)
+        self.session, _ = initialize_session()
 
     def test_record_to_sample(self):
         record = {

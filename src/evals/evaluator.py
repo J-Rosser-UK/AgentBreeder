@@ -28,7 +28,7 @@ class Evaluator:
             dataset file paths and model settings.
         """
         self.args = args
-        self.datasets = {
+        self.benchmarks = {
             "arc": EvaluateARC(
                 args=self.args, split="validation", shuffle=True, limit=20
             ),  # 20 questions in validation set, 60 in test set
@@ -40,7 +40,7 @@ class Evaluator:
             # "mgsm": EvaluateMGSM(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
         }
 
-        self.benchmark = self.datasets[args.dataset]
+        self.benchmark = self.benchmarks[args.benchmark]
 
     def inspect_evaluate(
         self,

@@ -219,6 +219,11 @@ class Population(CustomBase):
         label="The timestamp of the population.",
     )
 
+    population_benchmark = CustomColumn(
+        String,
+        label="The benchmark name.",
+    )
+
     # Relationships
     systems = relationship(
         "System", back_populates="population", collection_class=AutoSaveList

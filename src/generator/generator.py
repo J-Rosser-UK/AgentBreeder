@@ -21,7 +21,7 @@ import logging
 
 async def generate_mutant(args, population_id):
     try:
-        session, Base = initialize_session(args.db_name)
+        session, Base = initialize_session()
         generator = Generator(args)  # Create a new Generator instance per task
         mutant_system = await generator.generate(session, population_id)
     except Exception as e:
@@ -102,11 +102,11 @@ def initialize_population_id(args) -> str:
     Returns:
         str: The unique ID of the initialized population.
     """
-    session, Base = initialize_session(args.db_name)
+    session, Base = initialize_session()
 
     archive = get_init_archive()
 
-    population = Population(session=session)
+    population = Population(session=session, population_benchmark=args.benchmark)
     descriptor = Descriptor()
     evaluator = Evaluator(args)
     clusterer = Clusterer()

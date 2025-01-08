@@ -229,6 +229,9 @@ class Mutator:
             print(e)
             return None
 
+        # Clean up next_response["system_name"] to only allow numbers, letters, hyphens and underscores
+        next_response["name"] = re.sub(r"[^A-Za-z0-9_-]+", "", next_response["name"])
+
         return next_response, messages, reflexion_response_format, parent_system_ids
 
     def _get_reflexion_prompt_1(self, prev_example):

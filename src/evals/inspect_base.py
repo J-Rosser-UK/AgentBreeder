@@ -103,7 +103,7 @@ class InspectBase(ABC):
     def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            session, Base = initialize_session(self.args.db_name)
+            session, Base = initialize_session()
 
             # Create the agent system in temporary code
             current_directory = os.path.dirname(os.path.abspath(__file__))
