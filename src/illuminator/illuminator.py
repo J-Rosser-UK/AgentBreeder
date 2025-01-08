@@ -76,8 +76,11 @@ class Illuminator:
             return None
 
         cluster_systems = (
-            session.query(System).filter_by(cluster_id=system.cluster_id).all()
-        )
+            session.query(System)
+            .filter_by(cluster_id=system.cluster_id)
+            .order_by(System.system_fitness.desc())
+            .all()
+        )[:5]
 
         print("Cluster systems length: ", len(cluster_systems))
 
@@ -104,7 +107,7 @@ class Illuminator:
             print("---------------------------")
             print(f"New system: {new_system['system_name']}")
             print(
-                f"Cluster systems: {[cluster_system['system_name'] for cluster_system in cluster_systems_filtered]}"
+                f"Cluster systems: {[(cluster_system['system_name'], cluster_system['system_fitness']) for cluster_system in cluster_systems_filtered]}"
             )
             print("---------------------------")
 
@@ -129,7 +132,7 @@ class Illuminator:
                 there is a 50% or greater chance that the new system will outperform
                 or equally perform against the best of them in a simulated environment?
 
-                Here are the multi-agent systems in the cluster:
+                Here are the top 5 multi-agent systems in the cluster:
                 {cluster_systems_filtered}
 
                 Here is the new system:
@@ -141,7 +144,7 @@ class Illuminator:
                 """.strip(),
             },
         ]
-
+        Y_or_N = "Error before generated"
         try:
             Y_or_N = await get_structured_json_response_from_gpt(
                 messages, response_format, model=self.args.model, temperature=0.5
@@ -149,7 +152,7 @@ class Illuminator:
             if Y_or_N["Will it outperform the other systems?"] == "Y":
                 return system
         except Exception as e:
-            logging.error(f"Error in illumination: {e}")
+            logging.error(f"Error in illumination: {e}, Y_or_N: {Y_or_N}")
             return None
 
     async def _run_illuminations(self, session, systems_for_evaluation):

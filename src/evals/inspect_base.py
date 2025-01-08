@@ -6,6 +6,7 @@ from inspect_ai.dataset import Dataset, hf_dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 import re
+import ast
 import asyncio
 from inspect_ai._eval.eval import eval
 import os
@@ -22,11 +23,81 @@ from .metrics import ci_lower, ci_upper, median
 from abc import ABC, abstractmethod
 
 
+class AgentSystemException(Exception):
+    """Custom exception for errors in the agent system."""
+
+    pass
+
+
 class InspectBase(ABC):
 
     @abstractmethod
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         pass
+
+    async def forward(
+        self, forward_function: str, temp_file: str, session, task: str
+    ) -> None:
+        output = ""
+        try:
+
+            # Write the complete AgentSystem class to the file, including the forward function
+            with open(temp_file, "w") as f:
+                f.write("import random\n")
+                f.write("import pandas\n")
+                f.write("import asyncio\n\n")
+                f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
+                f.write(f"from sqlalchemy.orm import Session\n\n")
+                f.write("class AgentSystem:\n")
+                f.write("    def __init__(self, session: Session):\n")
+                f.write("        self.Agent = Wrapper(Agent, session)\n")
+                f.write("        self.Meeting = Wrapper(Meeting, session)\n")
+                f.write("        self.Chat = Wrapper(Chat, session)\n")
+                f.write("        self.session = session\n\n")
+                f.write("    " + forward_function.replace("\n", "\n    "))
+                f.write("\n\n")
+                f.write("if __name__ == '__main__':\n")
+                f.write("    " + "from base import initialize_session\n")
+                f.write("    " + "session, Base = initialize_session()\n")
+                f.write("    " + "agent_system = AgentSystem(session)\n")
+                f.write(
+                    "    "
+                    + """task = "What should I have for dinner?"""
+                    + """A: soup B: burgers C: pizza D: pasta"\n"""
+                )
+                f.write("    " + "output = asyncio.run(agent_system.forward(task))\n")
+                f.write("    " + "print(output)\n")
+
+            # Import the AgentSystem class from the temp file
+            spec = importlib.util.spec_from_file_location(
+                "agent_system_temp", temp_file
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            AgentSystem = module.AgentSystem
+
+            agentSystem = AgentSystem(session)
+
+            # Set a timeout of 3 minutes (180 seconds)
+            output = await asyncio.wait_for(agentSystem.forward(task), timeout=180)
+            output = str(output)
+
+        except TimeoutError:
+            logging.info(f"Time expired for {temp_file}")
+            print(f"Time expired for {temp_file}")
+
+            output = "Time Expired"
+
+        except Exception as e:
+            print("Error during evaluation:", e)
+            output = f"Error: {str(e)}"
+
+        finally:
+            # delete file at the end
+            os.remove(temp_file)
+            session.close()
+
+        return output
 
     @solver
     def match_solver(self, system) -> Solver:
@@ -49,67 +120,9 @@ class InspectBase(ABC):
             if "return self.forward" in forward_function:
                 return 0
 
-            try:
-
-                # Write the complete AgentSystem class to the file, including the forward function
-                with open(temp_file, "w") as f:
-                    f.write("import random\n")
-                    f.write("import pandas\n")
-                    f.write("import asyncio\n\n")
-                    f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
-                    f.write(f"from sqlalchemy.orm import Session\n\n")
-                    f.write("class AgentSystem:\n")
-                    f.write("    def __init__(self, session: Session):\n")
-                    f.write("        self.Agent = Wrapper(Agent, session)\n")
-                    f.write("        self.Meeting = Wrapper(Meeting, session)\n")
-                    f.write("        self.Chat = Wrapper(Chat, session)\n")
-                    f.write("        self.session = session\n\n")
-                    f.write("    " + forward_function.replace("\n", "\n    "))
-                    f.write("\n\n")
-                    f.write("if __name__ == '__main__':\n")
-                    f.write("    " + "from base import initialize_session\n")
-                    f.write("    " + "session, Base = initialize_session()\n")
-                    f.write("    " + "agent_system = AgentSystem(session)\n")
-                    f.write(
-                        "    "
-                        + """task = "What should I have for dinner?"""
-                        + """A: soup B: burgers C: pizza D: pasta"\n"""
-                    )
-                    f.write(
-                        "    " + "output = asyncio.run(agent_system.forward(task))\n"
-                    )
-                    f.write("    " + "print(output)\n")
-
-                # Import the AgentSystem class from the temp file
-                spec = importlib.util.spec_from_file_location(
-                    "agent_system_temp", temp_file
-                )
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                AgentSystem = module.AgentSystem
-
-                agentSystem = AgentSystem(session)
-
-                # Set a timeout of 3 minutes (180 seconds)
-                task = state.input
-                state.output.completion = await asyncio.wait_for(
-                    agentSystem.forward(task), timeout=180
-                )
-
-            except TimeoutError:
-                logging.info(f"Time expired for {temp_file}")
-                print(f"Time expired for {temp_file}")
-
-                state.output.completion = "Time Expired"
-
-            except Exception as e:
-                print("Error during evaluation:", e)
-                state.output.completion = f"Error: {str(e)}"
-
-            finally:
-                # delete file at the end
-                os.remove(temp_file)
-                session.close()
+            state.output.completion = await self.forward(
+                forward_function, temp_file, session, state.input
+            )
 
             return state
 
@@ -202,3 +215,40 @@ class InspectBase(ABC):
                             median = metric.value
 
         return accuracy, ci_lower, ci_upper, median
+
+    async def forward_pass(self, next_response_code, temp_file, session):
+
+        sample = random.choice(self.dataset)
+
+        output = await self.forward(
+            next_response_code, temp_file, session, sample.input
+        )
+
+        # check state.output.completion is a string that doesnt load to a dictionary or list, its literally just a string
+        try:
+            result = ast.literal_eval(output)
+            # If it evaluates successfully, check its type
+            if isinstance(result, (dict, list, tuple)):
+                raise AgentSystemException(
+                    "The final output of the forward function should be a string, not a dictionary, list, or tuple."
+                )
+        except Exception as e:
+            pass
+
+        if "Time Expired" in output:
+            raise AgentSystemException(
+                "Time expired, please ensure the forward function executes within the time limit of 3 minutes."
+            )
+
+        if "def transform" in output:
+            try:
+                # Attempt to compile the string as Python code
+                compiled_code = compile(output, "<string>", "exec")
+
+            except SyntaxError as s:
+                print("code error", s, output)
+                raise AgentSystemException(
+                    "When outputting code as a string, the final output of the forward function should be a well-formed Python code snippet. This code is returning a syntax error {s}."
+                )
+
+        return output

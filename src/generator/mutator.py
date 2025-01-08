@@ -293,7 +293,7 @@ class Mutator:
                         """The output of the forward function must not be the forward function
                         itself, as it will recurse infinitely."""
                     )
-                await self.evaluator.run_forward_pass(
+                await self.evaluator.benchmark.forward_pass(
                     next_response["code"], temp_file, self.session
                 )
                 break

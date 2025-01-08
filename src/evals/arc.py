@@ -1,6 +1,7 @@
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import GenerateConfig
+from inspect_ai.solver import TaskState
 import random
 from inspect_ai.dataset import Dataset, MemoryDataset
 from typing import Any, Literal, Union
@@ -154,13 +155,6 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
                 print("transformation_code_snippet", transformation_code_snippet)
 
                 match = re.search(r"def\s+(\w+)\s*\(", transformation_code_snippet)
-                if not match:
-                    return Score(
-                        name="percentage_match",
-                        value=0,
-                        answer="Error",
-                        explanation=f"No transformation code found.",
-                    )
 
                 function_name = match.group(1)  # Return the captured function name
                 # Dynamically execute the code and extract the function namespace
@@ -188,12 +182,12 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
             except Exception as e:
                 print("Error during ARC scoring:", e)
                 pct = 0
-                prediction_str = "Error"
+                prediction_str = f"Error: {e}"
 
             return Score(
                 name="percentage_match",
                 value=pct,
-                answer=prediction_str,
+                answer=prediction_str + f"\n Code: {transformation_code_snippet}",
                 explanation=f"Percentage match: {pct*100:.2f}%",
             )
 
