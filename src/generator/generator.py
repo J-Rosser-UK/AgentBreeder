@@ -27,6 +27,7 @@ async def generate_mutant(args, population_id):
     except Exception as e:
         logging.error(f"Error generating mutant: {e}")
         mutant_system = None
+        session.rollback()
     finally:
         session.close()
     return mutant_system
@@ -102,44 +103,52 @@ def initialize_population_id(args) -> str:
     Returns:
         str: The unique ID of the initialized population.
     """
-    session, Base = initialize_session()
+    try:
+        session, Base = initialize_session()
 
-    archive = get_init_archive()
+        archive = get_init_archive()
 
-    population = Population(session=session, population_benchmark=args.benchmark)
-    descriptor = Descriptor()
-    evaluator = Evaluator(args)
-    clusterer = Clusterer()
+        population = Population(session=session, population_benchmark=args.benchmark)
+        descriptor = Descriptor()
+        evaluator = Evaluator(args)
+        clusterer = Clusterer()
 
-    for system in archive:
-        system = System(
-            session=session,
-            system_name=system["name"],
-            system_code=system["code"],
-            system_thought_process=system["thought"],
-            population=population,
+        for system in archive:
+            system = System(
+                session=session,
+                system_name=system["name"],
+                system_code=system["code"],
+                system_thought_process=system["thought"],
+                population=population,
+            )
+            population.systems.append(system)
+
+        for system in population.systems:
+            system.update(system_descriptor=descriptor.generate(system))
+
+        population_id = str(population.population_id)
+
+        systems_for_evaluation = (
+            session.query(System)
+            .filter_by(population_id=population_id, system_fitness=None)
+            .all()
         )
-        population.systems.append(system)
 
-    for system in population.systems:
-        system.update(system_descriptor=descriptor.generate(system))
+        # evaluator.async_evaluate(illuminated_systems_for_evaluation)
+        evaluator.inspect_evaluate(systems_for_evaluation)
 
-    population_id = str(population.population_id)
+        # Re-load the population object in this session
+        population = (
+            session.query(Population).filter_by(population_id=population_id).one()
+        )
+        # Recluster the population
+        clusterer.cluster(population)
 
-    systems_for_evaluation = (
-        session.query(System)
-        .filter_by(population_id=population_id, system_fitness=None)
-        .all()
-    )
-
-    # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-    evaluator.inspect_evaluate(systems_for_evaluation)
-
-    # Re-load the population object in this session
-    population = session.query(Population).filter_by(population_id=population_id).one()
-    # Recluster the population
-    clusterer.cluster(population)
-
-    session.close()
+    except:
+        session.rollback()
+        raise
+    finally:
+        # be sure to close it!
+        session.close()
 
     return population_id

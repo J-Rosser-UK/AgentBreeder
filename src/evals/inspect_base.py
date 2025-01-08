@@ -91,9 +91,11 @@ class InspectBase(ABC):
         except Exception as e:
             print("Error during evaluation:", e)
             output = f"Error: {str(e)}"
+            session.rollback()
 
         finally:
             # delete file at the end
+            session.commit()
             os.remove(temp_file)
             session.close()
 
@@ -103,26 +105,36 @@ class InspectBase(ABC):
     def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            session, Base = initialize_session()
+            try:
 
-            # Create the agent system in temporary code
-            current_directory = os.path.dirname(os.path.abspath(__file__))
-            parent_directory = os.path.dirname(current_directory)
-            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
-            temp_file = (
-                f"""{parent_directory}/temp/agent_system_temp_"""
-                + f"""
-                {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
-            )
+                session, Base = initialize_session()
 
-            forward_function = system.system_code
+                # Create the agent system in temporary code
+                current_directory = os.path.dirname(os.path.abspath(__file__))
+                parent_directory = os.path.dirname(current_directory)
+                cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
+                temp_file = (
+                    f"""{parent_directory}/temp/agent_system_temp_"""
+                    + f"""
+                    {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
+                )
 
-            if "return self.forward" in forward_function:
-                return 0
+                forward_function = system.system_code
 
-            state.output.completion = await self.forward(
-                forward_function, temp_file, session, state.input
-            )
+                if "return self.forward" in forward_function:
+                    return 0
+
+                state.output.completion = await self.forward(
+                    forward_function, temp_file, session, state.input
+                )
+
+            except:
+                session.rollback()
+                raise
+            finally:
+                # be sure to close it!
+                session.commit()
+                session.close()
 
             return state
 

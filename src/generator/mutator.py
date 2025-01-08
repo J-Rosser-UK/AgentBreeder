@@ -230,7 +230,7 @@ class Mutator:
             return None
 
         # Clean up next_response["system_name"] to only allow numbers, letters, hyphens and underscores
-        next_response["name"] = re.sub(r"[^A-Za-z0-9_-]+", "", next_response["name"])
+        next_response["name"] = re.sub(r"[^A-Za-z0-9 ]+", "", next_response["name"])
 
         return next_response, messages, reflexion_response_format, parent_system_ids
 
@@ -282,9 +282,9 @@ class Mutator:
 
         current_directory = os.path.dirname(os.path.abspath(__file__))
         parent_directory = os.path.dirname(current_directory)
-        cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", next_response["name"])
+
         temp_file = f"""
-            {parent_directory}/temp/agent_system_temp_{cleaned_name}_{uuid.uuid4()}.py
+            {parent_directory}/temp/agent_system_temp_{next_response["name"]}_{uuid.uuid4()}.py
         """.strip()
 
         for d in range(self.args.debug_max):

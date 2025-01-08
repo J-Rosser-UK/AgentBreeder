@@ -36,42 +36,48 @@ def main(args, population_id=None):
         population_id = initialize_population_id(args)
         print(f"Population ID: {population_id}")
     else:
-        session, Base = initialize_session()
+        try:
+            session, Base = initialize_session()
 
-        # Re-load the population object in this session
-        population = (
-            session.query(Population).filter_by(population_id=population_id).one()
-        )
-        # # Recluster the population
-        # clusterer.cluster(population)
+            # Re-load the population object in this session
+            population = (
+                session.query(Population).filter_by(population_id=population_id).one()
+            )
+            # # Recluster the population
+            # clusterer.cluster(population)
 
-        # systems_for_evaluation = (
-        #     session.query(System).filter_by(population_id=population_id).all()
-        # )
+            # systems_for_evaluation = (
+            #     session.query(System).filter_by(population_id=population_id).all()
+            # )
 
-        # illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
-        #     population, systems_for_evaluation
-        # )
+            # illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
+            #     population, systems_for_evaluation
+            # )
 
-        # # Perform the query correctly
-        # illuminated_systems_for_evaluation = (
-        #     session.query(System)  # Start the query
-        #     .filter(
-        #         System.system_id.in_(illuminated_systems_for_evaluation_ids)
-        #     )  # Apply the filter
-        #     .all()  # Fetch all results
-        # )
+            # # Perform the query correctly
+            # illuminated_systems_for_evaluation = (
+            #     session.query(System)  # Start the query
+            #     .filter(
+            #         System.system_id.in_(illuminated_systems_for_evaluation_ids)
+            #     )  # Apply the filter
+            #     .all()  # Fetch all results
+            # )
 
-        # print(
-        #     "fw for eval",
-        #     len(systems_for_evaluation),
-        #     "ilfw for eval",
-        #     len(illuminated_systems_for_evaluation),
-        # )
+            # print(
+            #     "fw for eval",
+            #     len(systems_for_evaluation),
+            #     "ilfw for eval",
+            #     len(illuminated_systems_for_evaluation),
+            # )
 
-        print(f"Reloaded population ID: {population.population_id}")
+            print(f"Reloaded population ID: {population.population_id}")
 
-        session.close()
+        except:
+            session.rollback()
+            raise
+        finally:
+            # be sure to close it!
+            session.close()
 
     # Begin Bayesian Illumination...
     for _ in tqdm(range(args.n_generation), desc="Generations"):
@@ -79,46 +85,52 @@ def main(args, population_id=None):
         # Generate a new batch of mutants
         asyncio.run(run_generation(args, population_id))
 
-        session, Base = initialize_session()
+        try:
+            session, Base = initialize_session()
 
-        # Re-load the population object in this session
-        population = (
-            session.query(Population).filter_by(population_id=population_id).one()
-        )
+            # Re-load the population object in this session
+            population = (
+                session.query(Population).filter_by(population_id=population_id).one()
+            )
 
-        # Recluster the population
-        clusterer.cluster(population)
+            # Recluster the population
+            clusterer.cluster(population)
 
-        systems_for_evaluation = (
-            session.query(System)
-            .filter_by(population_id=population_id, system_fitness=None)
-            .all()
-        )
+            systems_for_evaluation = (
+                session.query(System)
+                .filter_by(population_id=population_id, system_fitness=None)
+                .all()
+            )
 
-        illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
-            population, systems_for_evaluation
-        )
+            illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
+                population, systems_for_evaluation
+            )
 
-        # Perform the query correctly
-        illuminated_systems_for_evaluation = (
-            session.query(System)  # Start the query
-            .filter(
-                System.system_id.in_(illuminated_systems_for_evaluation_ids)
-            )  # Apply the filter
-            .all()  # Fetch all results
-        )
+            # Perform the query correctly
+            illuminated_systems_for_evaluation = (
+                session.query(System)  # Start the query
+                .filter(
+                    System.system_id.in_(illuminated_systems_for_evaluation_ids)
+                )  # Apply the filter
+                .all()  # Fetch all results
+            )
 
-        print(
-            "fws",
-            len(systems_for_evaluation),
-            "ilfws",
-            len(illuminated_systems_for_evaluation),
-        )
+            print(
+                "fws",
+                len(systems_for_evaluation),
+                "ilfws",
+                len(illuminated_systems_for_evaluation),
+            )
 
-        # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-        evaluator.inspect_evaluate(illuminated_systems_for_evaluation)
+            # evaluator.async_evaluate(illuminated_systems_for_evaluation)
+            evaluator.inspect_evaluate(illuminated_systems_for_evaluation)
 
-        session.close()
+        except:
+            session.rollback()
+            raise
+        finally:
+            # be sure to close it!
+            session.close()
 
     return population_id  # Return the population ID for restarts
 

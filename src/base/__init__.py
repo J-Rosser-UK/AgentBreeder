@@ -9,6 +9,5 @@ from .session import (
     Agent,
     Base,
     initialize_session,
-    initialize_async_session,
     Wrapper,
 )

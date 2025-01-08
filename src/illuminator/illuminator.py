@@ -46,23 +46,29 @@ class Illuminator:
             list[System]: A list of systems deemed suitable for further evaluation
             based on the illumination process.
         """
-        session, Base = initialize_session()
+        try:
+            session, Base = initialize_session()
 
-        generation = population.generations[-1]
-        illuminated_systems_for_evaluation = []
+            generation = population.generations[-1]
+            illuminated_systems_for_evaluation = []
 
-        print(len(systems_for_evaluation))
+            print(len(systems_for_evaluation))
 
-        # Run the evaluations synchronously by using asyncio.run
-        illuminated_systems_for_evaluation = asyncio.run(
-            self._run_illuminations(session, systems_for_evaluation)
-        )
+            # Run the evaluations synchronously by using asyncio.run
+            illuminated_systems_for_evaluation = asyncio.run(
+                self._run_illuminations(session, systems_for_evaluation)
+            )
 
-        illuminated_systems_for_evaluation_ids = [
-            str(system.system_id) for system in illuminated_systems_for_evaluation
-        ]
+            illuminated_systems_for_evaluation_ids = [
+                str(system.system_id) for system in illuminated_systems_for_evaluation
+            ]
 
-        session.close()
+        except:
+            session.rollback()
+            raise
+        finally:
+            # be sure to close it!
+            session.close()
 
         return illuminated_systems_for_evaluation_ids
 

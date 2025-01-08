@@ -24,7 +24,7 @@ engine = create_engine(
 )
 
 
-def initialize_session(db_name=None):
+def initialize_session():
     """
     Returns a new thread-safe session.
     """
@@ -34,22 +34,7 @@ def initialize_session(db_name=None):
 
     # Create tables
     Base.metadata.create_all(engine)
-    # print(Base.metadata.tables.keys())
 
     assert len(Base.metadata.tables.keys()) > 0
 
     return SessionFactory(), Base
-
-
-def initialize_async_session(db_name: str):
-    # Initialize async engine and session
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    async_engine = create_async_engine(
-        f"sqlite+aiosqlite:///{current_dir}/db/{db_name}",
-        echo=True,  # Optional: Enable SQL query logging
-        future=True,
-    )
-    AsyncSessionLocal = sessionmaker(
-        bind=async_engine, class_=AsyncSession, expire_on_commit=False
-    )
-    return AsyncSessionLocal()
