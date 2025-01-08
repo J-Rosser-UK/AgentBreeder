@@ -6,7 +6,7 @@ from inspect_ai.dataset import Dataset, MemoryDataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 import numpy as np
-
+import re
 from typing import cast
 from inspect_ai.scorer import Metric, Score, metric, accuracy, scorer
 
@@ -134,11 +134,11 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
         )
 
     @task
-    def match_task(self, framework, i, N):
+    def match_task(self, system, i, N):
         return Task(
-            name=f"{i} of {N} {framework.framework_name}",
+            name=f"{i} of {N} {system.system_name}",
             dataset=self.dataset,
-            solver=self.match_solver(framework),
+            solver=self.match_solver(system),
             scorer=self.percentage_match(),
             config=GenerateConfig(temperature=0.5),
         )
@@ -148,30 +148,36 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
     def percentage_match():
         async def score(state, target):
             try:
-                transformation_code = state.output.completion
 
-                # print("transformation_code", transformation_code)
+                transformation_code_snippet = state.output.completion
 
-                # Extract the transformation function from the code
-                test_input = state.metadata["test_input"]
+                print("transformation_code_snippet", transformation_code_snippet)
 
+                match = re.search(r"def\s+(\w+)\s*\(", transformation_code_snippet)
+                if not match:
+                    return Score(
+                        name="percentage_match",
+                        value=0,
+                        answer="Error",
+                        explanation=f"No transformation code found.",
+                    )
+
+                function_name = match.group(1)  # Return the captured function name
                 # Dynamically execute the code and extract the function namespace
                 namespace = {}
-                exec(transformation_code, namespace)
-                transform = namespace["transform"]
+                exec(transformation_code_snippet, namespace)
+                transform = namespace[function_name]
 
                 # Run the function on the test input
+                test_input = state.metadata["test_input"]
                 prediction_grid = transform(test_input)
 
-                # Display the output
-                # print("Prediction:", prediction_grid)
-
-                solution_str = target.text
+                target_str = target.text
 
                 prediction_str = str(EvaluateARC._grid_2_str(prediction_grid))
 
                 pct = EvaluateARC._get_percentage_match(
-                    EvaluateARC._parse_grid(solution_str),
+                    EvaluateARC._parse_grid(target_str),
                     EvaluateARC._parse_grid(prediction_str),
                 )
                 # hard match
@@ -182,6 +188,7 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
             except Exception as e:
                 print("Error during ARC scoring:", e)
                 pct = 0
+                prediction_str = "Error"
 
             return Score(
                 name="percentage_match",
@@ -213,8 +220,8 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
         Compare two 2D integer arrays for exact matching of each cell.
         Returns a number in [0,1] indicating fraction of cells matching.
         """
-        print("arr1", arr1)
-        print("arr2", arr2)
+        # print("arr1", arr1)
+        # print("arr2", arr2)
 
         # Validate input: check if both arrays are non-empty and rectangular
         def is_valid_grid(arr: list[list[int]]) -> bool:

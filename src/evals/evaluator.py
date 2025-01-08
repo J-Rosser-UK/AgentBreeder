@@ -1,7 +1,7 @@
 import os
 import importlib.util
 
-from base import Framework
+from base import System
 from tqdm import tqdm
 from sqlalchemy.orm import Session
 
@@ -49,26 +49,26 @@ class Evaluator:
 
     def inspect_evaluate(
         self,
-        frameworks_for_evaluation: list[Framework],
+        systems_for_evaluation: list[System],
     ):
         evaluator = self.datasets[self.args.dataset]
-        for i, framework in tqdm(enumerate(frameworks_for_evaluation)):
+        for i, system in tqdm(enumerate(systems_for_evaluation)):
 
             accuracy, ci_lower, ci_upper, median = evaluator.evaluate(
-                framework,
+                system,
                 i + 1,
-                len(frameworks_for_evaluation),
+                len(systems_for_evaluation),
                 limit=self.args.n_evals,
             )
 
-            framework.update(
-                framework_fitness=accuracy,
+            system.update(
+                system_fitness=accuracy,
             )
-            framework.update(
+            system.update(
                 ci_sample_size=self.args.n_evals,
             )
 
-            framework.update(
+            system.update(
                 ci_lower=ci_lower,
                 ci_upper=ci_upper,
                 ci_median=median,
@@ -79,12 +79,12 @@ class Evaluator:
         self, forward_function: str, temp_file: str, session: Session
     ) -> None:
         """
-        Evaluates a forward function of an agent framework by executing it in a temporary
+        Evaluates a forward function of an agent system by executing it in a temporary
         environment.
 
         Args:
             forward_function (str): The forward function code to evaluate.
-            temp_file (str): Path to the temporary file where the framework code will be written.
+            temp_file (str): Path to the temporary file where the multi-agent system code will be written.
 
         Raises:
             AgentSystemException: If there is an error during evaluation.
@@ -158,11 +158,11 @@ class Evaluator:
 
             if forward_pass_output not in ["A", "B", "C", "D"]:
                 raise AgentSystemException(
-                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or framework to ensure the output of the function is a string which is in the required format given in the task e.g. a letter, phrase or piece of code."
+                    f"Invalid answer format: {forward_pass_output}. Please adjust the prompts and/or system to ensure the output of the function is a string which is in the required format given in the task e.g. a letter, phrase or piece of code."
                 )
 
             # delete file at the end
             os.remove(temp_file)
 
         except Exception as e:
-            raise AgentSystemException(f"Error evaluating framework: {e}")
+            raise AgentSystemException(f"Error evaluating system: {e}")

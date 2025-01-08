@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("src")
 
-from base import Framework
+from base import System
 import unittest
 from evals.mmlu import EvaluateMMLU
 from inspect_ai.dataset import Sample
@@ -14,10 +14,10 @@ from tqdm import tqdm
 class TestEvaluateMMLU(unittest.TestCase):
 
     def setUp(self):
-        self.framework = Framework(
-            framework_name="test_framework",
-            framework_id="test_id",
-            framework_code=dedent(
+        self.system = System(
+            system_name="test_system",
+            system_id="test_id",
+            system_code=dedent(
                 """
             def forward(self, task):
                 return "A"
@@ -58,15 +58,15 @@ class TestEvaluateMMLU(unittest.TestCase):
         self.assertEqual(sample.metadata["subject"], "Geography")
 
     # def test_evaluate(self):
-    #     accuracy = self.evaluator.evaluate(self.framework, limit=1000)
+    #     accuracy = self.evaluator.evaluate(self.system, limit=1000)
     #     self.assertIsInstance(accuracy, float)
 
     def test_evaluate_multiple(self):
 
-        framework_5 = Framework(
-            framework_name="test_framework",
-            framework_id="test_id",
-            framework_code="""async def forward(self, task: str) -> str:
+        system_5 = System(
+            system_name="test_system",
+            system_id="test_id",
+            system_code="""async def forward(self, task: str) -> str:
 
     # import time
     # time.sleep(5)
@@ -75,10 +75,10 @@ class TestEvaluateMMLU(unittest.TestCase):
 """,
         )
 
-        framework_10 = Framework(
-            framework_name="test_framework",
-            framework_id="test_id",
-            framework_code="""async def forward(self, task: str) -> str:
+        system_10 = System(
+            system_name="test_system",
+            system_id="test_id",
+            system_code="""async def forward(self, task: str) -> str:
 
     # import time
     # time.sleep(2)
@@ -90,11 +90,11 @@ class TestEvaluateMMLU(unittest.TestCase):
     return 'C'
 """,
         )
-        frameworks = [framework_10]
+        systems = [system_10]
 
-        for framework in tqdm(frameworks, total=len(frameworks)):
+        for system in tqdm(systems, total=len(systems)):
             evaluator = EvaluateMMLU(self.args)
-            accuracy = evaluator.evaluate(framework, limit=5)
+            accuracy = evaluator.evaluate(system, limit=5)
             self.assertIsInstance(accuracy, float)
 
 

@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 from generator import initialize_population_id, generate_mutant, run_generation
 from descriptor import Clusterer
-from base import initialize_session, Population, Framework
+from base import initialize_session, Population, System
 from evals import Evaluator
 import os
 import uuid
@@ -45,28 +45,28 @@ def main(args, population_id=None):
         # # Recluster the population
         clusterer.cluster(population)
 
-        frameworks_for_evaluation = (
-            session.query(Framework).filter_by(population_id=population_id).all()
+        systems_for_evaluation = (
+            session.query(System).filter_by(population_id=population_id).all()
         )
 
-        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
-            population, frameworks_for_evaluation
+        illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
+            population, systems_for_evaluation
         )
 
         # Perform the query correctly
-        illuminated_frameworks_for_evaluation = (
-            session.query(Framework)  # Start the query
+        illuminated_systems_for_evaluation = (
+            session.query(System)  # Start the query
             .filter(
-                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+                System.system_id.in_(illuminated_systems_for_evaluation_ids)
             )  # Apply the filter
             .all()  # Fetch all results
         )
 
         print(
             "fw for eval",
-            len(frameworks_for_evaluation),
+            len(systems_for_evaluation),
             "ilfw for eval",
-            len(illuminated_frameworks_for_evaluation),
+            len(illuminated_systems_for_evaluation),
         )
 
         print(f"Reloaded population ID: {population.population_id}")
@@ -89,34 +89,34 @@ def main(args, population_id=None):
         # Recluster the population
         clusterer.cluster(population)
 
-        frameworks_for_evaluation = (
-            session.query(Framework)
-            .filter_by(population_id=population_id, framework_fitness=None)
+        systems_for_evaluation = (
+            session.query(System)
+            .filter_by(population_id=population_id, system_fitness=None)
             .all()
         )
 
-        illuminated_frameworks_for_evaluation_ids: list[str] = illuminator.illuminate(
-            population, frameworks_for_evaluation
+        illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
+            population, systems_for_evaluation
         )
 
         # Perform the query correctly
-        illuminated_frameworks_for_evaluation = (
-            session.query(Framework)  # Start the query
+        illuminated_systems_for_evaluation = (
+            session.query(System)  # Start the query
             .filter(
-                Framework.framework_id.in_(illuminated_frameworks_for_evaluation_ids)
+                System.system_id.in_(illuminated_systems_for_evaluation_ids)
             )  # Apply the filter
             .all()  # Fetch all results
         )
 
         print(
             "fws",
-            len(frameworks_for_evaluation),
+            len(systems_for_evaluation),
             "ilfws",
-            len(illuminated_frameworks_for_evaluation),
+            len(illuminated_systems_for_evaluation),
         )
 
-        # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
-        evaluator.inspect_evaluate(illuminated_frameworks_for_evaluation)
+        # evaluator.async_evaluate(illuminated_systems_for_evaluation)
+        evaluator.inspect_evaluate(illuminated_systems_for_evaluation)
 
         session.close()
 

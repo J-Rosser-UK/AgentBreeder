@@ -18,7 +18,7 @@ Reflexion_prompt_1 = f""""<<EXAMPLE>>Carefully review the proposed new architect
 
 2. **Implementation Mistakes**: Identify any mistakes you may have made in the implementation. Review the code carefully, debug any issues you find, and provide a corrected version. REMEMBER checking "## WRONG Implementation examples" in the prompt.
 
-3. **Improvement**: Based on the proposed architecture, suggest improvements in the detailed implementation that could increase its performance or effectiveness. In this step, focus on refining and optimizing the existing implementation without altering the overall design framework, except if you want to propose a different architecture if the current is not interesting.
+3. **Improvement**: Based on the proposed architecture, suggest improvements in the detailed implementation that could increase its performance or effectiveness. In this step, focus on refining and optimizing the existing implementation without altering the overall design system, except if you want to propose a different architecture if the current is not interesting.
 - Observe carefully about whether the implementation is actually doing what it is supposed to do.
 - Check if there is redundant code or unnecessary steps in the implementation. Replace them with effective implementation.
 - Try to avoid the implementation being too similar to the previous agent.

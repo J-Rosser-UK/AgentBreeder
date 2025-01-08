@@ -1,6 +1,6 @@
 import random
 from base import (
-    Framework,
+    System,
     Population,
     initialize_session,
     initialize_session,
@@ -23,13 +23,13 @@ async def generate_mutant(args, population_id):
     try:
         session, Base = initialize_session(args.db_name)
         generator = Generator(args)  # Create a new Generator instance per task
-        mutant_framework = await generator.generate(session, population_id)
+        mutant_system = await generator.generate(session, population_id)
     except Exception as e:
         logging.error(f"Error generating mutant: {e}")
-        mutant_framework = None
+        mutant_system = None
     finally:
         session.close()
-    return mutant_framework
+    return mutant_system
 
 
 # The async part of the logic
@@ -56,12 +56,12 @@ class Generator:
         self.descriptor = Descriptor()
         self.evaluator = Evaluator(args)
 
-    async def generate(self, session, population_id) -> Framework:
+    async def generate(self, session, population_id) -> System:
         """
-        Generates a mutated framework from the population by sampling and applying mutations.
+        Generates a mutated system from the population by sampling and applying mutations.
 
         Returns:
-            Framework: The mutated framework object. Returns None if the mutation fails.
+            System: The mutated system object. Returns None if the mutation fails.
         """
 
         # self.crossover = Crossover(args)
@@ -70,7 +70,7 @@ class Generator:
         )
         print(self.population.population_id)
 
-        self.frameworks = self.population.frameworks  # error on this line
+        self.systems = self.population.systems  # error on this line
 
         self.mutator = Mutator(
             self.args,
@@ -80,21 +80,21 @@ class Generator:
             self.evaluator,
         )
 
-        mutant_framework = await self.mutator.mutate()
+        mutant_system = await self.mutator.mutate()
 
-        if mutant_framework:
-            mutant_framework.update(
-                framework_descriptor=self.descriptor.generate(mutant_framework)
+        if mutant_system:
+            mutant_system.update(
+                system_descriptor=self.descriptor.generate(mutant_system)
             )
 
-            self.population.frameworks.append(mutant_framework)
+            self.population.systems.append(mutant_system)
 
-        return mutant_framework
+        return mutant_system
 
 
 def initialize_population_id(args) -> str:
     """
-    Initializes the first generation of frameworks for a given population.
+    Initializes the first generation of systems for a given population.
 
     Args:
         args: Arguments object containing configurations for the population initialization.
@@ -111,29 +111,29 @@ def initialize_population_id(args) -> str:
     evaluator = Evaluator(args)
     clusterer = Clusterer()
 
-    for framework in archive:
-        framework = Framework(
+    for system in archive:
+        system = System(
             session=session,
-            framework_name=framework["name"],
-            framework_code=framework["code"],
-            framework_thought_process=framework["thought"],
+            system_name=system["name"],
+            system_code=system["code"],
+            system_thought_process=system["thought"],
             population=population,
         )
-        population.frameworks.append(framework)
+        population.systems.append(system)
 
-    for framework in population.frameworks:
-        framework.update(framework_descriptor=descriptor.generate(framework))
+    for system in population.systems:
+        system.update(system_descriptor=descriptor.generate(system))
 
     population_id = str(population.population_id)
 
-    frameworks_for_evaluation = (
-        session.query(Framework)
-        .filter_by(population_id=population_id, framework_fitness=None)
+    systems_for_evaluation = (
+        session.query(System)
+        .filter_by(population_id=population_id, system_fitness=None)
         .all()
     )
 
-    # evaluator.async_evaluate(illuminated_frameworks_for_evaluation)
-    evaluator.inspect_evaluate(frameworks_for_evaluation)
+    # evaluator.async_evaluate(illuminated_systems_for_evaluation)
+    evaluator.inspect_evaluate(systems_for_evaluation)
 
     # Re-load the population object in this session
     population = session.query(Population).filter_by(population_id=population_id).one()

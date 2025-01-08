@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("src")
 
-from base import Framework
+from base import System
 import unittest
 from evals.arc import EvaluateARC
 from inspect_ai.dataset import Sample
@@ -18,10 +18,10 @@ import re
 class TestEvaluateARC(unittest.TestCase):
 
     def setUp(self):
-        self.framework = Framework(
-            framework_name="arc_test_framework",
-            framework_id="test_id",
-            framework_code=dedent(
+        self.system = System(
+            system_name="arc_test_system",
+            system_id="test_id",
+            system_code=dedent(
                 """
             async def forward(self, task):
                 return "A"
@@ -136,14 +136,14 @@ class TestEvaluateARC(unittest.TestCase):
     #     sample = self.evaluator._record_to_sample(record)
     #     print(sample)
 
-    def test_evaluate_framework(self):
-        framework = Framework(
-            framework_name="arc_test_framework",
-            framework_id=str(uuid.uuid4()),
-            framework_code=COT_SC["code"],
+    def test_evaluate_system(self):
+        system = System(
+            system_name="arc_test_system",
+            system_id=str(uuid.uuid4()),
+            system_code=COT_SC["code"],
         )
-        # framework = self.session.query(Framework).first()
-        accuracy = self.evaluator.evaluate(framework, limit=1)
+        # system = self.session.query(System).first()
+        accuracy = self.evaluator.evaluate(system, limit=1)
         print("accuracy", accuracy)
         self.assertIsInstance(accuracy, float)
 

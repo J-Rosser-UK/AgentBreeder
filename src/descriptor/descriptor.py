@@ -1,7 +1,7 @@
 import openai
 import numpy as np
 import hdbscan
-from base import Framework, Population, Cluster, Generation
+from base import System, Population, Cluster, Generation
 
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
@@ -27,42 +27,42 @@ class Descriptor:
         self.model = model
         self.output_dim = output_dim
 
-    def batch_generate(self, frameworks: list[Framework]):
+    def batch_generate(self, systems: list[System]):
         """
-        Generates embeddings for a batch of frameworks using threading.
+        Generates embeddings for a batch of systems using threading.
 
         Args:
-            frameworks (list[Framework]): A list of framework objects for which embeddings will be generated.
+            systems (list[System]): A list of system objects for which embeddings will be generated.
 
         Returns:
-            np.ndarray: A NumPy array containing the embeddings for all frameworks in the batch.
+            np.ndarray: A NumPy array containing the embeddings for all systems in the batch.
         """
         with ThreadPoolExecutor(max_workers=16) as executor:
             embeddings = list(
                 tqdm(
-                    executor.map(self.generate, frameworks),
-                    total=len(frameworks),
+                    executor.map(self.generate, systems),
+                    total=len(systems),
                     desc="Generating embeddings",
                 )
             )
         return np.array(embeddings)
 
-    def generate(self, framework: Framework):
+    def generate(self, system: System):
         """
-        Generates an embedding for a single framework.
+        Generates an embedding for a single system.
 
         Args:
-            framework (Framework): The framework object for which the embedding will be generated.
+            system (System): The system object for which the embedding will be generated.
 
         Returns:
-            list[float]: The embedding vector for the given framework.
+            list[float]: The embedding vector for the given system.
         """
         text = (
-            framework.framework_name
+            system.system_name
             + ": "
-            + framework.framework_thought_process
+            + system.system_thought_process
             + "\n"
-            + framework.framework_code
+            + system.system_code
         )
         response = self.client.embeddings.create(
             input=text, model=self.model, dimensions=self.output_dim
@@ -88,29 +88,27 @@ class Clusterer:
 
     def cluster(self, population: Population):
         """
-        Clusters frameworks in a population based on their embeddings.
+        Clusters systems in a population based on their embeddings.
 
         Args:
-            population (Population): The population object containing frameworks to cluster.
+            population (Population): The population object containing systems to cluster.
 
         Returns:
-            np.ndarray: An array of cluster labels for the frameworks in the population.
+            np.ndarray: An array of cluster labels for the multi-agent systems in the population.
         """
 
         session = object_session(population)
 
         generation = Generation(session=session, population_id=population.population_id)
 
-        embeddings = [
-            framework.framework_descriptor for framework in population.frameworks
-        ]
+        embeddings = [system.system_descriptor for system in population.systems]
 
-        mode_framework_shape = np.shape(embeddings[0])[0]
+        mode_system_shape = np.shape(embeddings[0])[0]
 
         # Set any wrong ones to the median shape of zeros
         for i, descriptor in enumerate(embeddings):
-            if not descriptor or len(descriptor) != mode_framework_shape:
-                embeddings[i] = np.zeros((int(mode_framework_shape),))
+            if not descriptor or len(descriptor) != mode_system_shape:
+                embeddings[i] = np.zeros((int(mode_system_shape),))
 
         embeddings = np.array(embeddings, dtype=np.float32)
         # print(f"Embeddings shape: {embeddings.shape}")
@@ -123,14 +121,14 @@ class Clusterer:
         print("Number of unique clusters: ", len(unique_labels))
 
         if len(embeddings) < 10:
-            for framework in population.frameworks:
+            for system in population.systems:
                 cluster = Cluster(
                     session=session,
                     generation_id=generation.generation_id,
                     population_id=population.population_id,
                 )
                 population.clusters.append(cluster)
-                framework.update(cluster_id=cluster.cluster_id)
+                system.update(cluster_id=cluster.cluster_id)
         else:
             for label in unique_labels:
                 cluster = Cluster(
@@ -139,8 +137,8 @@ class Clusterer:
                     population_id=population.population_id,
                 )
                 population.clusters.append(cluster)
-                for i, framework in enumerate(population.frameworks):
+                for i, system in enumerate(population.systems):
                     if labels[i] == label:
-                        framework.update(cluster_id=cluster.cluster_id)
+                        system.update(cluster_id=cluster.cluster_id)
 
         return labels

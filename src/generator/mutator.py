@@ -1,7 +1,7 @@
 import random
 import pandas as pd
 from typing import List
-from base import Framework
+from base import System
 from chat import get_structured_json_response_from_gpt
 from prompts.mutation_base import get_base_prompt
 from prompts.mutation_reflexion import Reflexion_prompt_1
@@ -24,10 +24,10 @@ class Mutator:
         Args:
             args: Arguments object containing configurations for the mutator, such
             as debugging limits and model settings.
-            session: The session object for managing framework interactions.
-            population: The population of frameworks for mutation.
+            session: The session object for managing system interactions.
+            population: The population of systems for mutation.
             mutation_operators: A list of mutation operator strings to apply.
-            evaluator: An evaluator object for validating and testing mutated frameworks.
+            evaluator: An evaluator object for validating and testing mutated systems.
         """
 
         self.mutation_operators = mutation_operators
@@ -36,44 +36,46 @@ class Mutator:
         self.session = session
         self.population = population
 
-    async def mutate(self) -> Framework:
+    async def mutate(self) -> System:
         """
-        Applies a mutation to a given framework.
+        Applies a mutation to a given system.
 
         Args:
-            framework (Framework): The framework object to mutate.
+            system (System): The system object to mutate.
 
         Returns:
-            Framework: The mutated framework object. Returns None if the mutation fails.
+            System: The mutated system object. Returns None if the mutation fails.
         """
 
         try:
 
-            framework_response, messages, reflexion_response_format = (
+            system_response, messages, reflexion_response_format, parent_system_ids = (
                 await random.choice([self._mutate, self._crossover])()
             )
 
-            framework_response = await self._debug(
-                messages, framework_response, reflexion_response_format
+            system_response = await self._debug(
+                messages, system_response, reflexion_response_format
             )
 
-            mutated_framework = Framework(
+            mutated_system = System(
                 session=self.session,
-                framework_name=framework_response["name"],
-                framework_code=framework_response["code"],
-                framework_thought_process=framework_response["thought"],
+                system_name=system_response["name"],
+                system_code=system_response["code"],
+                system_first_parent_id=str(parent_system_ids[0]),
+                system_second_parent_id=str(parent_system_ids[1]),
+                system_thought_process=system_response["thought"],
                 population=self.population,
             )
         except Exception as e:
 
-            print(f"Error evolving framework: {e}")
-            mutated_framework = None
+            print(f"Error evolving system: {e}")
+            mutated_system = None
 
-        return mutated_framework
+        return mutated_system
 
     async def _mutate(self):
         """
-        Applies a sampled mutation to a framework and refines it using reflexion-based prompts.
+        Applies a sampled mutation to a system and refines it using reflexion-based prompts.
 
         Args:
             None
@@ -82,9 +84,9 @@ class Mutator:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
                 and the reflexion_response_format (str).
         """
-        framework = random.choice(self.population.elites)
-        logging.info(f"Mutating {framework.framework_name} framework...")
-        print(f"Mutating {framework.framework_name} framework...")
+        system = random.choice(self.population.elites)
+        logging.info(f"Mutating {system.system_name} system...")
+        print(f"Mutating {system.system_name} system...")
 
         sampled_mutation = random.choice(self.mutation_operators)
 
@@ -99,13 +101,13 @@ class Mutator:
                 "content": f"""
                 {base_prompt}
              
-                Here is the framework I would like you to mutate:
+                Here is the multi-agent system I would like you to mutate:
 
                 ---------------
-                Framework: {framework.framework_name}
-                {framework.framework_thought_process}
+                System: {system.system_name}
+                {system.system_thought_process}
                 ---------------
-                {framework.framework_code}
+                {system.system_code}
 
                 The mutation I would like to apply is:
                 {sampled_mutation}
@@ -119,11 +121,13 @@ class Mutator:
             },
         ]
 
-        return await self._evolve(messages, base_prompt_response_format)
+        return await self._evolve(
+            messages, base_prompt_response_format, [system.system_id, None]
+        )
 
     async def _crossover(self):
         """
-        Applies crossover to two frameworks and refines the result using reflexion-based prompts.
+        Applies crossover to two systems and refines the result using reflexion-based prompts.
 
         Args:
             None
@@ -132,13 +136,13 @@ class Mutator:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
                 and the reflexion_response_format (str).
         """
-        framework_1 = random.choice(self.population.elites)
-        framework_2 = random.choice(self.population.elites)
+        system_1 = random.choice(self.population.elites)
+        system_2 = random.choice(self.population.elites)
         logging.info(
-            f"Crossing over {framework_1.framework_name} and {framework_2.framework_name} frameworks..."
+            f"Crossing over {system_1.system_name} and {system_2.system_name} systems..."
         )
         print(
-            f"Crossing over {framework_1.framework_name} and {framework_2.framework_name} frameworks..."
+            f"Crossing over {system_1.system_name} and {system_2.system_name} systems..."
         )
 
         base_prompt, base_prompt_response_format = get_base_prompt()
@@ -152,19 +156,19 @@ class Mutator:
                 "content": f"""
                 {base_prompt}
              
-                Here are the two frameworks I'd like you to crossover/combine into a novel new framework:
+                Here are the two systems I'd like you to crossover/combine into a novel new system:
 
                 ---------------
-                Framework 1: {framework_1.framework_name}
-                {framework_1.framework_thought_process}
+                System 1: {system_1.system_name}
+                {system_1.system_thought_process}
                 ---------------
-                {framework_1.framework_code}
+                {system_1.system_code}
 
                 ---------------
-                Framework 2: {framework_2.framework_name}
-                {framework_2.framework_thought_process}
+                System 2: {system_2.system_name}
+                {system_2.system_thought_process}
                 ---------------
-                {framework_2.framework_code}   
+                {system_2.system_code}   
 
                 Ensure that the new forward functions outputs a response as a
                 STRING in the exact format as specified in the task. This could be
@@ -174,9 +178,13 @@ class Mutator:
             },
         ]
 
-        return await self._evolve(messages, base_prompt_response_format)
+        return await self._evolve(
+            messages,
+            base_prompt_response_format,
+            [system_1.system_id, system_2.system_id],
+        )
 
-    async def _evolve(self, messages, base_prompt_response_format):
+    async def _evolve(self, messages, base_prompt_response_format, parent_system_ids):
 
         # Generate new solution and do reflection
         try:
@@ -221,7 +229,7 @@ class Mutator:
             print(e)
             return None
 
-        return next_response, messages, reflexion_response_format
+        return next_response, messages, reflexion_response_format, parent_system_ids
 
     def _get_reflexion_prompt_1(self, prev_example):
 
@@ -262,7 +270,7 @@ class Mutator:
 
         Args:
             messages: List of messages exchanged during the mutation process.
-            next_response: The generated response containing the framework code and metadata.
+            next_response: The generated response containing the multi-agent system code and metadata.
             reflexion_response_format: The response format for reflection.
 
         Returns:

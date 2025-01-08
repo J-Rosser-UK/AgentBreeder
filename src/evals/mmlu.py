@@ -67,11 +67,11 @@ class EvaluateMMLU(InspectBase):
         )
 
     @task
-    def match_task(self, framework, i, N):
+    def match_task(self, system, i, N):
         return Task(
-            name=f"{i} of {N} {framework.framework_name}",
+            name=f"{i} of {N} {system.system_name}",
             dataset=self.dataset,
-            solver=self.match_solver(framework),
+            solver=self.match_solver(system),
             scorer=self.llm_match(),
             config=GenerateConfig(temperature=0.5),
         )

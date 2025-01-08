@@ -41,36 +41,48 @@ class Chat(CustomBase):
     )
 
 
-class Framework(CustomBase):
-    __tablename__ = "framework"
+class System(CustomBase):
+    __tablename__ = "system"
 
-    framework_id = CustomColumn(
+    system_id = CustomColumn(
         String,
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
-        label="The framework's unique identifier (UUID).",
+        label="The system's unique identifier (UUID).",
     )
-    framework_timestamp = CustomColumn(
+
+    system_first_parent_id = CustomColumn(
+        String,
+        label="The first parent's unique identifier (UUID).",
+    )
+
+    system_second_parent_id = CustomColumn(
+        String,
+        label="The second parent's unique identifier (UUID). This may be None if mutation rather than crossover.",
+    )
+
+    system_timestamp = CustomColumn(
         DateTime,
         default=datetime.datetime.utcnow,
-        label="The timestamp of the framework.",
+        label="The timestamp of the multi-agent system.",
     )
-    framework_name = CustomColumn(String, label="The name of the framework.")
-    framework_code = CustomColumn(
+    system_name = CustomColumn(String, label="The name of the multi-agent system.")
+    system_code = CustomColumn(
         String,
-        label="The code of the framework. Starting with def forward(self, task: str) -> str:",
+        label="The code of the multi-agent system. Starting with def forward(self, task: str) -> str:",
     )
-    framework_thought_process = CustomColumn(
-        String, label="The thought process that went into creating the framework."
+    system_thought_process = CustomColumn(
+        String,
+        label="The thought process that went into creating the multi-agent system.",
     )
     population_id = CustomColumn(
         String,
         ForeignKey("population.population_id"),
         label="The population's unique identifier (UUID).",
     )
-    framework_fitness = CustomColumn(Float, label="The fitness of the framework.")
-    framework_descriptor = CustomColumn(
-        JSON, label="The embedding of the framework as a list of floats."
+    system_fitness = CustomColumn(Float, label="The fitness of the multi-agent system.")
+    system_descriptor = CustomColumn(
+        JSON, label="The embedding of the multi-agent system as a list of floats."
     )
     ci_lower = CustomColumn(Float, label="")
     ci_upper = CustomColumn(Float, label="")
@@ -85,13 +97,13 @@ class Framework(CustomBase):
 
     # Relationships
     meetings = relationship(
-        "Meeting", back_populates="framework", collection_class=AutoSaveList
+        "Meeting", back_populates="system", collection_class=AutoSaveList
     )
     population = relationship(
-        "Population", back_populates="frameworks", collection_class=AutoSaveList
+        "Population", back_populates="systems", collection_class=AutoSaveList
     )
     cluster = relationship(
-        "Cluster", back_populates="frameworks", collection_class=AutoSaveList
+        "Cluster", back_populates="systems", collection_class=AutoSaveList
     )
 
 
@@ -129,15 +141,15 @@ class Cluster(CustomBase):
     generation = relationship(
         "Generation", back_populates="clusters", collection_class=AutoSaveList
     )
-    frameworks = relationship(
-        "Framework", back_populates="cluster", collection_class=AutoSaveList
+    systems = relationship(
+        "System", back_populates="cluster", collection_class=AutoSaveList
     )
 
     @property
     def elite(self):
         """
-        Returns the framework with the highest framework_fitness in the cluster.
-        If no frameworks are associated with the cluster, returns None.
+        Returns the multi-agent system with the highest system_fitness in the cluster.
+        If no systems are associated with the cluster, returns None.
         """
         # from sqlalchemy.orm.session import object_session  # Ensure we use the correct function
 
@@ -147,11 +159,11 @@ class Cluster(CustomBase):
         # print("Cluster ID: ", self.cluster_id)
         # print("Session: ", session)
 
-        # Query the Framework table for the highest fitness framework in this cluster
+        # Query the System table for the highest fitness system in this cluster
         elite = (
-            session.query(Framework)
-            .filter(Framework.cluster_id == self.cluster_id)
-            .order_by(Framework.framework_fitness.desc())
+            session.query(System)
+            .filter(System.cluster_id == self.cluster_id)
+            .order_by(System.system_fitness.desc())
             .first()
         )
 
@@ -208,8 +220,8 @@ class Population(CustomBase):
     )
 
     # Relationships
-    frameworks = relationship(
-        "Framework", back_populates="population", collection_class=AutoSaveList
+    systems = relationship(
+        "System", back_populates="population", collection_class=AutoSaveList
     )
     clusters = relationship(
         "Cluster", back_populates="population", collection_class=AutoSaveList
@@ -219,7 +231,7 @@ class Population(CustomBase):
     )
 
     @property
-    def elites(self) -> list[Framework]:
+    def elites(self) -> list[System]:
         """Returns from the most recent generation the elites from each cluster."""
 
         session = object_session(self)
@@ -233,7 +245,7 @@ class Population(CustomBase):
         )
 
         if not most_recent_generation:
-            elites = self.frameworks
+            elites = self.systems
             assert len(elites) > 0
             return elites
 
@@ -266,14 +278,14 @@ class Meeting(CustomBase):
         default=datetime.datetime.utcnow,
         label="The timestamp of the meeting.",
     )
-    framework_id = CustomColumn(
+    system_id = CustomColumn(
         String,
-        ForeignKey("framework.framework_id"),
-        label="The framework's unique identifier (UUID).",
+        ForeignKey("system.system_id"),
+        label="The system's unique identifier (UUID).",
     )
 
     # Relationships
-    framework = relationship("Framework", back_populates="meetings")
+    system = relationship("System", back_populates="meetings")
     chats = relationship(
         "Chat", back_populates="meeting", collection_class=AutoSaveList
     )

@@ -2,7 +2,7 @@ import argparse
 import random
 
 import logging
-from base import initialize_session, Framework
+from base import initialize_session, System
 
 import plotly.express as px
 import numpy as np
@@ -16,7 +16,7 @@ class Visualizer:
     def plot(self, session, population_id):
         """
         Plots the clusters in 3D for a given population using UMAP for dimensionality reduction.
-        Hovering over a point displays the framework name, framework ID, and fitness.
+        Hovering over a point displays the multi-agent system name, system ID, and fitness.
         Points have larger diameters if their fitness is higher (fitness ranges from -1 to 1).
         The plot is set to dark mode with no background walls, axes, or axes labels.
 
@@ -25,43 +25,39 @@ class Visualizer:
         - population_id: The unique identifier (UUID) of the population.
         """
 
-        # Fetch all frameworks associated with the population
-        frameworks = (
-            session.query(Framework).filter_by(population_id=population_id).all()
-        )
+        # Fetch all systems associated with the population
+        systems = session.query(System).filter_by(population_id=population_id).all()
 
-        print(len(frameworks))
+        print(len(systems))
 
         # Lists to store embeddings and other data
         embeddings = []
         cluster_ids = []
-        framework_names = []
-        framework_ids = []
+        system_names = []
+        system_ids = []
         fitness_values = []
 
         # count the number of unique cluster_ids
         cluster_id_set = set()
-        for fw in frameworks:
+        for fw in systems:
             cluster_id_set.add(fw.cluster_id)
         print("Number of unique clusters: ", len(cluster_id_set))
-        print("Number of frameworks: ", len(frameworks))
+        print("Number of systems: ", len(systems))
 
         null_cluster_id = str(uuid.uuid4())
-        for fw in frameworks:
+        for fw in systems:
 
-            if fw.framework_descriptor:
-                # Assuming framework_descriptor is a list of floats
-                embedding = fw.framework_descriptor
+            if fw.system_descriptor:
+                # Assuming system_descriptor is a list of floats
+                embedding = fw.system_descriptor
                 cluster_id = fw.cluster_id if fw.cluster_id else null_cluster_id
-                fitness = (
-                    fw.framework_fitness if fw.framework_fitness is not None else -1
-                )
+                fitness = fw.system_fitness if fw.system_fitness is not None else -1
 
                 if embedding and cluster_id and fitness is not None:
                     embeddings.append(embedding)
                     cluster_ids.append(cluster_id)
-                    framework_names.append(fw.framework_name)
-                    framework_ids.append(fw.framework_id)
+                    system_names.append(fw.system_name)
+                    system_ids.append(fw.system_id)
                     fitness_values.append(fitness)
 
         # Convert lists to numpy arrays
@@ -108,8 +104,8 @@ class Visualizer:
                 "UMAP3": embeddings_3d[:, 2],
                 "Cluster": cluster_ids,
                 "Cluster_Label": cluster_labels,
-                "Framework Name": framework_names,
-                "Framework ID": framework_ids,
+                "System Name": system_names,
+                "System ID": system_ids,
                 "Fitness": fitness_values,
                 "Size": sizes,
             }
@@ -123,7 +119,7 @@ class Visualizer:
             z="UMAP3",
             color="Cluster_Label",
             size="Size",
-            hover_data=["Framework Name", "Framework ID", "Cluster", "Fitness"],
+            hover_data=["System Name", "System ID", "Cluster", "Fitness"],
             color_continuous_scale="Rainbow",
             title=f"3D UMAP Cluster Plot for Population {population_id}",
             labels={"color": "Cluster"},

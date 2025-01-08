@@ -29,22 +29,22 @@ class InspectBase(ABC):
         pass
 
     @solver
-    def match_solver(self, framework) -> Solver:
+    def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
             session, Base = initialize_session(self.args.db_name)
 
-            # Create the agent framework in temporary code
+            # Create the agent system in temporary code
             current_directory = os.path.dirname(os.path.abspath(__file__))
             parent_directory = os.path.dirname(current_directory)
-            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", framework.framework_name)
+            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
             temp_file = (
                 f"""{parent_directory}/temp/agent_system_temp_"""
                 + f"""
-                {cleaned_name}_{framework.framework_id}_{uuid.uuid4()}.py""".strip()
+                {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
             )
 
-            forward_function = framework.framework_code
+            forward_function = system.system_code
 
             if "return self.forward" in forward_function:
                 return 0
@@ -164,16 +164,16 @@ class InspectBase(ABC):
 
     @abstractmethod
     @task
-    def match_task(self, framework, i, N):
+    def match_task(self, system, i, N):
         pass
 
-    def evaluate(self, framework, i=1, N=1, limit=10):
+    def evaluate(self, system, i=1, N=1, limit=10):
 
         # Run the evaluation while hiding any print outputs
         # with open(os.devnull, "w") as devnull:
         #     with contextlib.redirect_stdout(devnull):
         results = eval(
-            self.match_task(framework, i, N),
+            self.match_task(system, i, N),
             model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
             limit=limit,
             log_dir="./logs",  # specify where logs are stored

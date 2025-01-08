@@ -7,7 +7,7 @@ from .base import Base, Wrapper  # noqa
 
 from .tables import (
     Chat,
-    Framework,
+    System,
     Cluster,
     Generation,
     Population,
