@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="arc")
+    parser.add_argument("--benchmark", type=str, default="mmlu")
 
     args = parser.parse_args()
 
@@ -159,6 +159,7 @@ if __name__ == "__main__":
     while True:
         # try:
         population_id = main(args, population_id)
+        break
         #     break  # Exit the loop if successful
         # except Exception as e:
         #     logging.error(f"An error occurred: {e}")
