@@ -240,9 +240,9 @@ class InspectBase(ABC):
         try:
             result = ast.literal_eval(output)
             # If it evaluates successfully, check its type
-            if isinstance(result, (dict, list, tuple)):
+            if isinstance(result, (dict, tuple)):
                 raise AgentSystemException(
-                    "The final output of the forward function should be a string, not a dictionary, list, or tuple."
+                    "The final output of the forward function should be a string, not a dictionary, or tuple."
                 )
         except Exception as e:
             pass
