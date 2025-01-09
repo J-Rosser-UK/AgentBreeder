@@ -6,4 +6,5 @@ from .evaluator import (
     EvaluateDROP,
     EvaluateGPQA,
     EvaluateMGSM,
+    EvaluateCLRSText,
 )

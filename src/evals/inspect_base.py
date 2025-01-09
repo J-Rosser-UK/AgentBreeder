@@ -22,6 +22,23 @@ from chat import get_structured_json_response_from_gpt
 from .metrics import ci_lower, ci_upper, median
 from abc import ABC, abstractmethod
 
+from inspect_ai._util.appdirs import inspect_cache_dir
+from inspect_ai._util.error import pip_dependency_error
+from inspect_ai._util.file import safe_filename
+from inspect_ai._util.hash import mm3_hash
+from inspect_ai._util.version import verify_required_version
+
+from inspect_ai.dataset._dataset import (
+    Dataset,
+    FieldSpec,
+    MemoryDataset,
+    RecordToSample,
+)
+from inspect_ai.dataset._util import data_to_samples, record_to_sample_fn
+
+from pathlib import Path
+from typing import Any
+
 
 class AgentSystemException(Exception):
     """Custom exception for errors in the agent system."""
@@ -264,3 +281,80 @@ class InspectBase(ABC):
                 )
 
         return output
+
+    def benchmark_filter(self, example):
+        return True
+
+    def filtered_hf_dataset(
+        self,
+        path: str,
+        split: str,
+        name: str | None = None,
+        data_dir: str | None = None,
+        revision: str | None = None,
+        sample_fields: FieldSpec | RecordToSample | None = None,
+        auto_id: bool = False,
+        shuffle: bool = False,
+        seed: int | None = None,
+        limit: int | None = None,
+        trust: bool = False,
+        cached: bool = True,
+        **kwargs: Any,
+    ) -> Dataset:
+        """
+        Sometimes the datasets contain examples that are too challenging to evaluate on.
+        This function simplifies the dataset by filtering out examples that are too complex.
+        """
+
+        # Ensure required HuggingFace datasets version
+        FEATURE = "Hugging Face Datasets"
+        PACKAGE = "datasets"
+        VERSION = "2.16.0"
+        try:
+            import datasets
+        except ImportError:
+            raise pip_dependency_error(FEATURE, [PACKAGE])
+        verify_required_version(FEATURE, PACKAGE, VERSION)
+
+        # Resolve data-to-sample function
+        data_to_sample = record_to_sample_fn(sample_fields)
+
+        # Generate cache directory for dataset
+        dataset_hash = mm3_hash(f"{path}{name}{data_dir}{split}{kwargs}")
+        datasets_cache_dir = inspect_cache_dir("hf_datasets")
+        dataset_cache_dir = os.path.join(
+            datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
+        )
+
+        # Load dataset from cache or HuggingFace Hub
+        if os.path.exists(dataset_cache_dir) and cached and revision is None:
+            dataset = datasets.load_from_disk(dataset_cache_dir)
+        else:
+            print(f"Loading dataset {path} from Hugging Face...")
+            dataset = datasets.load_dataset(
+                path=path,
+                name=name,
+                data_dir=data_dir,
+                split=split,
+                revision=revision,
+                trust_remote_code=trust,
+                **kwargs,
+            )
+            dataset.save_to_disk(dataset_cache_dir)
+
+        dataset = dataset.filter(self.benchmark_filter)
+
+        # Shuffle if requested
+        if shuffle:
+            dataset = dataset.shuffle(seed=seed)
+
+        # Limit if requested
+        if limit:
+            dataset = dataset.select(range(limit))
+
+        # Return filtered dataset
+        return MemoryDataset(
+            samples=data_to_samples(dataset.to_list(), data_to_sample, auto_id),
+            name=Path(path).stem if Path(path).exists() else path,
+            location=path,
+        )

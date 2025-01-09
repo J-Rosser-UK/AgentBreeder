@@ -1,7 +1,7 @@
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import GenerateConfig
-from inspect_ai.dataset import Dataset, hf_dataset
+from inspect_ai.dataset import Dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
 from .inspect_base import InspectBase
@@ -24,7 +24,7 @@ class EvaluateMMLU(InspectBase):
             "test": "test",
         }
 
-        self.dataset = hf_dataset(
+        self.dataset = self.filtered_hf_dataset(
             path="cais/mmlu",
             name="all",
             split=split_mapping[split],
