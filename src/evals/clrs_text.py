@@ -225,7 +225,7 @@ class EvaluateCLRSText(InspectBase):
                 target_trace = ast.literal_eval(target.text)
             except Exception as e:
                 return Score(
-                    name="llm_match",
+                    name="trace_match",
                     value=0.0,
                     answer=state.output.completion,
                     explanation=f"Error: {e}",
@@ -234,7 +234,7 @@ class EvaluateCLRSText(InspectBase):
             # Ensure both answer and target are lists
             if not isinstance(answer_trace, list) or not isinstance(target_trace, list):
                 return Score(
-                    name="llm_match",
+                    name="trace_match",
                     value=0.0,
                     answer=state.output.completion,
                     explanation="Both answer and target should be lists.",
@@ -243,7 +243,7 @@ class EvaluateCLRSText(InspectBase):
             # Exact match check
             if answer_trace == target_trace:
                 return Score(
-                    name="llm_match",
+                    name="trace_match",
                     value=1.0,
                     answer=state.output.completion,
                     explanation="Exact match with the target trace.",
@@ -266,14 +266,14 @@ class EvaluateCLRSText(InspectBase):
             # Score based on subsequence presence and final element
             if subseq and final_element_matches and len(answer_trace) >= 2:
                 return Score(
-                    name="llm_match",
+                    name="trace_match",
                     value=len(answer_trace) / len(target_trace),
                     answer=state.output.completion,
                     explanation="Subsequence with the correct final element.",
                 )
 
             return Score(
-                name="llm_match",
+                name="trace_match",
                 value=0.0,
                 answer=state.output.completion,
                 explanation="Incorrect trace or final element does not match.",

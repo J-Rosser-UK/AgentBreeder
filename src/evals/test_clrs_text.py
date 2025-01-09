@@ -4,7 +4,7 @@ sys.path.append("src")
 
 from base import System
 import unittest
-from evals.clrs_text import EvaluateCLRS
+from evals.clrs_text import EvaluateCLRSText
 from inspect_ai.dataset import Sample
 from textwrap import dedent
 import argparse
@@ -16,7 +16,7 @@ import re
 import asyncio
 
 
-class TestEvaluateCLRS(unittest.TestCase):
+class TestEvaluateCLRSText(unittest.TestCase):
 
     def setUp(self):
         self.system = System(
@@ -31,7 +31,6 @@ class TestEvaluateCLRS(unittest.TestCase):
         )
 
         parser = argparse.ArgumentParser()
-        parser.add_argument("--db_name", type=str, default="illuminator.db")
         parser.add_argument("--random_seed", type=int, default=42)
 
         self.args = parser.parse_args()
@@ -39,7 +38,7 @@ class TestEvaluateCLRS(unittest.TestCase):
         self.session, _ = initialize_session()
 
     def test_record_to_sample(self):
-        self.evaluator = EvaluateCLRS(args=self.args, split="validation", limit=1)
+        self.evaluator = EvaluateCLRSText(args=self.args, split="validation", limit=1)
 
 
 if __name__ == "__main__":
