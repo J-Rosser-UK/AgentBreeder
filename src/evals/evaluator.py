@@ -14,6 +14,7 @@ from evals.mmlu import EvaluateMMLU
 from evals.drop import EvaluateDROP
 from evals.gpqa import EvaluateGPQA
 from evals.mgsm import EvaluateMGSM
+from evals.clrs_text import EvaluateCLRS
 from .inspect_base import AgentSystemException
 
 
@@ -38,6 +39,9 @@ class Evaluator:
             ),  # 128 questions in validation set, 800 in test set
             # "drop": EvaluateDROP(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
             # "mgsm": EvaluateMGSM(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
+            "clrs_text": EvaluateCLRS(
+                args=self.args, split="validation", shuffle=True, limit=20
+            ),
         }
 
         self.benchmark = self.benchmarks[args.benchmark]
