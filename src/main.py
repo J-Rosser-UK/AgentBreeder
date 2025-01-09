@@ -43,32 +43,8 @@ def main(args, population_id=None):
             population = (
                 session.query(Population).filter_by(population_id=population_id).one()
             )
-            # # Recluster the population
-            # clusterer.cluster(population)
-
-            # systems_for_evaluation = (
-            #     session.query(System).filter_by(population_id=population_id).all()
-            # )
-
-            # illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
-            #     population, systems_for_evaluation
-            # )
-
-            # # Perform the query correctly
-            # illuminated_systems_for_evaluation = (
-            #     session.query(System)  # Start the query
-            #     .filter(
-            #         System.system_id.in_(illuminated_systems_for_evaluation_ids)
-            #     )  # Apply the filter
-            #     .all()  # Fetch all results
-            # )
-
-            # print(
-            #     "fw for eval",
-            #     len(systems_for_evaluation),
-            #     "ilfw for eval",
-            #     len(illuminated_systems_for_evaluation),
-            # )
+            # Recluster the population
+            clusterer.cluster(population)
 
             print(f"Reloaded population ID: {population.population_id}")
 
@@ -96,6 +72,7 @@ def main(args, population_id=None):
             # Recluster the population
             clusterer.cluster(population)
 
+            # Only choose systems which haven't been evaluated yet (e.g. system_fitness=None)
             systems_for_evaluation = (
                 session.query(System)
                 .filter_by(population_id=population_id, system_fitness=None)
@@ -144,11 +121,11 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
     parser.add_argument("--n_mutations", type=int, default=10)
-    parser.add_argument("--n_evals", type=int, default=10)
+    parser.add_argument("--n_evals", type=int, default=50)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="arc")
+    parser.add_argument("--benchmark", type=str, default="clrs_text")
 
     args = parser.parse_args()
 

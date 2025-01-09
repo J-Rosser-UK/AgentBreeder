@@ -190,10 +190,10 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
                 if pct == 1.0:
                     pct = 1.0
                 else:
-                    pct = 0
+                    pct = 0.0
             except Exception as e:
                 print("Error during ARC scoring:", e)
-                pct = 0
+                pct = 0.0
                 prediction_str = f"Error: {e}"
 
             return Score(

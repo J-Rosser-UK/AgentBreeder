@@ -20,7 +20,7 @@ from .inspect_base import AgentSystemException
 
 class Evaluator:
 
-    def __init__(self, args):
+    def __init__(self, args, split="validation"):
         """
         Initializes the Evaluator class.
 
@@ -30,21 +30,17 @@ class Evaluator:
         """
         self.args = args
         self.benchmarks = {
-            "arc": EvaluateARC(
-                args=self.args, split="validation", shuffle=True, limit=20
-            ),  # 20 questions in validation set, 60 in test set
-            # "gpqa": EvaluateGPQA(args=self.args, split="validation", shuffle=True, limit=32), # 32 questions in validation set, 166 in test set
-            "mmlu": EvaluateMMLU(
-                args=self.args, split="validation", shuffle=True, limit=20
-            ),  # 128 questions in validation set, 800 in test set
-            # "drop": EvaluateDROP(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
-            # "mgsm": EvaluateMGSM(args=self.args, split="validation", shuffle=True, limit=20), # 128 questions in validation set, 800 in test set
-            "clrs_text": EvaluateCLRSText(
-                args=self.args, split="validation", shuffle=True, limit=20
-            ),
+            "arc": EvaluateARC,  #          # 20 questions in validation set, 60 in test set
+            # "gpqa": EvaluateGPQA, #       # 32 questions in validation set, 166 in test set
+            "mmlu": EvaluateMMLU,  #        # 128 questions in validation set, 800 in test set
+            # "drop": EvaluateDROP, #       # 128 questions in validation set, 800 in test set
+            # "mgsm": EvaluateMGSM, #       # 128 questions in validation set, 800 in test set
+            "clrs_text": EvaluateCLRSText,
         }
 
-        self.benchmark = self.benchmarks[args.benchmark]
+        self.benchmark = self.benchmarks[args.benchmark](
+            args=self.args, split=split, shuffle=True, limit=self.args.n_evals
+        )
 
     def inspect_evaluate(
         self,

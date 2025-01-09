@@ -68,7 +68,7 @@ class EvaluateCLRSText(InspectBase):
             bool: True if record passes the filter, False otherwise.
         """
         if example.get("algo_name") == "quicksort":
-            if example.get("length") <= 4:
+            if example.get("length") <= 10:
                 return True
         return False
 
@@ -158,10 +158,7 @@ class EvaluateCLRSText(InspectBase):
             ### Trace Steps:
             Please provide the step-by-step trace of the {parsed_question['algo_name']} algorithm applied to the given key and initial trace.
 
-            ### Few Shot Examples (from test_5):
-            Initial trace: [0.475, 0.236, 0.865, 0.939]
-            Expected output: [[0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.475, 0.236, 0.865, 0.939], [0.236, 0.475, 0.865, 0.939]]
-            
+            ### Two-Shot Examples (from test_5):
             Initial trace: [0.426, 0.178, 0.964, 0.423, 0.343, 0.824, 0.558, 0.952]
             Expected output: [[0.426, 0.178, 0.964, 0.423, 0.343, 0.824, 0.558, 0.952], [0.426, 0.178, 0.964, 0.423, 0.343, 0.824, 0.558, 0.952], [0.426, 0.178, 0.423, 0.964, 0.343, 0.824, 0.558, 0.952], [0.426, 0.178, 0.423, 0.343, 0.964, 0.824, 0.558, 0.952], [0.426, 0.178, 0.423, 0.343, 0.824, 0.964, 0.558, 0.952], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.964, 0.952], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.824, 0.558, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.558, 0.824, 0.952, 0.964], [0.426, 0.178, 0.423, 0.343, 0.558, 0.824, 0.952, 0.964], [0.178, 0.426, 0.423, 0.343, 0.558, 0.824, 0.952, 0.964], [0.178, 0.426, 0.423, 0.343, 0.558, 0.824, 0.952, 0.964], [0.178, 0.343, 0.423, 0.426, 0.558, 0.824, 0.952, 0.964], [0.178, 0.343, 0.423, 0.426, 0.558, 0.824, 0.952, 0.964], [0.178, 0.343, 0.423, 0.426, 0.558, 0.824, 0.952, 0.964]]
 
@@ -249,12 +246,9 @@ class EvaluateCLRSText(InspectBase):
                     explanation="Exact match with the target trace.",
                 )
 
-            # Check if `sub` is a subsequence of `main`
-            def is_subsequence(sub, main):
-                it = iter(main)
-                return all(elem in it for elem in sub)
-
-            subseq = is_subsequence(answer_trace, target_trace)
+            longest_subseq = EvaluateCLRSText.longest_consecutive_subsequence(
+                answer_trace, target_trace
+            )
 
             # Check final element correctness
             final_element_matches = (
@@ -264,12 +258,112 @@ class EvaluateCLRSText(InspectBase):
             )
 
             # Score based on subsequence presence and final element
-            if subseq and final_element_matches and len(answer_trace) >= 2:
+            if final_element_matches and len(answer_trace) >= 2:
+
+                rouge_s_precision = len(longest_subseq) / len(answer_trace)
+                rouge_s_recall = len(longest_subseq) / len(target_trace)
+
                 return Score(
                     name="trace_match",
-                    value=len(answer_trace) / len(target_trace),
+                    value=2
+                    * (rouge_s_precision * rouge_s_recall)
+                    / (rouge_s_precision + rouge_s_recall),
                     answer=state.output.completion,
                     explanation="Subsequence with the correct final element.",
+                )
+
+            return Score(
+                name="trace_match",
+                value=0.0,
+                answer=state.output.completion,
+                explanation="Incorrect trace or final element does not match.",
+            )
+
+        return score
+
+    @staticmethod
+    def longest_consecutive_subsequence(sub, main):
+        """
+        Find the longest consecutive subsequence in 'sub' that is a subsequence of 'main'.
+
+        Parameters:
+        - sub: List of elements representing the subsequence to check.
+        - main: List of elements representing the main sequence.
+
+        Returns:
+        - The longest consecutive subsequence from 'sub' that is a subsequence of 'main'.
+        Returns an empty list if no such subsequence exists.
+        """
+        max_len = 0
+        longest_sub = []
+
+        def is_subsequence(s, m):
+            """
+            Check if 'sub' is a subsequence of 'main'.
+            """
+            it = iter(m)
+            return all(elem in it for elem in s)
+
+        # Iterate over all possible start indices in 'sub'
+        for start in range(len(sub)):
+            # Iterate over possible end indices, starting from the end of 'sub' down to 'start'
+            for end in range(len(sub), start, -1):
+                # Current candidate subsequence
+                candidate = sub[start:end]
+
+                # If the candidate length is less than or equal to current max, no need to check further
+                if len(candidate) <= max_len:
+                    break  # Optimization: no longer subsequences possible from this start
+
+                # Check if the candidate is a subsequence of 'main'
+                if is_subsequence(candidate, main):
+                    # Update max_len and longest_sub if a longer subsequence is found
+                    if len(candidate) > max_len:
+                        max_len = len(candidate)
+                        longest_sub = candidate
+                    break  # No need to check shorter subsequences from this start
+
+        return longest_sub
+
+    @staticmethod
+    @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
+    def sorted_array_match():
+        """
+        Custom scorer function that checks whether the model's output trace matches
+        the target trace, either exactly or as a subsequence with a correct final element.
+
+        Returns:
+            Callable: A coroutine that performs scoring and returns a Score object.
+        """
+
+        async def score(state, target):
+            try:
+                answer_trace = ast.literal_eval(state.output.completion)
+                target_trace = ast.literal_eval(target.text)
+            except Exception as e:
+                return Score(
+                    name="trace_match",
+                    value=0.0,
+                    answer=state.output.completion,
+                    explanation=f"Error: {e}",
+                )
+
+            # Ensure both answer and target are lists
+            if not isinstance(answer_trace, list) or not isinstance(target_trace, list):
+                return Score(
+                    name="trace_match",
+                    value=0.0,
+                    answer=state.output.completion,
+                    explanation="Both answer and target should be lists.",
+                )
+
+            # Exact match check
+            if answer_trace[-1] == target_trace[-1]:
+                return Score(
+                    name="trace_match",
+                    value=1.0,
+                    answer=state.output.completion,
+                    explanation="Exact match with the target trace.",
                 )
 
             return Score(

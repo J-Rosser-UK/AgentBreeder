@@ -18,12 +18,12 @@ client = openai.OpenAI()
 # ----------------------------------
 # CONFIGURATION & GLOBAL VARIABLES
 # ----------------------------------
-MAX_REQUESTS_PER_MINUTE = 5000  # adjust as needed
-MAX_TOKENS_PER_MINUTE = 2000000  # adjust as needed
+MAX_REQUESTS_PER_MINUTE = 10000  # adjust as needed
+MAX_TOKENS_PER_MINUTE = 10000000  # adjust as needed
 MAX_ATTEMPTS = 3
 TOKEN_ENCODING_NAME = "cl100k_base"
 MODEL = "gpt-4o-mini"  # adjust as needed
-N = 80  # We'll dequeue one item every 1/N seconds
+N = MAX_REQUESTS_PER_MINUTE // 60 - 10  # We'll dequeue one item every 1/N seconds
 
 logging.basicConfig(level=logging.INFO)
 
