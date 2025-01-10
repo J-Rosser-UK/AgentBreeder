@@ -11,10 +11,10 @@ from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import Score, accuracy, scorer
 
 from .metrics import ci_lower, ci_upper, median
-from .inspect_base import InspectBase
+from .benchmark import Benchmark
 
 
-class EvaluateCLRSText(InspectBase):
+class CLRSText(Benchmark):
     """
     Class for evaluating CLRS-text tasks. Loads a filtered dataset and provides
     functionality to parse questions, answers, and prepare them as samples.
@@ -28,7 +28,7 @@ class EvaluateCLRSText(InspectBase):
         limit: int = 1000,
     ):
         """
-        Initialize the EvaluateCLRSText class.
+        Initialize the CLRSText class.
 
         Args:
             args (Any, optional): Additional arguments or configurations.
@@ -246,7 +246,7 @@ class EvaluateCLRSText(InspectBase):
                     explanation="Exact match with the target trace.",
                 )
 
-            longest_subseq = EvaluateCLRSText.longest_consecutive_subsequence(
+            longest_subseq = CLRSText.longest_consecutive_subsequence(
                 answer_trace, target_trace
             )
 

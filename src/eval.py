@@ -6,7 +6,7 @@ from tqdm import tqdm
 from generator import initialize_population_id, generate_mutant, run_generation
 from descriptor import Clusterer
 from base import initialize_session, Population, System
-from evals import Evaluator
+from evals import Validator
 import os
 import uuid
 import asyncio
@@ -16,7 +16,7 @@ from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
 from sqlalchemy.orm import joinedload
 import time
-from evals import EvaluateCLRSText, EvaluateMMLU
+from evals import CLRSText, MMLU
 
 # Disable logging for httpx
 logging.getLogger("httpx").disabled = True
@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore", category=SAWarning)
 def main(args):
     random.seed(args.random_seed)
 
-    evaluator = EvaluateMMLU(args=args, split="test", shuffle=True, limit=args.n_evals)
+    evaluator = MMLU(args=args, split="test", shuffle=True, limit=args.n_evals)
 
     try:
         session, Base = initialize_session()

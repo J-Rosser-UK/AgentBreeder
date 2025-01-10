@@ -1,2 +1,2 @@
-class EvaluateDROP:
+class DROP:
     pass

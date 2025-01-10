@@ -9,11 +9,11 @@ from prompts.mutation_base import get_init_archive
 
 # from rich import print
 from descriptor import Descriptor
-from evals import Evaluator
+from evals import Validator
 from prompts.mutation_prompts import multi_agent_system_mutation_prompts
 from icecream import ic
 from .mutator import Mutator
-from evals import Evaluator
+from evals import Validator
 from descriptor import Clusterer
 import asyncio
 import logging
@@ -63,7 +63,7 @@ class Generator:
         self.batch_size = 1
         self.descriptor = Descriptor()
         self.generation_timestamp = generation_timestamp
-        self.evaluator = Evaluator(args)
+        self.evaluator = Validator(args)
 
     async def generate(self, session, population_id) -> System:
         """
@@ -119,7 +119,7 @@ def initialize_population_id(args) -> str:
 
         population = Population(session=session, population_benchmark=args.benchmark)
         descriptor = Descriptor()
-        evaluator = Evaluator(args)
+        evaluator = Validator(args)
         clusterer = Clusterer()
 
         generation_timestamp = datetime.datetime.utcnow()
@@ -147,7 +147,7 @@ def initialize_population_id(args) -> str:
         )
 
         # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-        evaluator.inspect_evaluate(systems_for_evaluation)
+        evaluator.validate(systems_for_evaluation)
 
         # Re-load the population object in this session
         population = (

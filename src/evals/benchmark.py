@@ -46,7 +46,7 @@ class AgentSystemException(Exception):
     pass
 
 
-class InspectBase(ABC):
+class Benchmark(ABC):
 
     @abstractmethod
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:

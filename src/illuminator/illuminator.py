@@ -33,7 +33,7 @@ class Illuminator:
         systems_for_evaluation: list[System],
     ):
         """
-        Evaluates systems in a population to determine which surrogates should
+        Evals systems in a population to determine which surrogates should
         proceed to further evaluation.
 
         Args:
@@ -74,7 +74,7 @@ class Illuminator:
 
     async def _illuminate_system(self, session, system):
         """
-        Evaluate a single system asynchronously.
+        Eval a single system asynchronously.
         """
         system.update(system_fitness=-1)
 

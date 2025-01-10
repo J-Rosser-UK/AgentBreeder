@@ -4,7 +4,7 @@ sys.path.append("src")
 
 from base import System
 import unittest
-from evals.clrs_text import EvaluateCLRSText
+from evals.clrs_text import CLRSText
 from inspect_ai.dataset import Sample
 from textwrap import dedent
 import argparse
@@ -16,7 +16,7 @@ import re
 import asyncio
 
 
-class TestEvaluateCLRSText(unittest.TestCase):
+class TestCLRSText(unittest.TestCase):
 
     def setUp(self):
         self.system = System(
@@ -38,7 +38,7 @@ class TestEvaluateCLRSText(unittest.TestCase):
         self.session, _ = initialize_session()
 
     def test_record_to_sample(self):
-        self.evaluator = EvaluateCLRSText(args=self.args, split="validation", limit=1)
+        self.evaluator = CLRSText(args=self.args, split="validation", limit=1)
 
 
 if __name__ == "__main__":

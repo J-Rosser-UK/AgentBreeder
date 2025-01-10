@@ -1,2 +1,2 @@
-class EvaluateGPQA:
+class GPQA:
     pass

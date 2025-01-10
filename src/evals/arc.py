@@ -12,29 +12,14 @@ from typing import cast
 from inspect_ai.scorer import Metric, Score, metric, accuracy, scorer
 
 from inspect_ai._eval.eval import eval
-import os
 
-from pathlib import Path
 from typing import Any
 
-from inspect_ai._util.appdirs import inspect_cache_dir
-from inspect_ai._util.error import pip_dependency_error
-from inspect_ai._util.file import safe_filename
-from inspect_ai._util.hash import mm3_hash
-from inspect_ai._util.version import verify_required_version
-
-from inspect_ai.dataset._dataset import (
-    Dataset,
-    FieldSpec,
-    MemoryDataset,
-    RecordToSample,
-)
-from inspect_ai.dataset._util import data_to_samples, record_to_sample_fn
 from .metrics import ci_lower, ci_upper, median
-from .inspect_base import InspectBase
+from .benchmark import Benchmark
 
 
-class EvaluateARC(InspectBase):
+class ARC(Benchmark):
 
     def __init__(
         self,
@@ -94,8 +79,8 @@ class EvaluateARC(InspectBase):
         # Construct examples section
         examples = []
         for i, example in enumerate(record["train"]):
-            input_grid = EvaluateARC._grid_2_str(example["input"])
-            output_grid = EvaluateARC._grid_2_str(example["output"])
+            input_grid = ARC._grid_2_str(example["input"])
+            output_grid = ARC._grid_2_str(example["output"])
             examples.append(
                 f"### Example {i}:\nInput:\n{input_grid}\nOutput:\n{output_grid}\n"
             )
@@ -120,7 +105,7 @@ class EvaluateARC(InspectBase):
             {examples}
 
             ## Test Input:
-            {EvaluateARC._grid_2_str(test_input)}
+            {ARC._grid_2_str(test_input)}
 
             
 
@@ -141,7 +126,7 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
         return Sample(
             input=task_prompt,
             target=str(
-                EvaluateARC._grid_2_str(list(record["test"][0]["output"]))
+                ARC._grid_2_str(list(record["test"][0]["output"]))
             ),  # Expected test output
             metadata={"task_id": task_id, "test_input": test_input},
         )
@@ -180,11 +165,11 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
 
                 target_str = target.text
 
-                prediction_str = str(EvaluateARC._grid_2_str(prediction_grid))
+                prediction_str = str(ARC._grid_2_str(prediction_grid))
 
-                pct = EvaluateARC._get_percentage_match(
-                    EvaluateARC._parse_grid(target_str),
-                    EvaluateARC._parse_grid(prediction_str),
+                pct = ARC._get_percentage_match(
+                    ARC._parse_grid(target_str),
+                    ARC._parse_grid(prediction_str),
                 )
                 # hard match
                 if pct == 1.0:

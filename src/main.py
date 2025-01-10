@@ -6,7 +6,7 @@ from tqdm import tqdm
 from generator import initialize_population_id, generate_mutant, run_generation
 from descriptor import Clusterer
 from base import initialize_session, Population, System
-from evals import Evaluator
+from evals import Validator
 import os
 import uuid
 import asyncio
@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore", category=SAWarning)
 def main(args, population_id=None):
     random.seed(args.random_seed)
 
-    evaluator = Evaluator(args)
+    evaluator = Validator(args)
     clusterer = Clusterer()
     illuminator = Illuminator(args)
 
@@ -101,7 +101,7 @@ def main(args, population_id=None):
             )
 
             # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-            evaluator.inspect_evaluate(illuminated_systems_for_evaluation)
+            evaluator.validate(illuminated_systems_for_evaluation)
 
         except:
             session.rollback()

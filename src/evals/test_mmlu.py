@@ -4,14 +4,14 @@ sys.path.append("src")
 
 from base import System
 import unittest
-from evals.mmlu import EvaluateMMLU
+from evals.mmlu import MMLU
 from inspect_ai.dataset import Sample
 from textwrap import dedent
 import argparse
 from tqdm import tqdm
 
 
-class TestEvaluateMMLU(unittest.TestCase):
+class TestMMLU(unittest.TestCase):
 
     def setUp(self):
         self.system = System(
@@ -30,7 +30,7 @@ class TestEvaluateMMLU(unittest.TestCase):
 
         self.args = parser.parse_args()
 
-        self.evaluator = EvaluateMMLU(self.args)
+        self.evaluator = MMLU(self.args)
 
     def test_record_to_sample(self):
         record = {
@@ -93,7 +93,7 @@ class TestEvaluateMMLU(unittest.TestCase):
         systems = [system_10]
 
         for system in tqdm(systems, total=len(systems)):
-            evaluator = EvaluateMMLU(self.args)
+            evaluator = MMLU(self.args)
             accuracy = evaluator.evaluate(system, limit=5)
             self.assertIsInstance(accuracy, float)
 

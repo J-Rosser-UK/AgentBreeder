@@ -1,2 +1,2 @@
-class EvaluateMGSM:
+class MGSM:
     pass

@@ -4,7 +4,7 @@ sys.path.append("src")
 
 from base import System
 import unittest
-from evals.arc import EvaluateARC
+from evals.arc import ARC
 from inspect_ai.dataset import Sample
 from textwrap import dedent
 import argparse
@@ -16,7 +16,7 @@ import re
 import asyncio
 
 
-class TestEvaluateARC(unittest.TestCase):
+class TestARC(unittest.TestCase):
 
     def setUp(self):
         self.system = System(
@@ -36,7 +36,7 @@ class TestEvaluateARC(unittest.TestCase):
 
         self.args = parser.parse_args()
 
-        self.evaluator = EvaluateARC(args=self.args, split="validation", limit=1)
+        self.evaluator = ARC(args=self.args, split="validation", limit=1)
         self.session, _ = initialize_session()
 
     def test_record_to_sample(self):

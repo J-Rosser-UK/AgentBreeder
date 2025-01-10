@@ -4,10 +4,10 @@ from inspect_ai.model import GenerateConfig
 from inspect_ai.dataset import Dataset
 from typing import Any, Literal, Union
 from textwrap import dedent
-from .inspect_base import InspectBase
+from .benchmark import Benchmark
 
 
-class EvaluateMMLU(InspectBase):
+class MMLU(Benchmark):
 
     def __init__(
         self,
