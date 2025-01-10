@@ -15,6 +15,11 @@ def plot_tree(systems):
     Each unique 'generation_timestamp' becomes its own layer.
     Each 'cluster_id' is represented by a different color.
     Node labels are shown as 'system_name' rather than 'system_id'.
+    Node sizes are proportional to system_fitness (0 to 1).
+    If a node has system_fitness = -1 or None, treat it as 0.
+
+    Labels for each layer are alternately drawn above and below nodes
+    to reduce overlap of long names.
     """
 
     # 1. Collect and sort the distinct generation timestamps
@@ -28,12 +33,19 @@ def plot_tree(systems):
     # 3. Initialize the graph
     G = nx.Graph()
 
-    # 4. Add nodes with layer and cluster_id attributes
+    # 4. Add nodes with layer, cluster_id, and fitness attributes
     for sys in systems:
+        # Handle fitness edge cases
+        if sys.system_fitness is None or sys.system_fitness == -1:
+            fitness_val = 0.0
+        else:
+            fitness_val = sys.system_fitness  # assumed in [0, 1]
+
         G.add_node(
-            sys.system_id,  # node identifier stays as the UUID
+            sys.system_id,  # node identifier = system_id
             layer=timestamp_to_layer[sys.generation_timestamp],
-            cluster_id=sys.cluster_id,  # Store cluster_id for coloring
+            cluster_id=sys.cluster_id,  # for color grouping
+            fitness=fitness_val,  # store normalized fitness
         )
 
     # 5. Add edges from parents to child (if they exist in this population)
@@ -47,7 +59,7 @@ def plot_tree(systems):
     # 6. Use the built-in multipartite layout keyed by 'layer'
     pos = nx.multipartite_layout(G, subset_key="layer")
 
-    # 7. Assign colors: all nodes sharing the same cluster_id get the same color
+    # 7. Assign colors by cluster_id
     all_clusters = sorted({G.nodes[n]["cluster_id"] for n in G.nodes()})
     cmap = plt.cm.get_cmap("rainbow", len(all_clusters))
     node_color = []
@@ -59,18 +71,48 @@ def plot_tree(systems):
     # 8. Create a label dictionary mapping system_id -> system_name
     label_dict = {sys.system_id: sys.system_name for sys in systems}
 
-    # 9. Draw the graph
+    # 9. Create a node_size list based on fitness
+    #    e.g. map fitness=0 to size=100, fitness=1 to size=2100
+    node_size = []
+    for n in G.nodes():
+        f = G.nodes[n]["fitness"]  # 0.0 <= f <= 1.0
+        size = 100 + 2000 * f  # scale the node size
+        node_size.append(size)
+
+    # 10. Draw the graph WITHOUT labels
     plt.figure(figsize=(12, 8))
     nx.draw(
         G,
         pos,
         node_color=node_color,
-        labels=label_dict,  # <-- label each node by system_name
-        edge_color="grey",
-        with_labels=True,
+        edge_color="#ddddd4",
+        with_labels=False,  # don't draw labels here
+        font_size=8,
+        node_size=node_size,
+    )
+
+    # 11. Prepare a custom position dictionary for labels
+    #     that shifts them above/below the node per layer
+    label_pos = {}
+    for node, data in G.nodes(data=True):
+        x, y = pos[node]
+        layer_idx = data["layer"]
+        # If layer is even, move label above (+), else below (-)
+        offset = 0.07 if (layer_idx % 2 == 0) else -0.07
+        # Create a new position with y-offset
+        label_pos[node] = (x, y + offset)
+
+    # 12. Draw labels separately, at the offset positions
+    nx.draw_networkx_labels(
+        G,
+        label_pos,
+        labels=label_dict,
         font_size=8,
     )
-    plt.title("Systems by Generation Timestamp (colored by cluster_id)")
+
+    plt.title(
+        "Systems by Generation Timestamp (colored by cluster_id, sized by fitness)"
+    )
     plt.show()
 
 
@@ -79,7 +121,7 @@ if __name__ == "__main__":
     population_id = "0bd59045-aa13-49ed-85f0-020a47a931f1"
 
     session, Base = initialize_session()
-    # Example: Suppose you have a list of systems from your DB:
+    # Suppose you have a list of systems from your DB:
     systems = session.query(System).filter_by(population_id=population_id).all()
 
     plot_tree(systems)
