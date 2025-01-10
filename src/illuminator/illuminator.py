@@ -30,7 +30,7 @@ class Illuminator:
     def illuminate(
         self,
         population: Population,
-        systems_for_evaluation: list[System],
+        systems_for_validation: list[System],
     ):
         """
         Evals systems in a population to determine which surrogates should
@@ -39,7 +39,7 @@ class Illuminator:
         Args:
             population (Population): The population object containing the current
             generation and associated systems.
-            systems_for_evaluation (System): A list of systems to be illuminated
+            systems_for_validation (System): A list of systems to be illuminated
             for evaluation.
 
         Returns:
@@ -50,17 +50,17 @@ class Illuminator:
             session, Base = initialize_session()
 
             generation = population.generations[-1]
-            illuminated_systems_for_evaluation = []
+            illuminated_systems_for_validation = []
 
-            print(len(systems_for_evaluation))
+            print(len(systems_for_validation))
 
             # Run the evaluations synchronously by using asyncio.run
-            illuminated_systems_for_evaluation = asyncio.run(
-                self._run_illuminations(session, systems_for_evaluation)
+            illuminated_systems_for_validation = asyncio.run(
+                self._run_illuminations(session, systems_for_validation)
             )
 
-            illuminated_systems_for_evaluation_ids = [
-                str(system.system_id) for system in illuminated_systems_for_evaluation
+            illuminated_systems_for_validation_ids = [
+                str(system.system_id) for system in illuminated_systems_for_validation
             ]
 
         except:
@@ -70,7 +70,7 @@ class Illuminator:
             # be sure to close it!
             session.close()
 
-        return illuminated_systems_for_evaluation_ids
+        return illuminated_systems_for_validation_ids
 
     async def _illuminate_system(self, session, system):
         """
@@ -161,7 +161,7 @@ class Illuminator:
             logging.error(f"Error in illumination: {e}, Y_or_N: {Y_or_N}")
             return None
 
-    async def _run_illuminations(self, session, systems_for_evaluation):
-        tasks = [self._illuminate_system(session, fw) for fw in systems_for_evaluation]
+    async def _run_illuminations(self, session, systems_for_validation):
+        tasks = [self._illuminate_system(session, fw) for fw in systems_for_validation]
         results = await asyncio.gather(*tasks)
         return [fw for fw in results if fw is not None]

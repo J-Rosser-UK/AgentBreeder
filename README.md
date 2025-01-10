@@ -142,6 +142,10 @@ venv/Scripts/activate // windows
 source venv/bin/activate // unix
 
 pip install -r requirements.txt
+
+### in a different terminal ###
+python src/chat/api.py
+###############################
  
 python src/main.py --population_id None
 ```

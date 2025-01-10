@@ -44,15 +44,15 @@ class Validator:
 
     def validate(
         self,
-        systems_for_evaluation: list[System],
+        systems_for_validation: list[System],
     ):
 
-        for i, system in tqdm(enumerate(systems_for_evaluation)):
+        for i, system in tqdm(enumerate(systems_for_validation)):
 
             accuracy, ci_lower, ci_upper, median = self.benchmark.evaluate(
                 system,
                 i + 1,
-                len(systems_for_evaluation),
+                len(systems_for_validation),
                 limit=self.args.n_evals,
             )
 

@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List
 from base import System
 from chat import get_structured_json_response_from_gpt
-from prompts.mutation_base import get_base_prompt
+from prompts.mutation_base import get_base_prompt_with_archive
 from prompts.mutation_reflexion import Reflexion_prompt_1
 import os
 import uuid
@@ -98,7 +98,9 @@ class Mutator:
 
         sampled_mutation = random.choice(self.mutation_operators)
 
-        base_prompt, base_prompt_response_format = get_base_prompt()
+        base_prompt, base_prompt_response_format = get_base_prompt_with_archive(
+            self.args, self.session
+        )
         messages = [
             {
                 "role": "system",
@@ -153,7 +155,9 @@ class Mutator:
             f"Crossing over {system_1.system_name} and {system_2.system_name} systems..."
         )
 
-        base_prompt, base_prompt_response_format = get_base_prompt()
+        base_prompt, base_prompt_response_format = get_base_prompt_with_archive(
+            self.args, self.session
+        )
         messages = [
             {
                 "role": "system",
@@ -237,8 +241,10 @@ class Mutator:
             print(e)
             return None
 
-        # Clean up next_response["system_name"] to only allow numbers, letters, hyphens and underscores
-        next_response["name"] = re.sub(r"[^A-Za-z0-9 ]+", "", next_response["name"])
+        # Clean up the system to only allow numbers, letters, hyphens and underscores
+        next_response["name"] = re.sub(
+            r"[^A-Za-z0-9 \-\u2013\u2014]+", "", next_response["name"]
+        )
 
         return next_response, messages, reflexion_response_format, parent_system_ids
 

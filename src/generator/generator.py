@@ -3,9 +3,16 @@ from base import (
     System,
     Population,
     initialize_session,
-    initialize_session,
 )
-from prompts.mutation_base import get_init_archive
+from prompts.initial_population import (
+    COT,
+    COT_SC,
+    Reflexion,
+    LLM_debate,
+    Take_a_step_back,
+    QD,
+    Role_Assignment,
+)
 
 # from rich import print
 from descriptor import Descriptor
@@ -63,7 +70,7 @@ class Generator:
         self.batch_size = 1
         self.descriptor = Descriptor()
         self.generation_timestamp = generation_timestamp
-        self.evaluator = Validator(args)
+        self.validator = Validator(args)
 
     async def generate(self, session, population_id) -> System:
         """
@@ -86,7 +93,7 @@ class Generator:
             session,
             self.population,
             self.mutation_operators,
-            self.evaluator,
+            self.validator,
             self.generation_timestamp,
         )
 
@@ -115,11 +122,19 @@ def initialize_population_id(args) -> str:
     try:
         session, Base = initialize_session()
 
-        archive = get_init_archive()
+        archive = [
+            COT,
+            COT_SC,
+            Reflexion,
+            LLM_debate,
+            Take_a_step_back,
+            QD,
+            Role_Assignment,
+        ]
 
         population = Population(session=session, population_benchmark=args.benchmark)
         descriptor = Descriptor()
-        evaluator = Validator(args)
+        validator = Validator(args)
         clusterer = Clusterer()
 
         generation_timestamp = datetime.datetime.utcnow()
@@ -140,14 +155,13 @@ def initialize_population_id(args) -> str:
 
         population_id = str(population.population_id)
 
-        systems_for_evaluation = (
+        systems_for_validation = (
             session.query(System)
             .filter_by(population_id=population_id, system_fitness=None)
             .all()
         )
 
-        # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-        evaluator.validate(systems_for_evaluation)
+        validator.validate(systems_for_validation)
 
         # Re-load the population object in this session
         population = (

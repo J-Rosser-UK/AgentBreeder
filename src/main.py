@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore", category=SAWarning)
 def main(args, population_id=None):
     random.seed(args.random_seed)
 
-    evaluator = Validator(args)
+    validator = Validator(args)
     clusterer = Clusterer()
     illuminator = Illuminator(args)
 
@@ -46,6 +46,15 @@ def main(args, population_id=None):
             # Recluster the population
             clusterer.cluster(population)
 
+            # Only choose systems which haven't been validated yet (e.g. system_fitness=None)
+            systems_for_validation = (
+                session.query(System)
+                .filter_by(population_id=population_id, system_fitness=-1)
+                .order_by(System.system_timestamp.desc())
+                .all()[:10]
+            )
+            validator.validate(systems_for_validation)
+
             print(f"Reloaded population ID: {population.population_id}")
 
         except:
@@ -59,7 +68,6 @@ def main(args, population_id=None):
     for g in tqdm(range(args.n_generation), desc="Generations"):
 
         # Generate a new batch of mutants
-
         asyncio.run(run_generation(args, population_id))
 
         try:
@@ -73,35 +81,34 @@ def main(args, population_id=None):
             # Recluster the population
             clusterer.cluster(population)
 
-            # Only choose systems which haven't been evaluated yet (e.g. system_fitness=None)
-            systems_for_evaluation = (
+            # Only choose systems which haven't been validated yet (e.g. system_fitness=None)
+            systems_for_validation = (
                 session.query(System)
                 .filter_by(population_id=population_id, system_fitness=None)
                 .all()
             )
 
-            illuminated_systems_for_evaluation_ids: list[str] = illuminator.illuminate(
-                population, systems_for_evaluation
+            illuminated_systems_for_validation_ids: list[str] = illuminator.illuminate(
+                population, systems_for_validation
             )
 
             # Perform the query correctly
-            illuminated_systems_for_evaluation = (
+            illuminated_systems_for_validation = (
                 session.query(System)  # Start the query
                 .filter(
-                    System.system_id.in_(illuminated_systems_for_evaluation_ids)
+                    System.system_id.in_(illuminated_systems_for_validation_ids)
                 )  # Apply the filter
                 .all()  # Fetch all results
             )
 
             print(
                 "fws",
-                len(systems_for_evaluation),
+                len(systems_for_validation),
                 "ilfws",
-                len(illuminated_systems_for_evaluation),
+                len(illuminated_systems_for_validation),
             )
 
-            # evaluator.async_evaluate(illuminated_systems_for_evaluation)
-            evaluator.validate(illuminated_systems_for_evaluation)
+            validator.validate(illuminated_systems_for_validation)
 
         except:
             session.rollback()
@@ -121,12 +128,12 @@ if __name__ == "__main__":
     parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
-    parser.add_argument("--n_mutations", type=int, default=10)
-    parser.add_argument("--n_evals", type=int, default=50)
+    parser.add_argument("--n_mutations", type=int, default=1)
+    parser.add_argument("--n_evals", type=int, default=1)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="clrs_text")
+    parser.add_argument("--benchmark", type=str, default="mmlu")
 
     args = parser.parse_args()
 
