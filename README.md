@@ -65,10 +65,8 @@ AgentBreeder/
   ├── assets/
   │   └── source.txt
   └── src/
-      ├── descriptor.py
-      ├── illuminator.py
+      ├── eval.py
       ├── main.py
-      ├── visualizer.py
       ├── base/
       │   ├── __init__.py
       │   ├── base.py
@@ -80,28 +78,39 @@ AgentBreeder/
       │   ├── chat.py
       │   ├── test_api.py
       │   └── test_api_requests.py
+      ├── descriptor/
+      │   ├── __init__.py
+      │   └── descriptor.py
       ├── evals/
       │   ├── __init__.py
       │   ├── arc.py
-      │   ├── drop.py
-      │   ├── evaluator.py
-      │   ├── gpqa.py
       │   ├── benchmark.py
+      │   ├── clrs_text.py
+      │   ├── drop.py
+      │   ├── gpqa.py
       │   ├── metrics.py
       │   ├── mgsm.py
       │   ├── mmlu.py
       │   ├── test_arc.py
-      │   └── test_mmlu.py
+      │   ├── test_clrs_text.py
+      │   ├── test_mmlu.py
+      │   └── validator.py
       ├── generator/
       │   ├── __init__.py
       │   ├── generator.py
       │   └── mutator.py
-      └── prompts/
-          ├── initial_population.py
-          ├── mutation_base.py
-          ├── mutation_prompts.py
-          ├── mutation_reflexion.py
-          └── utils.py
+      ├── illuminator/
+      │   ├── __init__.py
+      │   └── illuminator.py
+      ├── prompts/
+      │   ├── initial_population.py
+      │   ├── mutation_base.py
+      │   ├── mutation_prompts.py
+      │   ├── mutation_reflexion.py
+      │   └── utils.py
+      └── visualizations/
+          ├── tree.py
+          └── visualizer.py
 
 ```
 
