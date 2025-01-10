@@ -17,12 +17,15 @@ from evals import Evaluator
 from descriptor import Clusterer
 import asyncio
 import logging
+import datetime
 
 
-async def generate_mutant(args, population_id):
+async def generate_mutant(args, population_id, generation_timestamp):
     try:
         session, Base = initialize_session()
-        generator = Generator(args)  # Create a new Generator instance per task
+        generator = Generator(
+            args, generation_timestamp
+        )  # Create a new Generator instance per task
         mutant_system = await generator.generate(session, population_id)
     except Exception as e:
         logging.error(f"Error generating mutant: {e}")
@@ -35,14 +38,18 @@ async def generate_mutant(args, population_id):
 
 # The async part of the logic
 async def run_generation(args, population_id):
-    tasks = [generate_mutant(args, population_id) for _ in range(args.n_mutations)]
+    generation_timestamp = datetime.datetime.utcnow()
+    tasks = [
+        generate_mutant(args, population_id, generation_timestamp)
+        for _ in range(args.n_mutations)
+    ]
     results = await asyncio.gather(*tasks)
     return results
 
 
 class Generator:
 
-    def __init__(self, args) -> None:
+    def __init__(self, args, generation_timestamp) -> None:
         """
         Initializes the Generator class.
 
@@ -55,6 +62,7 @@ class Generator:
         self.mutation_operators = multi_agent_system_mutation_prompts
         self.batch_size = 1
         self.descriptor = Descriptor()
+        self.generation_timestamp = generation_timestamp
         self.evaluator = Evaluator(args)
 
     async def generate(self, session, population_id) -> System:
@@ -79,6 +87,7 @@ class Generator:
             self.population,
             self.mutation_operators,
             self.evaluator,
+            self.generation_timestamp,
         )
 
         mutant_system = await self.mutator.mutate()
@@ -113,6 +122,8 @@ def initialize_population_id(args) -> str:
         evaluator = Evaluator(args)
         clusterer = Clusterer()
 
+        generation_timestamp = datetime.datetime.utcnow()
+
         for system in archive:
             system = System(
                 session=session,
@@ -120,6 +131,7 @@ def initialize_population_id(args) -> str:
                 system_code=system["code"],
                 system_thought_process=system["thought"],
                 population=population,
+                generation_timestamp=generation_timestamp,
             )
             population.systems.append(system)
 

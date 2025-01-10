@@ -94,6 +94,10 @@ class System(CustomBase):
         ForeignKey("cluster.cluster_id"),
         label="The cluster's unique identifier (UUID).",
     )
+    generation_timestamp = CustomColumn(
+        DateTime,
+        label="The generation's timestamp.",
+    )
 
     # Relationships
     meetings = relationship(

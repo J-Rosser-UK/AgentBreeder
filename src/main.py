@@ -10,7 +10,7 @@ from evals import Evaluator
 import os
 import uuid
 import asyncio
-
+import datetime
 import warnings
 from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
@@ -56,9 +56,10 @@ def main(args, population_id=None):
             session.close()
 
     # Begin Bayesian Illumination...
-    for _ in tqdm(range(args.n_generation), desc="Generations"):
+    for g in tqdm(range(args.n_generation), desc="Generations"):
 
         # Generate a new batch of mutants
+
         asyncio.run(run_generation(args, population_id))
 
         try:

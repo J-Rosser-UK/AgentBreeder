@@ -16,7 +16,13 @@ import re
 class Mutator:
 
     def __init__(
-        self, args, session, population, mutation_operators, evaluator
+        self,
+        args,
+        session,
+        population,
+        mutation_operators,
+        evaluator,
+        generation_timestamp,
     ) -> None:
         """
         Initializes the Mutator class.
@@ -35,6 +41,7 @@ class Mutator:
         self.evaluator = evaluator
         self.session = session
         self.population = population
+        self.generation_timestamp = generation_timestamp
 
     async def mutate(self) -> System:
         """
@@ -65,6 +72,7 @@ class Mutator:
                 system_second_parent_id=str(parent_system_ids[1]),
                 system_thought_process=system_response["thought"],
                 population=self.population,
+                generation_timestamp=self.generation_timestamp,
             )
         except Exception as e:
 
