@@ -22,7 +22,7 @@ EXAMPLE = {
 current_directory = os.path.dirname(os.path.abspath(__file__))
 higher_directory = os.path.dirname(current_directory)
 
-Agent_code = extract_class_code(f"{higher_directory}/base/tables.py", "Agent")
+Agent_code = extract_class_code(f"{higher_directory}/base/system.py", "Agent")
 get_structured_json_response_from_gpt_code = extract_function_code(
     f"{higher_directory}/chat/chat.py", "get_structured_json_response_from_gpt"
 )
@@ -152,7 +152,7 @@ async def forward(self, task):
 system = Agent(agent_name="system", temperature=0.7)
 expert = Agent(agent_name="Expert", temperature=0.8)
 meeting = Meeting(meeting_name="solving_task")
-meeting.agents.extend([system, expert])
+[agent.append(meeting) for agent in [system, expert]]
 ```
 
 2. Proper chat message addition:

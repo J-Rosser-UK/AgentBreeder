@@ -12,7 +12,6 @@ from .tables import (
     Generation,
     Population,
     Meeting,
-    AgentsbyMeeting,
     Agent,
 )  # noqa
 
@@ -24,7 +23,7 @@ load_dotenv(override=True)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 engine = create_engine(
     os.getenv("DATABASE_URL"),
-    pool_size=100,  # Number of connections in the pool
+    pool_size=50,  # Number of connections in the pool
     max_overflow=10,  # Additional connections allowed beyond pool_size
 )
 

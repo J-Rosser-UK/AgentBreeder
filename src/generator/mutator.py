@@ -311,7 +311,7 @@ class Mutator:
                         itself, as it will recurse infinitely."""
                     )
                 await self.evaluator.benchmark.forward_pass(
-                    next_response["code"], temp_file, self.session
+                    next_response["code"], temp_file
                 )
                 break
 

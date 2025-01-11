@@ -5,7 +5,6 @@ from .session import (
     Generation,
     Population,
     Meeting,
-    AgentsbyMeeting,
     Agent,
     Base,
     initialize_session,

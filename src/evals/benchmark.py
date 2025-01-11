@@ -1,5 +1,6 @@
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
+from inspect_ai.model import GenerateConfig, get_model
 from inspect_ai.solver import solver, Solver, TaskState, Generate
 import random
 from inspect_ai.dataset import Dataset, hf_dataset
@@ -12,7 +13,8 @@ from inspect_ai._eval.eval import eval
 import os
 import importlib.util
 import uuid
-from base import initialize_session
+from .model import CustomModel, CustomModelAPI
+
 import contextlib
 import logging
 from inspect_ai.scorer import Score, scorer
@@ -52,9 +54,7 @@ class Benchmark(ABC):
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         pass
 
-    async def forward(
-        self, forward_function: str, temp_file: str, session, task: str
-    ) -> None:
+    async def forward(self, forward_function: str, temp_file: str, task: str) -> None:
         output = ""
         try:
 
@@ -63,33 +63,20 @@ class Benchmark(ABC):
                 f.write("import random\n")
                 f.write("import pandas\n")
                 f.write("import asyncio\n\n")
-                f.write(f"from base import Agent, Meeting, Chat, Wrapper\n\n")
-                f.write(f"from sqlalchemy.orm import Session\n\n")
+                f.write(f"from base import Agent, Meeting, Chat\n\n")
                 f.write("class AgentSystem:\n")
-                f.write("    def __init__(self, session: Session):\n")
-                f.write("        self.Agent = Wrapper(Agent, session)\n")
-                f.write("        self.Meeting = Wrapper(Meeting, session)\n")
-                f.write("        self.Chat = Wrapper(Chat, session)\n")
-                f.write("        self.session = session\n\n")
                 f.write("    " + forward_function.replace("\n", "\n    "))
                 f.write("\n\n")
                 f.write("if __name__ == '__main__':\n")
-                f.write("    " + "from base import initialize_session\n")
-                f.write("    " + "for session in initialize_session():\n")
-                f.write("    " + "    " + "agent_system = AgentSystem(session)\n")
+                f.write("    " + "agent_system = AgentSystem()\n")
                 f.write(
                     "    "
-                    + "    "
                     + """task = "What should I have for dinner?"""
                     + "    "
                     + """A: soup B: burgers C: pizza D: pasta"\n"""
                 )
-                f.write(
-                    "    "
-                    + "    "
-                    + "output = asyncio.run(agent_system.forward(task))\n"
-                )
-                f.write("    " + "    " + "print(output)\n")
+                f.write("    " + "output = asyncio.run(agent_system.forward(task))\n")
+                f.write("    " + "print(output)\n")
 
             # Import the AgentSystem class from the temp file
             spec = importlib.util.spec_from_file_location(
@@ -99,7 +86,7 @@ class Benchmark(ABC):
             spec.loader.exec_module(module)
             AgentSystem = module.AgentSystem
 
-            agentSystem = AgentSystem(session)
+            agentSystem = AgentSystem()
 
             # Set a timeout of 3 minutes (180 seconds)
             output = await asyncio.wait_for(agentSystem.forward(task), timeout=180)
@@ -114,25 +101,11 @@ class Benchmark(ABC):
         except Exception as e:
             print("Error during evaluation:", e)
             output = f"Error: {str(e)}"
-            session.rollback()
-
-            if "sqlite3.OperationalError" in str(e):
-                # wait between 10 and 60 seconds
-                await asyncio.sleep(random.randint(10, 60))
-                try:
-                    output = await asyncio.wait_for(
-                        agentSystem.forward(task), timeout=180
-                    )
-                except:
-                    print("Double error during evaluation:", e)
-                    output = f"Double error: {str(e)}"
-                    session.rollback()
 
         finally:
-            # delete file at the end
-            session.commit()
-            os.remove(temp_file)
-            session.close()
+
+            # os.remove(temp_file)
+            pass
 
         return output
 
@@ -140,26 +113,27 @@ class Benchmark(ABC):
     def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            for session in initialize_session():
+            output = await generate(state=state)
+            print("generate", output)
 
-                # Create the agent system in temporary code
-                current_directory = os.path.dirname(os.path.abspath(__file__))
-                parent_directory = os.path.dirname(current_directory)
-                cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
-                temp_file = (
-                    f"""{parent_directory}/temp/agent_system_temp_"""
-                    + f"""
-                    {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
-                )
+            # Create the agent system in temporary code
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            parent_directory = os.path.dirname(current_directory)
+            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
+            temp_file = (
+                f"""{parent_directory}/temp/agent_system_temp_"""
+                + f"""
+                {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
+            )
 
-                forward_function = system.system_code
+            forward_function = system.system_code
 
-                if "return self.forward" in forward_function:
-                    return 0
+            if "return self.forward" in forward_function:
+                return 0
 
-                state.output.completion = await self.forward(
-                    forward_function, temp_file, session, state.input
-                )
+            state.output.completion = await self.forward(
+                forward_function, temp_file, state.input
+            )
 
             return state
 
@@ -222,9 +196,17 @@ class Benchmark(ABC):
         # Run the evaluation while hiding any print outputs
         # with open(os.devnull, "w") as devnull:
         #     with contextlib.redirect_stdout(devnull):
+        model = get_model("openai/gpt-3.5-turbo")
+        # model = CustomModel(model, config=GenerateConfig())
+        custom_api = CustomModelAPI(
+            model_name="my-manual-model",
+            config=GenerateConfig(max_tokens=42),  # Example config
+        )
+        model = CustomModel(api=custom_api, config=GenerateConfig())
+
         results = eval(
             self.match_task(system, i, N),
-            model="openai/gpt-3.5-turbo",  # this doesn't matter and isn't used
+            model=[model, model],  # this doesn't matter and isn't used
             limit=limit,
             log_dir="./logs",  # specify where logs are stored
             log_format="eval",  # choose log format ("eval" or "json")
@@ -253,13 +235,11 @@ class Benchmark(ABC):
 
         return accuracy, ci_lower, ci_upper, median
 
-    async def forward_pass(self, next_response_code, temp_file, session):
+    async def forward_pass(self, next_response_code, temp_file):
 
         sample = random.choice(self.dataset)
 
-        output = await self.forward(
-            next_response_code, temp_file, session, sample.input
-        )
+        output = await self.forward(next_response_code, temp_file, sample.input)
 
         # check state.output.completion is a string that doesnt load to a dictionary or list, its literally just a string
         result = None
