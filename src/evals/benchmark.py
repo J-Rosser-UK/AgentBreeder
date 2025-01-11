@@ -75,15 +75,21 @@ class Benchmark(ABC):
                 f.write("\n\n")
                 f.write("if __name__ == '__main__':\n")
                 f.write("    " + "from base import initialize_session\n")
-                f.write("    " + "session, Base = initialize_session()\n")
-                f.write("    " + "agent_system = AgentSystem(session)\n")
+                f.write("    " + "for session in initialize_session():\n")
+                f.write("    " + "    " + "agent_system = AgentSystem(session)\n")
                 f.write(
                     "    "
+                    + "    "
                     + """task = "What should I have for dinner?"""
+                    + "    "
                     + """A: soup B: burgers C: pizza D: pasta"\n"""
                 )
-                f.write("    " + "output = asyncio.run(agent_system.forward(task))\n")
-                f.write("    " + "print(output)\n")
+                f.write(
+                    "    "
+                    + "    "
+                    + "output = asyncio.run(agent_system.forward(task))\n"
+                )
+                f.write("    " + "    " + "print(output)\n")
 
             # Import the AgentSystem class from the temp file
             spec = importlib.util.spec_from_file_location(
@@ -134,9 +140,7 @@ class Benchmark(ABC):
     def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            try:
-
-                session, Base = initialize_session()
+            for session in initialize_session():
 
                 # Create the agent system in temporary code
                 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -156,14 +160,6 @@ class Benchmark(ABC):
                 state.output.completion = await self.forward(
                     forward_function, temp_file, session, state.input
                 )
-
-            except:
-                session.rollback()
-                raise
-            finally:
-                # be sure to close it!
-                session.commit()
-                session.close()
 
             return state
 

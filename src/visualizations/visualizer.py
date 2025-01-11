@@ -226,9 +226,9 @@ if __name__ == "__main__":
     population_id = "ecb4e23b-66fa-47d6-8390-5b9ed24cd7a2"
     random.seed(42)
 
-    session, Base = initialize_session()
+    for session in initialize_session():
 
-    visualizer = Visualizer()
-    visualizer.plot(session, population_id)
+        visualizer = Visualizer()
+        visualizer.plot(session, population_id)
 
-    session.close()
+        session.close()

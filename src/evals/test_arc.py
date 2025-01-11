@@ -37,7 +37,6 @@ class TestARC(unittest.TestCase):
         self.args = parser.parse_args()
 
         self.evaluator = ARC(args=self.args, split="validation", limit=1)
-        self.session, _ = initialize_session()
 
     def test_record_to_sample(self):
         record = {
@@ -144,7 +143,7 @@ class TestARC(unittest.TestCase):
             system_id=str(uuid.uuid4()),
             system_code=COT_SC["code"],
         )
-        # system = self.session.query(System).first()
+
         accuracy = self.evaluator.evaluate(system, limit=1)
         print("accuracy", accuracy)
         self.assertIsInstance(accuracy, float)

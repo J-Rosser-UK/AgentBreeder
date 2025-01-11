@@ -120,11 +120,11 @@ if __name__ == "__main__":
     random.seed(42)
     population_id = "0bd59045-aa13-49ed-85f0-020a47a931f1"
 
-    session, Base = initialize_session()
-    # Suppose you have a list of systems from your DB:
-    systems = session.query(System).filter_by(population_id=population_id).all()
+    for session in initialize_session():
+        # Suppose you have a list of systems from your DB:
+        systems = session.query(System).filter_by(population_id=population_id).all()
 
-    plot_tree(systems)
+        plot_tree(systems)
 
 
 # def assign_generations(systems):

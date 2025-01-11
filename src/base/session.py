@@ -16,19 +16,17 @@ from .tables import (
     Agent,
 )  # noqa
 
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 # Create engine and Base
 current_dir = os.path.dirname(os.path.abspath(__file__))
 engine = create_engine(
-    f"sqlite:///{current_dir}/db/experiment.db",
-    connect_args={"check_same_thread": False},
-    pool_size=100,
-    max_overflow=20,
-    pool_timeout=60,
+    os.getenv("DATABASE_URL"),
+    pool_size=100,  # Number of connections in the pool
+    max_overflow=10,  # Additional connections allowed beyond pool_size
 )
-
-with engine.connect() as conn:
-    conn.execute(text("PRAGMA journal_mode = WAL"))
-    conn.execute(text("PRAGMA synchronous = NORMAL"))
 
 
 def initialize_session():
@@ -51,4 +49,5 @@ def initialize_session():
     except:
         session.rollback()
     finally:
+        session.commit()
         session.close()

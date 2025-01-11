@@ -46,8 +46,7 @@ class Illuminator:
             list[System]: A list of systems deemed suitable for further evaluation
             based on the illumination process.
         """
-        try:
-            session, Base = initialize_session()
+        for session in initialize_session():
 
             generation = population.generations[-1]
             illuminated_systems_for_validation = []
@@ -62,13 +61,6 @@ class Illuminator:
             illuminated_systems_for_validation_ids = [
                 str(system.system_id) for system in illuminated_systems_for_validation
             ]
-
-        except:
-            session.rollback()
-            raise
-        finally:
-            # be sure to close it!
-            session.close()
 
         return illuminated_systems_for_validation_ids
 

@@ -35,8 +35,6 @@ class TestCLRSText(unittest.TestCase):
 
         self.args = parser.parse_args()
 
-        self.session, _ = initialize_session()
-
     def test_record_to_sample(self):
         self.evaluator = CLRSText(args=self.args, split="validation", limit=1)
 

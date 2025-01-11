@@ -28,18 +28,16 @@ import datetime
 
 
 async def generate_mutant(args, population_id, generation_timestamp):
-    try:
-        session, Base = initialize_session()
-        generator = Generator(
-            args, generation_timestamp
-        )  # Create a new Generator instance per task
-        mutant_system = await generator.generate(session, population_id)
-    except Exception as e:
-        logging.error(f"Error generating mutant: {e}")
-        mutant_system = None
-        session.rollback()
-    finally:
-        session.close()
+    for session in initialize_session():
+        try:
+            generator = Generator(
+                args, generation_timestamp
+            )  # Create a new Generator instance per task
+            mutant_system = await generator.generate(session, population_id)
+        except Exception as e:
+            logging.error(f"Error generating mutant: {e}")
+            mutant_system = None
+
     return mutant_system
 
 
@@ -119,8 +117,7 @@ def initialize_population_id(args) -> str:
     Returns:
         str: The unique ID of the initialized population.
     """
-    try:
-        session, Base = initialize_session()
+    for session in initialize_session():
 
         archive = [
             COT,
@@ -169,12 +166,5 @@ def initialize_population_id(args) -> str:
         )
         # Recluster the population
         clusterer.cluster(population)
-
-    except:
-        session.rollback()
-        raise
-    finally:
-        # be sure to close it!
-        session.close()
 
     return population_id

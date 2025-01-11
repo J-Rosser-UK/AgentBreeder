@@ -36,8 +36,7 @@ def main(args, population_id=None):
         population_id = initialize_population_id(args)
         print(f"Population ID: {population_id}")
     else:
-        try:
-            session, Base = initialize_session()
+        for session in initialize_session():
 
             # Re-load the population object in this session
             population = (
@@ -57,21 +56,13 @@ def main(args, population_id=None):
 
             print(f"Reloaded population ID: {population.population_id}")
 
-        except:
-            session.rollback()
-            raise
-        finally:
-            # be sure to close it!
-            session.close()
-
     # Begin Bayesian Illumination...
     for g in tqdm(range(args.n_generation), desc="Generations"):
 
         # Generate a new batch of mutants
         asyncio.run(run_generation(args, population_id))
 
-        try:
-            session, Base = initialize_session()
+        for session in initialize_session():
 
             # Re-load the population object in this session
             population = (
@@ -109,13 +100,6 @@ def main(args, population_id=None):
             )
 
             validator.validate(illuminated_systems_for_validation)
-
-        except:
-            session.rollback()
-            raise
-        finally:
-            # be sure to close it!
-            session.close()
 
     return population_id  # Return the population ID for restarts
 

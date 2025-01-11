@@ -30,8 +30,7 @@ def main(args):
 
     evaluator = MMLU(args=args, split="test", shuffle=True, limit=args.n_evals)
 
-    try:
-        session, Base = initialize_session()
+    for session in initialize_session():
 
         # Only choose systems which haven't been evaluated yet (e.g. system_fitness=None)
         systems_for_evaluation = (
@@ -53,13 +52,6 @@ def main(args):
             )
 
             print(accuracy, ci_lower, ci_upper, median)
-
-    except:
-        session.rollback()
-        raise
-    finally:
-        # be sure to close it!
-        session.close()
 
     return args.system_id  # Return the population ID for restarts
 
