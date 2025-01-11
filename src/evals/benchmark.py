@@ -110,6 +110,18 @@ class Benchmark(ABC):
             output = f"Error: {str(e)}"
             session.rollback()
 
+            if "sqlite3.OperationalError" in str(e):
+                # wait between 10 and 60 seconds
+                await asyncio.sleep(random.randint(10, 60))
+                try:
+                    output = await asyncio.wait_for(
+                        agentSystem.forward(task), timeout=180
+                    )
+                except:
+                    print("Double error during evaluation:", e)
+                    output = f"Double error: {str(e)}"
+                    session.rollback()
+
         finally:
             # delete file at the end
             session.commit()
@@ -254,15 +266,19 @@ class Benchmark(ABC):
         )
 
         # check state.output.completion is a string that doesnt load to a dictionary or list, its literally just a string
+        result = None
         try:
             result = ast.literal_eval(output)
-            # If it evaluates successfully, check its type
+
+        except Exception as e:
+            pass
+
+        # If it evaluates successfully, check its type
+        if result:
             if isinstance(result, (dict, tuple)):
                 raise AgentSystemException(
                     "The final output of the forward function should be a string, not a dictionary, or tuple."
                 )
-        except Exception as e:
-            pass
 
         if "Time Expired" in output:
             raise AgentSystemException(

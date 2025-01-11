@@ -15,6 +15,7 @@ from evals.drop import DROP
 from evals.gpqa import GPQA
 from evals.mgsm import MGSM
 from evals.clrs_text import CLRSText
+from evals.salad_data import SaladData
 from .benchmark import AgentSystemException
 
 
@@ -36,6 +37,7 @@ class Validator:
             # "drop": DROP, #       # 128 questions in validation set, 800 in test set
             # "mgsm": MGSM, #       # 128 questions in validation set, 800 in test set
             "clrs_text": CLRSText,
+            "salad_data": SaladData,
         }
 
         self.benchmark = self.benchmarks[args.benchmark](

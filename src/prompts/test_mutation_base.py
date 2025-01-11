@@ -15,9 +15,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--population_id", type=str, default="b8128583-6bfb-46da-b7f8-9bc2b7d24a75"
+        "--population_id", type=str, default="547116b7-2b16-42fe-9b28-0c3f24ead54f"
     )
 
     args = parser.parse_args()
 
     prompt, response_format = get_base_prompt_with_archive(args, session)
+
+    print(prompt)

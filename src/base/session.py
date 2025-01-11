@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
@@ -21,7 +21,14 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 engine = create_engine(
     f"sqlite:///{current_dir}/db/experiment.db",
     connect_args={"check_same_thread": False},
+    pool_size=100,
+    max_overflow=20,
+    pool_timeout=60,
 )
+
+with engine.connect() as conn:
+    conn.execute(text("PRAGMA journal_mode = WAL"))
+    conn.execute(text("PRAGMA synchronous = NORMAL"))
 
 
 def initialize_session():
@@ -37,4 +44,11 @@ def initialize_session():
 
     assert len(Base.metadata.tables.keys()) > 0
 
-    return SessionFactory(), Base
+    session = SessionFactory()
+
+    try:
+        yield session
+    except:
+        session.rollback()
+    finally:
+        session.close()

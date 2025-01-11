@@ -128,12 +128,12 @@ if __name__ == "__main__":
     parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
-    parser.add_argument("--n_mutations", type=int, default=1)
-    parser.add_argument("--n_evals", type=int, default=1)
+    parser.add_argument("--n_mutations", type=int, default=20)
+    parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="mmlu")
+    parser.add_argument("--benchmark", type=str, default="salad_data")
 
     args = parser.parse_args()
 

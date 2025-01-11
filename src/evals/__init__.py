@@ -7,4 +7,5 @@ from .validator import (
     GPQA,
     MGSM,
     CLRSText,
+    SaladData,
 )

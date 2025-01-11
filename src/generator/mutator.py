@@ -3,8 +3,8 @@ import pandas as pd
 from typing import List
 from base import System
 from chat import get_structured_json_response_from_gpt
-from prompts.mutation_base import get_base_prompt_with_archive
-from prompts.mutation_reflexion import Reflexion_prompt_1
+from prompts.meta_agent_base import get_base_prompt_with_archive
+from prompts.meta_agent_reflexion import Reflexion_prompt_1
 import os
 import uuid
 from evals import AgentSystemException
