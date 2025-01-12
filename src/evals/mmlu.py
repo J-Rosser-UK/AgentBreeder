@@ -67,9 +67,9 @@ class MMLU(Benchmark):
         )
 
     @task
-    def match_task(self, system, i, N):
+    def match_task(self, system):
         return Task(
-            name=f"{i} of {N} {system.system_name}",
+            name=system.system_name,
             dataset=self.dataset,
             solver=self.match_solver(system),
             scorer=self.llm_match(),

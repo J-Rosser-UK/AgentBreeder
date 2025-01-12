@@ -185,7 +185,7 @@ class CLRSText(Benchmark):
         )
 
     @task
-    def match_task(self, system: Any, i: int, N: int) -> Task:
+    def match_task(self, system: Any) -> Task:
         """
         Create a Task object for scoring traces using the 'trace_match' scorer.
 

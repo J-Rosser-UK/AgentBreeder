@@ -14,7 +14,7 @@ import os
 import importlib.util
 import uuid
 from .model import CustomModel, CustomModelAPI
-
+import json
 import contextlib
 import logging
 from inspect_ai.scorer import Score, scorer
@@ -54,9 +54,20 @@ class Benchmark(ABC):
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         pass
 
-    async def forward(self, forward_function: str, temp_file: str, task: str) -> None:
-        output = ""
+    @staticmethod
+    def get_callable(system_id, system_name, system_code) -> tuple:
+
         try:
+            forward_function = system_code
+            # Create the agent system in temporary code
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            parent_directory = os.path.dirname(current_directory)
+            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system_name)
+            temp_file = (
+                f"""{parent_directory}/temp/agent_system_temp_"""
+                + f"""
+                {cleaned_name}_{system_id}_{uuid.uuid4()}.py""".strip()
+            )
 
             # Write the complete AgentSystem class to the file, including the forward function
             with open(temp_file, "w") as f:
@@ -86,54 +97,19 @@ class Benchmark(ABC):
             spec.loader.exec_module(module)
             AgentSystem = module.AgentSystem
 
-            agentSystem = AgentSystem()
-
-            # Set a timeout of 3 minutes (180 seconds)
-            output = await asyncio.wait_for(agentSystem.forward(task), timeout=180)
-            output = str(output)
-
-        except TimeoutError:
-            logging.info(f"Time expired for {temp_file}")
-            print(f"Time expired for {temp_file}")
-
-            output = "Time Expired"
-
         except Exception as e:
             print("Error during evaluation:", e)
-            output = f"Error: {str(e)}"
+            return None, temp_file
 
-        finally:
-
-            # os.remove(temp_file)
-            pass
-
-        return output
+        return AgentSystem, temp_file
 
     @solver
     def match_solver(self, system) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
-            output = await generate(state=state)
-            print("generate", output)
+            state = await generate(state=state)
 
-            # Create the agent system in temporary code
-            current_directory = os.path.dirname(os.path.abspath(__file__))
-            parent_directory = os.path.dirname(current_directory)
-            cleaned_name = re.sub(r"[^A-Za-z0-9 ]+", "", system.system_name)
-            temp_file = (
-                f"""{parent_directory}/temp/agent_system_temp_"""
-                + f"""
-                {cleaned_name}_{system.system_id}_{uuid.uuid4()}.py""".strip()
-            )
-
-            forward_function = system.system_code
-
-            if "return self.forward" in forward_function:
-                return 0
-
-            state.output.completion = await self.forward(
-                forward_function, temp_file, state.input
-            )
+            # print("generate", state.output.completion)
 
             return state
 
@@ -188,91 +164,88 @@ class Benchmark(ABC):
 
     @abstractmethod
     @task
-    def match_task(self, system, i, N):
+    def match_task(self, system):
         pass
 
-    def evaluate(self, system, i=1, N=1, limit=10):
+    def evaluate(self, systems, limit=10):
 
         # Run the evaluation while hiding any print outputs
         # with open(os.devnull, "w") as devnull:
         #     with contextlib.redirect_stdout(devnull):
-        model = get_model("openai/gpt-3.5-turbo")
-        # model = CustomModel(model, config=GenerateConfig())
-        custom_api = CustomModelAPI(
-            model_name="my-manual-model",
-            config=GenerateConfig(max_tokens=42),  # Example config
-        )
-        model = CustomModel(api=custom_api, config=GenerateConfig())
+
+        temp_files = []
+        models = []
+        for system in systems:
+            AgentSystem, temp_file = Benchmark.get_callable(
+                system.system_id, system.system_name, system.system_code
+            )
+            temp_files.append(temp_file)
+
+            custom_api = CustomModelAPI(
+                model_name=system.system_name,
+                config=GenerateConfig(),  # Example config
+                system=system,
+                temp_file=temp_file,
+                agent_system=AgentSystem,
+            )
+
+            models.append(CustomModel(api=custom_api, config=GenerateConfig()))
 
         results = eval(
-            self.match_task(system, i, N),
-            model=[model, model],  # this doesn't matter and isn't used
+            self.match_task(system),
+            model=models[:2],
             limit=limit,
             log_dir="./logs",  # specify where logs are stored
             log_format="eval",  # choose log format ("eval" or "json")
             score=True,  # ensure scoring is enable
         )
 
+        for temp_file in temp_files:
+            try:
+                os.remove(temp_file)
+            except Exception as e:
+                print("Error removing temp file:", e)
+
         # 'results' is a list of EvalLog objects (usually one per task)
         # Each EvalLog contains metrics for the entire task/dataset.
-        accuracy = -2.0
-        print(results)
+        model_metrics = {}  # dictionary to hold info for each model
+
         for res in results:
+            print("RES", res)
+            # 1) Get the model name
+            model_name = getattr(
+                res.eval.split("/")[1], "model", None
+            )  # or res.model if guaranteed to exist
+
+            # 2) Initialize defaults (or None) for each metric
+            accuracy = None
+            ci_lower = None
+            ci_upper = None
+            median = None
+
+            # 3) Check if results and scores exist
             if res.results and res.results.scores:
-                print("Final metrics for the entire dataset:")
                 for score in res.results.scores:
-                    print(f"Score: {score.name}")
-                    for metric_name, metric in score.metrics.items():
-                        print(f"  {metric_name}: {metric.value}")
-                        if metric_name == "accuracy":
-                            accuracy = metric.value
-                        elif metric_name == "ci_lower":
-                            ci_lower = metric.value
-                        elif metric_name == "ci_upper":
-                            ci_upper = metric.value
-                        elif metric_name == "median":
-                            median = metric.value
+                    if score.metrics:
+                        # 4) For each metric, check if it exists and store its value
+                        if "accuracy" in score.metrics:
+                            accuracy = score.metrics["accuracy"].value
+                        if "ci_lower" in score.metrics:
+                            ci_lower = score.metrics["ci_lower"].value
+                        if "ci_upper" in score.metrics:
+                            ci_upper = score.metrics["ci_upper"].value
+                        if "median" in score.metrics:
+                            median = score.metrics["median"].value
 
-        return accuracy, ci_lower, ci_upper, median
+            # 5) Save the metrics in a dictionary, keyed by the model name
+            model_metrics[model_name] = {
+                "accuracy": accuracy,
+                "ci_lower": ci_lower,
+                "ci_upper": ci_upper,
+                "median": median,
+            }
 
-    async def forward_pass(self, next_response_code, temp_file):
-
-        sample = random.choice(self.dataset)
-
-        output = await self.forward(next_response_code, temp_file, sample.input)
-
-        # check state.output.completion is a string that doesnt load to a dictionary or list, its literally just a string
-        result = None
-        try:
-            result = ast.literal_eval(output)
-
-        except Exception as e:
-            pass
-
-        # If it evaluates successfully, check its type
-        if result:
-            if isinstance(result, (dict, tuple)):
-                raise AgentSystemException(
-                    "The final output of the forward function should be a string, not a dictionary, or tuple."
-                )
-
-        if "Time Expired" in output:
-            raise AgentSystemException(
-                "Time expired, please ensure the forward function executes within the time limit of 3 minutes."
-            )
-
-        if "def transform" in output:
-            try:
-                # Attempt to compile the string as Python code
-                compiled_code = compile(output, "<string>", "exec")
-
-            except SyntaxError as s:
-                print("code error", s, output)
-                raise AgentSystemException(
-                    "When outputting code as a string, the final output of the forward function should be a well-formed Python code snippet. This code is returning a syntax error {s}."
-                )
-
-        return output
+        return model_metrics
 
     def benchmark_filter(self, example):
         return True

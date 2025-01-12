@@ -1,18 +1,21 @@
-#!/usr/bin/env python
-"""
-Example: Single-file Custom ModelAPI and Model registration + usage.
-"""
-
 import asyncio
 from typing import Any
 
-# -- Imports from Inspect AI
 from inspect_ai.model._model import ModelAPI, Model, get_model
 from inspect_ai.model._generate_config import GenerateConfig
 from inspect_ai.model._chat_message import ChatMessage
 from inspect_ai.model._model_output import ModelOutput
 from inspect_ai.tool import ToolInfo, ToolChoice
 from inspect_ai.model._registry import modelapi
+
+import importlib.util
+import os
+import re
+import uuid
+import logging
+import asyncio
+
+from base import System
 
 
 @modelapi(name="agentbreeder")
@@ -29,10 +32,18 @@ class CustomModelAPI(ModelAPI):
         api_key: str | None = None,
         api_key_vars: list[str] = [],
         config: GenerateConfig = GenerateConfig(),
+        system: System = None,
+        temp_file: str = None,
+        agent_system: callable = None,
         **model_args: Any,
     ) -> None:
         # IMPORTANT: call super() so Inspect sets up the registry info correctly
         super().__init__(model_name, base_url, api_key, api_key_vars, config)
+
+        self.system = system
+        self.temp_file = temp_file
+        self.agent_system = agent_system
+        self.forward_function = self.system.system_code
 
     async def generate(
         self,
@@ -40,15 +51,7 @@ class CustomModelAPI(ModelAPI):
         tools: list[ToolInfo],
         tool_choice: ToolChoice,
         config: GenerateConfig,
-    ) -> ModelOutput:
-        """
-        Minimal example: just respond with a constant string.
-        You could, of course, wrap an API call here to an external LLM, a local model, etc.
-        """
-
-        # Example: Just echo back that this is "my agentbreeder model's" response
-        response_text = f"[CustomModelAPI] Hello from {self.model_name}!"
-        return ModelOutput.from_content(model=self.model_name, content=response_text)
+    ) -> ModelOutput: ...
 
 
 @modelapi(name="agentbreeder")
@@ -63,6 +66,9 @@ class CustomModel(Model):
     (though typically you only need a agentbreeder ModelAPI).
     """
 
+    def __init__(self, api: ModelAPI, config: GenerateConfig) -> None:
+        super().__init__(api, config)
+
     async def generate(
         self,
         input: str | list[ChatMessage] = None,
@@ -75,10 +81,27 @@ class CustomModel(Model):
         Minimal override. You could do more advanced orchestration here if you like.
         For demonstration, we always return "Hello from CustomModel!"
         """
+
+        try:
+            if "return await self.forward" in self.api.system.system_code:
+                raise Exception("Infinite loop detected")
+            agentSystem = self.api.agent_system()
+            # Set a timeout of 3 minutes (180 seconds)
+            output = await asyncio.wait_for(agentSystem.forward(input), timeout=180)
+            output = str(output)
+
+        except TimeoutError:
+            logging.info(f"Time expired for {self.api.temp_file}")
+            print(f"Time expired for {self.api.temp_file}")
+
+            output = "Time Expired"
+
+        except Exception as e:
+            print("Error during evaluation:", e)
+            output = f"Error: {str(e)}"
+
         # Just return a trivial output
-        return ModelOutput.from_content(
-            model=self.api.model_name, content="Hello from CustomModel!"
-        )
+        return ModelOutput.from_content(model=self.api.model_name, content=output)
 
 
 def main():

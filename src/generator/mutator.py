@@ -11,6 +11,8 @@ from evals import AgentSystemException
 import logging
 import json
 import re
+import asyncio
+from evals.benchmark import Benchmark
 
 
 class Mutator:
@@ -294,12 +296,9 @@ class Mutator:
             dict: The updated next_response after debugging attempts.
         """
 
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        parent_directory = os.path.dirname(current_directory)
-
-        temp_file = f"""
-            {parent_directory}/temp/agent_system_temp_{next_response["name"]}_{uuid.uuid4()}.py
-        """.strip()
+        agent_system, temp_file = Benchmark.get_callable(
+            str(uuid.uuid4()), next_response["name"], next_response["code"]
+        )
 
         for d in range(self.args.debug_max):
 
@@ -310,10 +309,14 @@ class Mutator:
                         """The output of the forward function must not be the forward function
                         itself, as it will recurse infinitely."""
                     )
-                await self.evaluator.benchmark.forward_pass(
-                    next_response["code"], temp_file
-                )
-                break
+
+                if "return await self.forward" in next_response["code"]:
+                    raise Exception("Infinite loop detected")
+                agentSystem = agent_system()
+                # Set a timeout of 3 minutes (180 seconds)
+                output = await asyncio.wait_for(agentSystem.forward(input), timeout=180)
+                if output.lower().startswith("error"):
+                    raise AgentSystemException(output)
 
             except AgentSystemException as e:
                 logging.info(f"Debugging meta agent's code: {e}")
@@ -338,5 +341,7 @@ class Mutator:
                     )
                 except Exception as e:
                     print(f"Error during debugging: {e}")
+
+        os.remove(temp_file)
 
         return next_response
