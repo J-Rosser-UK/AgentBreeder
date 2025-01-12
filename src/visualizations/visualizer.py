@@ -223,7 +223,7 @@ class Visualizer:
 
 if __name__ == "__main__":
     # Example usage:
-    population_id = "ecb4e23b-66fa-47d6-8390-5b9ed24cd7a2"
+
     random.seed(42)
 
     for session in initialize_session():
@@ -232,6 +232,7 @@ if __name__ == "__main__":
             .order_by(Population.population_timestamp.desc())
             .one()
         )
+        print("population_id:", population.population_id)
 
         visualizer = Visualizer()
         visualizer.plot(session, population.population_id)

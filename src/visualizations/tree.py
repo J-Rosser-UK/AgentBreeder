@@ -1,6 +1,7 @@
 import sys
 
 sys.path.append("src")
+sys.path.append("")
 import datetime
 import uuid
 import random
@@ -10,6 +11,9 @@ import networkx as nx
 from collections import defaultdict, deque
 from base import initialize_session, System, Population
 import matplotlib.colors as mcolors
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
 
 
 def plot_tree(systems):

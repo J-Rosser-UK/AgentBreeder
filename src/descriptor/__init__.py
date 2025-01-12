@@ -1,1 +1,2 @@
-from .descriptor import Descriptor, Clusterer
+from .descriptor import Descriptor
+from .clusterer import Clusterer
