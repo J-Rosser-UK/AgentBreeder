@@ -10,7 +10,7 @@ from evals import Validator
 import os
 import uuid
 import asyncio
-
+import json
 import warnings
 from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
@@ -42,16 +42,12 @@ def main(args):
             len(systems_for_evaluation),
         )
 
-        for i, system in enumerate(systems_for_evaluation):
+        model_metrics = evaluator.evaluate(
+            systems_for_evaluation,
+            limit=args.n_evals,
+        )
 
-            accuracy, ci_lower, ci_upper, median = evaluator.evaluate(
-                system,
-                i + 1,
-                len(systems_for_evaluation),
-                limit=args.n_evals,
-            )
-
-            print(accuracy, ci_lower, ci_upper, median)
+        print(json.dumps(model_metrics, indent=4))
 
     return args.system_id  # Return the population ID for restarts
 
@@ -64,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
-    parser.add_argument("--n_evals", type=int, default=100)
+    parser.add_argument("--n_evals", type=int, default=10)
     parser.add_argument("--population_id", type=str, default="None")
     parser.add_argument("--system_id", type=str, default="None")
     parser.add_argument("--benchmark", type=str, default="mmlu")

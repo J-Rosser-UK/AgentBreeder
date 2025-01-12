@@ -54,7 +54,7 @@ class CustomModelAPI(ModelAPI):
     ) -> ModelOutput: ...
 
 
-@modelapi(name="agentbreeder")
+@modelapi(name="agntbrdr")
 def agentbreeder():
 
     return CustomModelAPI

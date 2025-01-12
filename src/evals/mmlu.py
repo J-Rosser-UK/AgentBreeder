@@ -67,7 +67,7 @@ class MMLU(Benchmark):
         )
 
     @task
-    def match_task(self, system):
+    def match_task(self):
         return Task(
             name=self.__class__.__name__,
             dataset=self.dataset,

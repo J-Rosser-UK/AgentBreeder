@@ -138,7 +138,7 @@ if __name__ == "__main__":
             .filter_by(population_id=population.population_id)
             .all()
         )
-
+        print(population.population_id)
         plot_tree(systems)
 
 
