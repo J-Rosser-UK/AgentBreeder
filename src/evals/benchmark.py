@@ -104,7 +104,7 @@ class Benchmark(ABC):
         return AgentSystem, temp_file
 
     @solver
-    def match_solver(self, system) -> Solver:
+    def match_solver(self) -> Solver:
         async def solve(state: TaskState, generate: Generate) -> TaskState:
 
             state = await generate(state=state)
@@ -164,7 +164,7 @@ class Benchmark(ABC):
 
     @abstractmethod
     @task
-    def match_task(self, system):
+    def match_task(self):
         pass
 
     def evaluate(self, systems, limit=10):
@@ -192,7 +192,7 @@ class Benchmark(ABC):
             models.append(CustomModel(api=custom_api, config=GenerateConfig()))
 
         results = eval(
-            self.match_task(system),
+            self.match_task(),
             model=models,
             limit=limit,
             log_dir="./logs",  # specify where logs are stored

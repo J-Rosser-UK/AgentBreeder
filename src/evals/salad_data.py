@@ -95,22 +95,14 @@ class SaladData(Benchmark):
         )
 
     @task
-    def match_task(self, system: Any) -> Task:
+    def match_task(self) -> Task:
         """
         Create a Task object for scoring traces using the 'trace_match' scorer.
-
-        Args:
-            system (Any): The system or solver to be used.
-            i (int): Current index in a batch of tasks.
-            N (int): Total number of tasks in the batch.
-
-        Returns:
-            Task: An inspect_ai Task that will be run with the specified scorer and config.
         """
         return Task(
-            name=system.system_name,
+            name=self.__class__.__name__,
             dataset=self.dataset,
-            solver=self.match_solver(system),
+            solver=self.match_solver(),
             scorer=self.llm_safe(),
             config=GenerateConfig(temperature=0.5),
         )

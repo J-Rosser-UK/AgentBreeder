@@ -79,27 +79,27 @@ def main(args, population_id=None):
                 .all()
             )
 
-            illuminated_systems_for_validation_ids: list[str] = illuminator.illuminate(
-                population, systems_for_validation
-            )
+            # illuminated_systems_for_validation_ids: list[str] = illuminator.illuminate(
+            #     population, systems_for_validation
+            # )
 
-            # Perform the query correctly
-            illuminated_systems_for_validation = (
-                session.query(System)  # Start the query
-                .filter(
-                    System.system_id.in_(illuminated_systems_for_validation_ids)
-                )  # Apply the filter
-                .all()  # Fetch all results
-            )
+            # # Perform the query correctly
+            # illuminated_systems_for_validation = (
+            #     session.query(System)  # Start the query
+            #     .filter(
+            #         System.system_id.in_(illuminated_systems_for_validation_ids)
+            #     )  # Apply the filter
+            #     .all()  # Fetch all results
+            # )
 
-            print(
-                "fws",
-                len(systems_for_validation),
-                "ilfws",
-                len(illuminated_systems_for_validation),
-            )
+            # print(
+            #     "fws",
+            #     len(systems_for_validation),
+            #     "ilfws",
+            #     len(illuminated_systems_for_validation),
+            # )
 
-            validator.validate(illuminated_systems_for_validation)
+            validator.validate(systems_for_validation)
 
     return population_id  # Return the population ID for restarts
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
     parser.add_argument("--n_mutations", type=int, default=20)
-    parser.add_argument("--n_evals", type=int, default=1)
+    parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("--population_id", type=str, default="None")

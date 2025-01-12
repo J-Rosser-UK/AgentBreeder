@@ -1,3 +1,6 @@
+import sys
+
+sys.path.append("src")
 import datetime
 import uuid
 import random
@@ -5,7 +8,7 @@ import itertools
 import matplotlib.pyplot as plt
 import networkx as nx
 from collections import defaultdict, deque
-from base import initialize_session, System
+from base import initialize_session, System, Population
 import matplotlib.colors as mcolors
 
 
@@ -60,7 +63,9 @@ def plot_tree(systems):
     pos = nx.multipartite_layout(G, subset_key="layer")
 
     # 7. Assign colors by cluster_id
-    all_clusters = sorted({G.nodes[n]["cluster_id"] for n in G.nodes()})
+
+    all_clusters = list({G.nodes[n]["cluster_id"] for n in G.nodes()})
+
     cmap = plt.cm.get_cmap("rainbow", len(all_clusters))
     node_color = []
     for n in G.nodes():
@@ -118,11 +123,21 @@ def plot_tree(systems):
 
 if __name__ == "__main__":
     random.seed(42)
-    population_id = "0bd59045-aa13-49ed-85f0-020a47a931f1"
+    population_id = "d44a351c-d454-4d2c-ae74-f7e0e88b9ce8"
+    population_id = "dd43526d-9a36-41c3-89bb-2f71c7738040"
 
     for session in initialize_session():
+        population = (
+            session.query(Population)
+            .order_by(Population.population_timestamp.desc())
+            .one()
+        )
         # Suppose you have a list of systems from your DB:
-        systems = session.query(System).filter_by(population_id=population_id).all()
+        systems = (
+            session.query(System)
+            .filter_by(population_id=population.population_id)
+            .all()
+        )
 
         plot_tree(systems)
 

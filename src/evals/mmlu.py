@@ -69,9 +69,9 @@ class MMLU(Benchmark):
     @task
     def match_task(self, system):
         return Task(
-            name=system.system_name,
+            name=self.__class__.__name__,
             dataset=self.dataset,
-            solver=self.match_solver(system),
+            solver=self.match_solver(),
             scorer=self.llm_match(),
             config=GenerateConfig(temperature=0.5),
         )
