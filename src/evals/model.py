@@ -18,11 +18,11 @@ import asyncio
 from base import System
 
 
-@modelapi(name="agentbreeder")
+@modelapi(name="agntbrdr")
 class CustomModelAPI(ModelAPI):
     """
-    Custom ModelAPI provider that you can reference as "agentbreeder/<model_name>".
-    By decorating with @modelapi("agentbreeder"), we ensure it is known to Inspect's registry.
+    Custom ModelAPI provider that you can reference as "agntbrdr/<model_name>".
+    By decorating with @modelapi("agntbrdr"), we ensure it is known to Inspect's registry.
     """
 
     def __init__(

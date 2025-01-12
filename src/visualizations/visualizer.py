@@ -1,3 +1,6 @@
+import sys
+
+sys.path.append("src")
 import uuid
 import random
 import pandas as pd
@@ -6,10 +9,7 @@ from umap import UMAP
 import plotly.express as px
 import plotly.graph_objects as go
 from sqlalchemy.orm import Session
-from base import initialize_session, System
-
-# Assume these imports exist in your code
-# from your_project.database import initialize_session, System
+from base import initialize_session, System, Population
 
 
 class Visualizer:
@@ -227,8 +227,13 @@ if __name__ == "__main__":
     random.seed(42)
 
     for session in initialize_session():
+        population = (
+            session.query(Population)
+            .order_by(Population.population_timestamp.desc())
+            .one()
+        )
 
         visualizer = Visualizer()
-        visualizer.plot(session, population_id)
+        visualizer.plot(session, population.population_id)
 
         session.close()

@@ -226,7 +226,7 @@ class Population(CustomBase):
             assert len(elites) > 0
             return elites
 
-        print("Generation", most_recent_generation.generation_id)
+        # print("Generation", most_recent_generation.generation_id)
 
         assert len(most_recent_generation.clusters) > 0
 

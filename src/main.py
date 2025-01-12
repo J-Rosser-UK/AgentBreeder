@@ -3,7 +3,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from tqdm import tqdm
-from generator import initialize_population_id, generate_mutant, run_generation
+from generator import initialize_population_id, Generator
 from descriptor import Clusterer
 from base import initialize_session, Population, System
 from evals import Validator
@@ -16,6 +16,7 @@ from sqlalchemy.exc import SAWarning
 from illuminator import Illuminator
 from sqlalchemy.orm import joinedload
 import time
+
 
 # Disable logging for httpx
 logging.getLogger("httpx").disabled = True
@@ -56,18 +57,19 @@ def main(args, population_id=None):
 
             print(f"Reloaded population ID: {population.population_id}")
 
-    # Begin Bayesian Illumination...
-    for g in tqdm(range(args.n_generation), desc="Generations"):
-
-        # Generate a new batch of mutants
-        asyncio.run(run_generation(args, population_id))
-
-        for session in initialize_session():
+    for session in initialize_session():
+        # Begin Bayesian Illumination...
+        for g in tqdm(range(args.n_generation), desc="Generations"):
 
             # Re-load the population object in this session
             population = (
                 session.query(Population).filter_by(population_id=population_id).one()
             )
+
+            generator = Generator(args, population)
+
+            # Generate a new batch of mutants
+            asyncio.run(generator.run_generation(session))
 
             # Recluster the population
             clusterer.cluster(population)
@@ -79,27 +81,9 @@ def main(args, population_id=None):
                 .all()
             )
 
-            # illuminated_systems_for_validation_ids: list[str] = illuminator.illuminate(
-            #     population, systems_for_validation
-            # )
-
-            # # Perform the query correctly
-            # illuminated_systems_for_validation = (
-            #     session.query(System)  # Start the query
-            #     .filter(
-            #         System.system_id.in_(illuminated_systems_for_validation_ids)
-            #     )  # Apply the filter
-            #     .all()  # Fetch all results
-            # )
-
-            # print(
-            #     "fws",
-            #     len(systems_for_validation),
-            #     "ilfws",
-            #     len(illuminated_systems_for_validation),
-            # )
-
             validator.validate(systems_for_validation)
+
+            session.commit()
 
     return population_id  # Return the population ID for restarts
 
@@ -112,11 +96,11 @@ if __name__ == "__main__":
     parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
-    parser.add_argument("--n_mutations", type=int, default=20)
+    parser.add_argument("--n_mutations", type=int, default=5)
     parser.add_argument("--n_evals", type=int, default=20)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
-    parser.add_argument("--population_id", type=str, default="None")
+    parser.add_argument("-p", "--population_id", type=str, default="None")
     parser.add_argument("--benchmark", type=str, default="salad_data")
 
     args = parser.parse_args()
@@ -124,6 +108,15 @@ if __name__ == "__main__":
     population_id = args.population_id
     if population_id == "None":
         population_id = None
+
+    if population_id == "last":
+        for session in initialize_session():
+            population = (
+                session.query(Population)
+                .order_by(Population.population_timestamp.desc())
+                .one()
+            )
+            population_id = population.population_id
 
     while True:
         # try:

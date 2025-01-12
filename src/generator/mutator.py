@@ -20,11 +20,10 @@ class Mutator:
     def __init__(
         self,
         args,
-        session,
-        population,
         mutation_operators,
         evaluator,
-        generation_timestamp,
+        base_prompt,
+        base_prompt_response_format,
     ) -> None:
         """
         Initializes the Mutator class.
@@ -32,7 +31,7 @@ class Mutator:
         Args:
             args: Arguments object containing configurations for the mutator, such
             as debugging limits and model settings.
-            session: The session object for managing system interactions.
+
             population: The population of systems for mutation.
             mutation_operators: A list of mutation operator strings to apply.
             evaluator: An evaluator object for validating and testing mutated systems.
@@ -41,11 +40,11 @@ class Mutator:
         self.mutation_operators = mutation_operators
         self.args = args
         self.evaluator = evaluator
-        self.session = session
-        self.population = population
-        self.generation_timestamp = generation_timestamp
 
-    async def mutate(self) -> System:
+        self.base_prompt = base_prompt
+        self.base_prompt_response_format = base_prompt_response_format
+
+    async def mutate(self, parents: list[dict]) -> dict:
         """
         Applies a mutation to a given system.
 
@@ -59,23 +58,20 @@ class Mutator:
         try:
 
             system_response, messages, reflexion_response_format, parent_system_ids = (
-                await random.choice([self._mutate, self._crossover])()
+                await random.choice([self._mutate, self._crossover])(parents)
             )
 
             system_response = await self._debug(
                 messages, system_response, reflexion_response_format
             )
 
-            mutated_system = System(
-                session=self.session,
-                system_name=system_response["name"],
-                system_code=system_response["code"],
-                system_first_parent_id=str(parent_system_ids[0]),
-                system_second_parent_id=str(parent_system_ids[1]),
-                system_thought_process=system_response["thought"],
-                population=self.population,
-                generation_timestamp=self.generation_timestamp,
-            )
+            mutated_system = {
+                "system_name": system_response["name"],
+                "system_code": system_response["code"],
+                "system_first_parent_id": str(parent_system_ids[0]),
+                "system_second_parent_id": str(parent_system_ids[1]),
+                "system_thought_process": system_response["thought"],
+            }
         except Exception as e:
 
             print(f"Error evolving system: {e}")
@@ -83,7 +79,7 @@ class Mutator:
 
         return mutated_system
 
-    async def _mutate(self):
+    async def _mutate(self, parents: list[dict]):
         """
         Applies a sampled mutation to a system and refines it using reflexion-based prompts.
 
@@ -94,15 +90,12 @@ class Mutator:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
                 and the reflexion_response_format (str).
         """
-        system = random.choice(self.population.elites)
-        logging.info(f"Mutating {system.system_name} system...")
-        print(f"Mutating {system.system_name} system...")
+        system = parents[0]
+        logging.info(f"Mutating {system.get('system_name')} system...")
+        print(f"Mutating {system.get('system_name')} system...")
 
         sampled_mutation = random.choice(self.mutation_operators)
 
-        base_prompt, base_prompt_response_format = get_base_prompt_with_archive(
-            self.args, self.session
-        )
         messages = [
             {
                 "role": "system",
@@ -111,15 +104,15 @@ class Mutator:
             {
                 "role": "user",
                 "content": f"""
-                {base_prompt}
+                {self.base_prompt}
              
                 Here is the multi-agent system I would like you to mutate:
 
                 ---------------
-                System: {system.system_name}
-                {system.system_thought_process}
+                System: {system.get('system_name')}
+                {system.get("system_thought_process")}
                 ---------------
-                {system.system_code}
+                {system.get("system_code")}
 
                 The mutation I would like to apply is:
                 {sampled_mutation}
@@ -133,11 +126,9 @@ class Mutator:
             },
         ]
 
-        return await self._evolve(
-            messages, base_prompt_response_format, [system.system_id, None]
-        )
+        return await self._evolve(messages, [parents[0].get("system_id"), None])
 
-    async def _crossover(self):
+    async def _crossover(self, parents: list[dict]):
         """
         Applies crossover to two systems and refines the result using reflexion-based prompts.
 
@@ -148,18 +139,15 @@ class Mutator:
             tuple: A tuple containing the next_response (dict), the updated messages (list),
                 and the reflexion_response_format (str).
         """
-        system_1 = random.choice(self.population.elites)
-        system_2 = random.choice(self.population.elites)
+        system_1 = parents[0]
+        system_2 = parents[1]
         logging.info(
-            f"Crossing over {system_1.system_name} and {system_2.system_name} systems..."
+            f"Crossing over {system_1.get('system_name')} and {system_2.get('system_name')} systems..."
         )
         print(
-            f"Crossing over {system_1.system_name} and {system_2.system_name} systems..."
+            f"Crossing over {system_1.get('system_name')} and {system_2.get('system_name')} systems..."
         )
 
-        base_prompt, base_prompt_response_format = get_base_prompt_with_archive(
-            self.args, self.session
-        )
         messages = [
             {
                 "role": "system",
@@ -168,21 +156,21 @@ class Mutator:
             {
                 "role": "user",
                 "content": f"""
-                {base_prompt}
+                {self.base_prompt}
              
                 Here are the two systems I'd like you to crossover/combine into a novel new system:
 
                 ---------------
-                System 1: {system_1.system_name}
-                {system_1.system_thought_process}
+                System 1: {system_1.get('system_name')}
+                {system_1.get("system_thought_process")}
                 ---------------
-                {system_1.system_code}
+                {system_1.get("system_code")}
 
                 ---------------
-                System 2: {system_2.system_name}
-                {system_2.system_thought_process}
+                System 2: {system_2.get('system_name')}
+                {system_2.get("system_thought_process")}
                 ---------------
-                {system_2.system_code}   
+                {system_2.get("system_code")}   
 
                 Ensure that the new forward functions outputs a response as a
                 STRING in the exact format as specified in the task. This could be
@@ -194,17 +182,16 @@ class Mutator:
 
         return await self._evolve(
             messages,
-            base_prompt_response_format,
-            [system_1.system_id, system_2.system_id],
+            [parents[0].get("system_id"), parents[1].get("system_id")],
         )
 
-    async def _evolve(self, messages, base_prompt_response_format, parent_system_ids):
+    async def _evolve(self, messages, parent_system_ids):
 
         # Generate new solution and do reflection
         try:
             next_response: dict[str, str] = await get_structured_json_response_from_gpt(
                 messages,
-                base_prompt_response_format,
+                self.base_prompt_response_format,
                 model=self.args.model,
                 temperature=0.5,
                 retry=0,
@@ -314,9 +301,21 @@ class Mutator:
                     raise Exception("Infinite loop detected")
                 agentSystem = agent_system()
                 # Set a timeout of 3 minutes (180 seconds)
-                output = await asyncio.wait_for(agentSystem.forward(input), timeout=180)
+                try:
+                    output = await asyncio.wait_for(
+                        agentSystem.forward(input), timeout=180
+                    )
+                except asyncio.TimeoutError:
+                    raise AgentSystemException(
+                        """The forward function took too long to execute. Make sure your code
+                        is efficient and doesn't have any infinite loops."""
+                    )
+                except Exception as e:
+                    raise AgentSystemException(e)
+
                 if output.lower().startswith("error"):
                     raise AgentSystemException(output)
+                break
 
             except AgentSystemException as e:
                 logging.info(f"Debugging meta agent's code: {e}")
