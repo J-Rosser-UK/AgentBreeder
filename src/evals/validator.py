@@ -63,15 +63,10 @@ class Validator:
             print(f"  median:   {metrics['median']}")
 
             for system in systems_for_validation:
-                if system.system_name == model:
+                if str(system.system_id) == model.split("||")[1]:
                     system.update(
-                        system_fitness=metrics["accuracy"],
-                    )
-                    system.update(
+                        system_fitness=metrics["median"],
                         ci_sample_size=self.args.n_evals,
-                    )
-
-                    system.update(
                         ci_lower=metrics["ci_lower"],
                         ci_upper=metrics["ci_upper"],
                         ci_median=metrics["median"],

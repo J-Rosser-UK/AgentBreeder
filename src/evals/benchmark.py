@@ -182,7 +182,7 @@ class Benchmark(ABC):
             temp_files.append(temp_file)
 
             custom_api = CustomModelAPI(
-                model_name=system.system_name,
+                model_name=system.system_name + "||" + system.system_id,
                 config=GenerateConfig(),  # Example config
                 system=system,
                 temp_file=temp_file,
@@ -193,7 +193,7 @@ class Benchmark(ABC):
 
         results = eval(
             self.match_task(system),
-            model=models[:2],
+            model=models,
             limit=limit,
             log_dir="./logs",  # specify where logs are stored
             log_format="eval",  # choose log format ("eval" or "json")
@@ -211,11 +211,9 @@ class Benchmark(ABC):
         model_metrics = {}  # dictionary to hold info for each model
 
         for res in results:
-            print("RES", res)
+
             # 1) Get the model name
-            model_name = getattr(
-                res.eval.split("/")[1], "model", None
-            )  # or res.model if guaranteed to exist
+            model_name = str(getattr(res.eval, "model", ""))
 
             # 2) Initialize defaults (or None) for each metric
             accuracy = None
