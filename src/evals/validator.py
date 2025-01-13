@@ -16,6 +16,8 @@ from evals.gpqa import GPQA
 from evals.mgsm import MGSM
 from evals.clrs_text import CLRSText
 from evals.salad_data import SaladData
+from evals.simple_qa import SimpleQA
+from evals.math_500 import Math500
 from .benchmark import AgentSystemException
 
 
@@ -35,9 +37,11 @@ class Validator:
             "gpqa": GPQA,  #       # 32 questions in validation set, 166 in test set
             "mmlu": MMLU,  #        # 128 questions in validation set, 800 in test set
             "drop": DROP,  #       # 128 questions in validation set, 800 in test set
-            # "mgsm": MGSM, #       # 128 questions in validation set, 800 in test set
+            "mgsm": MGSM,  #       # 128 questions in validation set, 800 in test set
             "clrs_text": CLRSText,
             "salad_data": SaladData,
+            "simple_qa": SimpleQA,
+            "math_500": Math500,
         }
 
         self.benchmark = self.benchmarks[args.benchmark](

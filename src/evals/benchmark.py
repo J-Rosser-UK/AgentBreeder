@@ -263,7 +263,7 @@ class Benchmark(ABC):
         self,
         path: str,
         split: str,
-        name: str | None = None,
+        name: Union[str, list] | None = None,
         data_dir: str | None = None,
         revision: str | None = None,
         sample_fields: FieldSpec | RecordToSample | None = None,
@@ -293,42 +293,48 @@ class Benchmark(ABC):
         # Resolve data-to-sample function
         data_to_sample = record_to_sample_fn(sample_fields)
 
-        # Generate cache directory for dataset
-        dataset_hash = mm3_hash(f"{path}{name}{data_dir}{split}{kwargs}")
-        datasets_cache_dir = inspect_cache_dir("hf_datasets")
-        dataset_cache_dir = os.path.join(
-            datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
-        )
+        if isinstance(name, str):
+            name = [name]
 
-        # Load dataset from cache or HuggingFace Hub
-        if os.path.exists(dataset_cache_dir) and cached and revision is None:
-            dataset = datasets.load_from_disk(dataset_cache_dir)
-        else:
-            print(f"Loading dataset {path} from Hugging Face...")
-            dataset = datasets.load_dataset(
-                path=path,
-                name=name,
-                data_dir=data_dir,
-                split=split,
-                revision=revision,
-                trust_remote_code=trust,
-                **kwargs,
+        final_dataset = []
+        for n in name:
+            # Generate cache directory for dataset
+            dataset_hash = mm3_hash(f"{path}{n}{data_dir}{split}{kwargs}")
+            datasets_cache_dir = inspect_cache_dir("hf_datasets")
+            dataset_cache_dir = os.path.join(
+                datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
             )
-            dataset.save_to_disk(dataset_cache_dir)
 
-        dataset = dataset.filter(self.benchmark_filter)
+            # Load dataset from cache or HuggingFace Hub
+            if os.path.exists(dataset_cache_dir) and cached and revision is None:
+                dataset = datasets.load_from_disk(dataset_cache_dir)
+            else:
+                print(f"Loading dataset {path} from Hugging Face...")
+                dataset = datasets.load_dataset(
+                    path=path,
+                    name=n,
+                    data_dir=data_dir,
+                    split=split,
+                    revision=revision,
+                    trust_remote_code=trust,
+                    **kwargs,
+                )
 
-        # Shuffle if requested
+                dataset.save_to_disk(dataset_cache_dir)
+
+            dataset = dataset.filter(self.benchmark_filter)
+
+            final_dataset.extend(dataset.to_list())
+
         if shuffle:
-            dataset = dataset.shuffle(seed=seed)
+            random.shuffle(final_dataset)
 
-        # Limit if requested
         if limit:
-            dataset = dataset.select(range(limit))
+            final_dataset = final_dataset[:limit]
 
         # Return filtered dataset
         return MemoryDataset(
-            samples=data_to_samples(dataset.to_list(), data_to_sample, auto_id),
+            samples=data_to_samples(final_dataset, data_to_sample, auto_id),
             name=Path(path).stem if Path(path).exists() else path,
             location=path,
         )

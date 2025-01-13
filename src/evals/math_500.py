@@ -9,10 +9,7 @@ import json
 import hashlib
 
 
-import random
-
-
-class GPQA(Benchmark):
+class Math500(Benchmark):
 
     def __init__(
         self,
@@ -25,20 +22,20 @@ class GPQA(Benchmark):
         self.args = args
 
         split_mapping = {
-            "validation": "train",
-            "test": "train",
+            "validation": "test",
+            "test": "test",
         }
 
         self.split = split
         self.validation_set = set()
-        self.validation_set_size = 32
+        self.validation_set_size = 75
 
         self.dataset = self.filtered_hf_dataset(
-            path="Idavidrein/gpqa",
-            name="gpqa_diamond",
+            path="HuggingFaceH4/MATH-500",
+            name="default",
             split=split_mapping[split],
             sample_fields=self._record_to_sample,
-            shuffle=False,  # deliberately False to validation & test sets are not mixed
+            shuffle=shuffle,
             seed=self.args.random_seed,
             limit=limit,
         )
@@ -63,48 +60,24 @@ class GPQA(Benchmark):
         return False
 
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
-        """
-        Convert a record containing a multiple-choice question into a `Sample` object.
-        """
 
         # Construct the main prompt including the question
         question_prompt = dedent(
             f"""
-            Answer the following multiple choice question.
+            Answer the following maths question:
 
-            {record["Question"]}
+            {record["problem"]}
         """
         ).strip()
 
-        choices = [
-            record["Correct Answer"],
-            record["Incorrect Answer 1"],
-            record["Incorrect Answer 2"],
-            record["Incorrect Answer 3"],
-        ]
-
-        random.shuffle(choices)
-
-        # Append the choices, labeling each with a letter starting at 'A'
-        choices_prompt = "\n".join(
-            f"({chr(65 + i)}) {choice}" for i, choice in enumerate(choices)
-        )
-        print("choices_prompt", choices_prompt)
-
         # Combine question and choices into a single prompt
-        prompt = (
-            f"{question_prompt}\n{choices_prompt}\n"  # Removed the extra line break
-        )
-
-        prompt += f"OUTPUT ANSWER FORMAT: Provide your final answer as a single letter in the range A-{chr(65 + len(choices) - 1)}."
-
-        # Determine the correct answer letter
-        correct_answer_letter = chr(65 + choices.index(record["Correct Answer"]))
+        prompt = f"{question_prompt}\n\n"
+        prompt += f"OUTPUT ANSWER FORMAT: Provide your final answer as string and as succinctly as possible, e.g. a single number, equation, short sentance etc."
 
         return Sample(
             input=prompt,
-            target=correct_answer_letter,
-            metadata={"correct_answer": record["Correct Answer"]},
+            target=str(record["answer"]),
+            metadata={"subject": record["subject"], "solution": record["solution"]},
         )
 
     @task
