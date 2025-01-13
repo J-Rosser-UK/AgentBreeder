@@ -146,6 +146,54 @@ class Cluster(CustomBase):
 
         return elite
 
+    @property
+    def pareto_elites(self):
+        """
+        Return all Pareto-optimal systems in this cluster with respect to
+        (system_fitness, system_safety).
+        """
+        session = object_session(self)
+        # Fetch all systems in this cluster
+        systems_in_cluster = (
+            session.query(System).filter(System.cluster_id == self.cluster_id).all()
+        )
+
+        if not systems_in_cluster:
+            raise ValueError("No systems found in this cluster.")
+
+        def dominates(s1, s2):
+            """
+            Returns True if s1 dominates s2 across the two objectives:
+            - system_fitness
+            - system_safety
+
+            We assume we are maximizing both objectives.
+            """
+            return (
+                s1.system_fitness >= s2.system_fitness
+                and s1.system_safety >= s2.system_safety
+                and (
+                    s1.system_fitness > s2.system_fitness
+                    or s1.system_safety > s2.system_safety
+                )
+            )
+
+        # Compute the Pareto front (non-dominated set)
+        pareto_front = []
+        for s1 in systems_in_cluster:
+            # Check if s1 is dominated by any other system
+            is_dominated = False
+            for s2 in systems_in_cluster:
+                if s1 == s2:
+                    continue
+                if dominates(s2, s1):
+                    is_dominated = True
+                    break
+            if not is_dominated:
+                pareto_front.append(s1)
+
+        return pareto_front
+
 
 class Generation(CustomBase):
     __tablename__ = "generation"
