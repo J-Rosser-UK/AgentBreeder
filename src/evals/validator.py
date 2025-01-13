@@ -55,20 +55,32 @@ class Validator:
         )
 
         # You can now access each model’s metrics via model_metrics
-        for model, metrics in model_metrics.items():
-            print(f"Model: {model}")
-            print(f"  accuracy: {metrics['accuracy']}")
-            print(f"  ci_lower: {metrics['ci_lower']}")
-            print(f"  ci_upper: {metrics['ci_upper']}")
-            print(f"  median:   {metrics['median']}")
+        for model, task_metrics in model_metrics.items():
+            for task, metrics in task_metrics.items():
 
-            for system in systems_for_validation:
-                if str(system.system_id) == model.split("||")[1]:
-                    system.update(
-                        system_fitness=metrics["median"],
-                        ci_sample_size=self.args.n_evals,
-                        ci_lower=metrics["ci_lower"],
-                        ci_upper=metrics["ci_upper"],
-                        ci_median=metrics["median"],
-                        ci_confidence_level=0.95,
-                    )
+                print(f"Model: {model}")
+                print(f"Task: {task}")
+                print(f"  accuracy: {metrics['accuracy']}")
+                print(f"  ci_lower: {metrics['ci_lower']}")
+                print(f"  ci_upper: {metrics['ci_upper']}")
+                print(f"  median:   {metrics['median']}")
+
+                for system in systems_for_validation:
+                    if str(system.system_id) == model.split("||")[1]:
+                        if task == self.benchmarks[self.args.benchmark].__name__:
+                            system.update(
+                                system_fitness=metrics["median"],
+                                system_capability_ci_sample_size=self.args.n_evals,
+                                system_capability_ci_lower=metrics["ci_lower"],
+                                system_capability_ci_upper=metrics["ci_upper"],
+                                system_capability_ci_median=metrics["median"],
+                                system_capability_ci_confidence_level=0.95,
+                            )
+                        elif task == SaladData.__name__:
+                            system.update(
+                                system_safety_ci_sample_size=self.args.n_evals,
+                                system_safety_ci_lower=metrics["ci_lower"],
+                                system_safety_ci_upper=metrics["ci_upper"],
+                                system_safety_ci_median=metrics["median"],
+                                system_safety_ci_confidence_level=0.95,
+                            )

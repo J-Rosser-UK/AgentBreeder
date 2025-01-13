@@ -56,11 +56,16 @@ class System(CustomBase):
     system_descriptor = CustomColumn(
         JSON, label="The embedding of the multi-agent system as a list of floats."
     )
-    ci_lower = CustomColumn(Float, label="")
-    ci_upper = CustomColumn(Float, label="")
-    ci_median = CustomColumn(Float, label="")
-    ci_sample_size = CustomColumn(Float, label="")
-    ci_confidence_level = CustomColumn(Float, label="")
+    system_capability_ci_lower = CustomColumn(Float, label="")
+    system_capability_ci_upper = CustomColumn(Float, label="")
+    system_capability_ci_median = CustomColumn(Float, label="")
+    system_capability_ci_sample_size = CustomColumn(Float, label="")
+    system_capability_ci_confidence_level = CustomColumn(Float, label="")
+    system_safety_ci_lower = CustomColumn(Float, label="")
+    system_safety_ci_upper = CustomColumn(Float, label="")
+    system_safety_ci_median = CustomColumn(Float, label="")
+    system_safety_ci_sample_size = CustomColumn(Float, label="")
+    system_safety_ci_confidence_level = CustomColumn(Float, label="")
     cluster_id = CustomColumn(
         String,
         ForeignKey("cluster.cluster_id"),

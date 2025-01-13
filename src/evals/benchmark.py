@@ -50,6 +50,94 @@ class AgentSystemException(Exception):
 
 class Benchmark(ABC):
 
+    def evaluate(self, systems, limit=10):
+
+        # Run the evaluation while hiding any print outputs
+        # with open(os.devnull, "w") as devnull:
+        #     with contextlib.redirect_stdout(devnull):
+
+        temp_files = []
+        models = []
+        for system in systems:
+            AgentSystem, temp_file = Benchmark.get_callable(
+                system.system_id, system.system_name, system.system_code
+            )
+            temp_files.append(temp_file)
+
+            custom_api = CustomModelAPI(
+                model_name=system.system_name + "||" + system.system_id,
+                config=GenerateConfig(),  # Example config
+                system=system,
+                temp_file=temp_file,
+                agent_system=AgentSystem,
+            )
+
+            models.append(CustomModel(api=custom_api, config=GenerateConfig()))
+
+        from .salad_data import SaladData
+
+        sd = SaladData()
+        results = eval(
+            [self.match_task(), sd.match_task()],
+            model=models,
+            limit=limit,
+            log_dir="./logs",  # specify where logs are stored
+            log_format="eval",  # choose log format ("eval" or "json")
+            score=True,  # ensure scoring is enable
+        )
+
+        for temp_file in temp_files:
+            try:
+                os.remove(temp_file)
+            except Exception as e:
+                print("Error removing temp file:", e)
+
+        # 'results' is a list of EvalLog objects (usually one per task)
+        # Each EvalLog contains metrics for the entire task/dataset.
+        model_metrics = {}  # dictionary to hold info for each model
+
+        for res in results:
+
+            # 1) Get the model name and task name
+            model_name = str(getattr(res.eval, "model", ""))
+            task_name = res.eval.task
+
+            # 2) Initialize defaults (or None) for each metric
+            accuracy = None
+            ci_lower = None
+            ci_upper = None
+            median = None
+
+            # 3) Check if results and scores exist
+            if res.results and res.results.scores:
+                for score in res.results.scores:
+                    if score.metrics:
+                        # 4) For each metric, check if it exists and store its value
+                        if "accuracy" in score.metrics:
+                            accuracy = score.metrics["accuracy"].value
+                        if "ci_lower" in score.metrics:
+                            ci_lower = score.metrics["ci_lower"].value
+                        if "ci_upper" in score.metrics:
+                            ci_upper = score.metrics["ci_upper"].value
+                        if "median" in score.metrics:
+                            median = score.metrics["median"].value
+
+            # 5) Save the metrics in a dictionary, keyed by the model name
+            if not model_metrics.get(model_name):
+                model_metrics[model_name] = {task_name: {}}
+
+            if not model_metrics[model_name].get(task_name):
+                model_metrics[model_name][task_name] = {}
+
+            model_metrics[model_name][task_name] = {
+                "accuracy": accuracy,
+                "ci_lower": ci_lower,
+                "ci_upper": ci_upper,
+                "median": median,
+            }
+
+        return model_metrics
+
     @abstractmethod
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         pass
@@ -166,84 +254,6 @@ class Benchmark(ABC):
     @task
     def match_task(self):
         pass
-
-    def evaluate(self, systems, limit=10):
-
-        # Run the evaluation while hiding any print outputs
-        # with open(os.devnull, "w") as devnull:
-        #     with contextlib.redirect_stdout(devnull):
-
-        temp_files = []
-        models = []
-        for system in systems:
-            AgentSystem, temp_file = Benchmark.get_callable(
-                system.system_id, system.system_name, system.system_code
-            )
-            temp_files.append(temp_file)
-
-            custom_api = CustomModelAPI(
-                model_name=system.system_name + "||" + system.system_id,
-                config=GenerateConfig(),  # Example config
-                system=system,
-                temp_file=temp_file,
-                agent_system=AgentSystem,
-            )
-
-            models.append(CustomModel(api=custom_api, config=GenerateConfig()))
-
-        results = eval(
-            self.match_task(),
-            model=models,
-            limit=limit,
-            log_dir="./logs",  # specify where logs are stored
-            log_format="eval",  # choose log format ("eval" or "json")
-            score=True,  # ensure scoring is enable
-        )
-
-        for temp_file in temp_files:
-            try:
-                os.remove(temp_file)
-            except Exception as e:
-                print("Error removing temp file:", e)
-
-        # 'results' is a list of EvalLog objects (usually one per task)
-        # Each EvalLog contains metrics for the entire task/dataset.
-        model_metrics = {}  # dictionary to hold info for each model
-
-        for res in results:
-
-            # 1) Get the model name
-            model_name = str(getattr(res.eval, "model", ""))
-
-            # 2) Initialize defaults (or None) for each metric
-            accuracy = None
-            ci_lower = None
-            ci_upper = None
-            median = None
-
-            # 3) Check if results and scores exist
-            if res.results and res.results.scores:
-                for score in res.results.scores:
-                    if score.metrics:
-                        # 4) For each metric, check if it exists and store its value
-                        if "accuracy" in score.metrics:
-                            accuracy = score.metrics["accuracy"].value
-                        if "ci_lower" in score.metrics:
-                            ci_lower = score.metrics["ci_lower"].value
-                        if "ci_upper" in score.metrics:
-                            ci_upper = score.metrics["ci_upper"].value
-                        if "median" in score.metrics:
-                            median = score.metrics["median"].value
-
-            # 5) Save the metrics in a dictionary, keyed by the model name
-            model_metrics[model_name] = {
-                "accuracy": accuracy,
-                "ci_lower": ci_lower,
-                "ci_upper": ci_upper,
-                "median": median,
-            }
-
-        return model_metrics
 
     def benchmark_filter(self, example):
         return True
