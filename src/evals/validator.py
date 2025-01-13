@@ -32,7 +32,7 @@ class Validator:
         self.args = args
         self.benchmarks = {
             "arc": ARC,  #          # 20 questions in validation set, 60 in test set
-            # "gpqa": GPQA, #       # 32 questions in validation set, 166 in test set
+            "gpqa": GPQA,  #       # 32 questions in validation set, 166 in test set
             "mmlu": MMLU,  #        # 128 questions in validation set, 800 in test set
             "drop": DROP,  #       # 128 questions in validation set, 800 in test set
             # "mgsm": MGSM, #       # 128 questions in validation set, 800 in test set

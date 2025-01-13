@@ -97,11 +97,11 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--n_generation", type=int, default=5)
     parser.add_argument("--n_mutations", type=int, default=20)
-    parser.add_argument("--n_evals", type=int, default=20)
+    parser.add_argument("--n_evals", type=int, default=5)
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("-p", "--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="drop")
+    parser.add_argument("--benchmark", type=str, default="gpqa")
 
     args = parser.parse_args()
 

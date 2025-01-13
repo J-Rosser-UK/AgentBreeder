@@ -54,6 +54,18 @@ class DROP(Benchmark):
         # Construct the main prompt including the question
         prompt = dedent(
             f"""
+
+            You will be asked to read a passage and answer a question. An example passage and Q&A is provided below.
+            Passage:
+            Non-nationals make up more than half of the population of Bahrain, with immigrants making up
+            about 55% of the overall population. Of those, the vast majority come from South and Southeast Asia:
+            according to various media reports and government statistics dated between 2005-2009 roughly 290,000
+            Indians, 125,000 Bangladeshis, 45,000 Pakistanis, 45,000 Filipinos, and 8,000 Indonesians.
+            Question: What two nationalities had the same number of people living in Bahrain between
+            2005-2009?
+            Answer [Not Given]: Pakistanis and Filipinos
+
+            Your task is as follows:
             Given the following passage and question, succintly provide the answer to the question.
 
             Passage:

@@ -52,6 +52,7 @@ class MMLU(Benchmark):
         choices_prompt = "\n".join(
             f"({chr(65 + i)}) {choice}" for i, choice in enumerate(record["choices"])
         )
+        print("choices_prompt", choices_prompt)
 
         # Combine question and choices into a single prompt
         prompt = f"{question_prompt}\n{choices_prompt}\n\n"
