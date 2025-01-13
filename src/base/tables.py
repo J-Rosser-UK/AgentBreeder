@@ -197,6 +197,8 @@ class Cluster(CustomBase):
             if not is_dominated:
                 pareto_front.append(s1)
 
+        print("Pareto front: ", pareto_front)
+
         return pareto_front
 
 
@@ -259,6 +261,40 @@ class Population(CustomBase):
     generations = relationship(
         "Generation", back_populates="population", collection_class=AutoSaveList
     )
+
+    @property
+    def pareto_elites(self) -> list[System]:
+        """Returns from the most recent generation the elites from each cluster."""
+
+        session = object_session(self)
+
+        # Find most recent generation
+        most_recent_generation = (
+            session.query(Generation)
+            .filter_by(population_id=self.population_id)
+            .order_by(Generation.generation_timestamp.desc())
+            .first()
+        )
+
+        if not most_recent_generation:
+            elites = self.systems
+            assert len(elites) > 0
+            return elites
+
+        # print("Generation", most_recent_generation.generation_id)
+
+        assert len(most_recent_generation.clusters) > 0
+
+        # Find the elites from each cluster
+        elites = []
+        for cluster in most_recent_generation.clusters:
+            elites.extend(cluster.pareto_elites)
+
+        assert len(elites) == len(most_recent_generation.clusters)
+
+        # print("Elites: ", elites)
+
+        return elites
 
     @property
     def elites(self) -> list[System]:
