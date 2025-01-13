@@ -17,6 +17,7 @@ import json
 import asyncio
 import logging
 import datetime
+from tqdm import tqdm
 
 from prompts.meta_agent_base import get_base_prompt_with_archive
 
@@ -62,7 +63,7 @@ class Generator:
             logging.error(f"Error generating mutant: {e}")
             mutant_system = None
 
-        print("MUTANT", mutant_system)
+        # print("MUTANT", mutant_system)
         return mutant_system
 
     # The async part of the logic
@@ -84,13 +85,21 @@ class Generator:
         )
 
         generation_timestamp = datetime.datetime.utcnow()
+
+        # Create tasks for all mutations
         tasks = [
-            self.generate_mutant(
-                parents[i],
-            )
+            asyncio.create_task(self.generate_mutant(parents[i]))
             for i in range(self.args.n_mutations)
         ]
-        results = await asyncio.gather(*tasks)
+
+        results = []
+
+        # Use tqdm + asyncio.as_completed to update the bar after each task finishes
+        with tqdm(total=len(tasks), desc="Mutations in progress") as pbar:
+            for coro in asyncio.as_completed(tasks):
+                result = await coro
+                results.append(result)
+                pbar.update(1)  # Update the bar once a task finishes
         print(results)
 
         for system in results:

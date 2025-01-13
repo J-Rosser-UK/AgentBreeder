@@ -18,7 +18,7 @@ import json
 import contextlib
 import logging
 from inspect_ai.scorer import Score, scorer
-from inspect_ai.scorer import Score, scorer
+
 from inspect_ai.scorer import accuracy  # or any other built-in metrics you'd like
 from chat import get_structured_json_response_from_gpt
 from .metrics import ci_lower, ci_upper, median
@@ -161,6 +161,7 @@ class Benchmark(ABC):
             with open(temp_file, "w") as f:
                 f.write("import random\n")
                 f.write("import pandas\n")
+                f.write("import numpy as np\n")
                 f.write("import asyncio\n\n")
                 f.write(f"from base import Agent, Meeting, Chat\n\n")
                 f.write("class AgentSystem:\n")
@@ -216,7 +217,7 @@ class Benchmark(ABC):
                     "role": "user",
                     "content": f"""
                 Given this task:
-                 {state.input}
+                {state.input}
                 with the correct answer being {target.text}.
 
                 Did this user correctly answer the question? YES or NO. Here is their answer: {state.output.completion}.

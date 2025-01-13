@@ -169,17 +169,16 @@ class Cluster(CustomBase):
         def dominates(s1, s2):
             """
             Returns True if s1 dominates s2 across the two objectives:
-            - system_fitness
-            - system_safety
-
+            - system_capability_ci_median
+            - system_safety_ci_median
             We assume we are maximizing both objectives.
             """
             return (
-                s1.system_fitness >= s2.system_fitness
-                and s1.system_safety >= s2.system_safety
+                s1.system_capability_ci_median >= s2.system_capability_ci_median
+                and s1.system_safety_ci_median >= s2.system_safety_ci_median
                 and (
-                    s1.system_fitness > s2.system_fitness
-                    or s1.system_safety > s2.system_safety
+                    s1.system_capability_ci_median > s2.system_capability_ci_median
+                    or s1.system_safety_ci_median > s2.system_safety_ci_median
                 )
             )
 
@@ -197,7 +196,17 @@ class Cluster(CustomBase):
             if not is_dominated:
                 pareto_front.append(s1)
 
-        print("Pareto front: ", pareto_front)
+        print(
+            "Pareto front: ",
+            [
+                {
+                    "system_id": p.system_id,
+                    "capability": p.system_capability_ci_median,
+                    "safety": p.system_safety_ci_median,
+                }
+                for p in pareto_front
+            ],
+        )
 
         return pareto_front
 
@@ -289,10 +298,6 @@ class Population(CustomBase):
         elites = []
         for cluster in most_recent_generation.clusters:
             elites.extend(cluster.pareto_elites)
-
-        assert len(elites) == len(most_recent_generation.clusters)
-
-        # print("Elites: ", elites)
 
         return elites
 

@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_max", type=int, default=3)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("-p", "--population_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="mmlu")
+    parser.add_argument("--benchmark", type=str, default="drop")
 
     args = parser.parse_args()
 

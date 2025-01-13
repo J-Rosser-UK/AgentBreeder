@@ -230,6 +230,7 @@ if __name__ == "__main__":
         population = (
             session.query(Population)
             .order_by(Population.population_timestamp.desc())
+            .limit(1)
             .one()
         )
         print("population_id:", population.population_id)
