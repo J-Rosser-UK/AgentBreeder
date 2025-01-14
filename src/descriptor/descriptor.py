@@ -54,13 +54,7 @@ class Descriptor:
         Returns:
             list[float]: The embedding vector for the given system.
         """
-        text = (
-            system.system_name
-            + ": "
-            + system.system_thought_process
-            + "\n"
-            + system.system_code
-        )
+        text = system.system_name + ": " + "\n" + system.system_code
         response = self.client.embeddings.create(
             input=text, model=self.model, dimensions=self.output_dim
         )

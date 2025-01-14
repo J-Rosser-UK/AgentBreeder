@@ -306,15 +306,18 @@ class Mutator:
                         agentSystem.forward(input), timeout=180
                     )
                 except asyncio.TimeoutError:
-                    raise AgentSystemException(
-                        """The forward function took too long to execute. Make sure your code
-                        is efficient and doesn't have any infinite loops."""
-                    )
+                    next_response["code"] = None
+                    break
+                    # raise AgentSystemException(
+                    #     """The forward function took too long to execute. Make sure your code
+                    #     is efficient and doesn't have any infinite loops."""
+                    # )
                 except Exception as e:
                     raise AgentSystemException(e)
 
                 if output.lower().startswith("error"):
                     raise AgentSystemException(output)
+                print("Debug successful")
                 break
 
             except AgentSystemException as e:

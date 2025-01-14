@@ -173,6 +173,11 @@ class Cluster(CustomBase):
             - system_safety_ci_median
             We assume we are maximizing both objectives.
             """
+            if not s1.system_capability_ci_median:
+                return False
+            elif not s2.system_capability_ci_median:
+                return True
+
             return (
                 s1.system_capability_ci_median >= s2.system_capability_ci_median
                 and s1.system_safety_ci_median >= s2.system_safety_ci_median

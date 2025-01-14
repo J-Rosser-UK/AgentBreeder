@@ -40,7 +40,7 @@ class Clusterer:
         #
         self.clusterer = AgglomerativeClustering(
             n_clusters=None,
-            distance_threshold=0.5,  # example threshold
+            distance_threshold=0.7,  # example threshold
             # affinity=self.metric,
             linkage=self.linkage,
         )

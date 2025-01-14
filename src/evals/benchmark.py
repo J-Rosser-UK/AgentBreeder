@@ -208,6 +208,14 @@ class Benchmark(ABC):
     @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
     def llm_match():
         async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="llm_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
+
             messages = [
                 {
                     "role": "system",

@@ -145,6 +145,13 @@ def transform(grid: list[list[int]]) -> list[list[int]]:
     @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
     def percentage_match():
         async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="percentage_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
             try:
 
                 transformation_code_snippet = state.output.completion

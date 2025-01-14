@@ -209,6 +209,13 @@ class CLRSText(Benchmark):
         """
 
         async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="trace_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
             try:
                 answer_trace = ast.literal_eval(state.output.completion)
                 target_trace = ast.literal_eval(target.text)
@@ -329,12 +336,19 @@ class CLRSText(Benchmark):
         """
 
         async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="sorted_array_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
             try:
                 answer_trace = ast.literal_eval(state.output.completion)
                 target_trace = ast.literal_eval(target.text)
             except Exception as e:
                 return Score(
-                    name="trace_match",
+                    name="sorted_array_match",
                     value=0.0,
                     answer=state.output.completion,
                     explanation=f"Error: {e}",
@@ -343,7 +357,7 @@ class CLRSText(Benchmark):
             # Ensure both answer and target are lists
             if not isinstance(answer_trace, list) or not isinstance(target_trace, list):
                 return Score(
-                    name="trace_match",
+                    name="sorted_array_match",
                     value=0.0,
                     answer=state.output.completion,
                     explanation="Both answer and target should be lists.",
@@ -352,14 +366,14 @@ class CLRSText(Benchmark):
             # Exact match check
             if answer_trace[-1] == target_trace[-1]:
                 return Score(
-                    name="trace_match",
+                    name="sorted_array_match",
                     value=1.0,
                     answer=state.output.completion,
                     explanation="Exact match with the target trace.",
                 )
 
             return Score(
-                name="trace_match",
+                name="sorted_array_match",
                 value=0.0,
                 answer=state.output.completion,
                 explanation="Incorrect trace or final element does not match.",

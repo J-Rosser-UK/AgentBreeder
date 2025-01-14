@@ -69,7 +69,7 @@ class Generator:
     # The async part of the logic
     async def run_generation(self, session):
 
-        print(self.population.population_id)
+        # print(self.population.population_id)
 
         parents = []
 
@@ -100,10 +100,10 @@ class Generator:
                 result = await coro
                 results.append(result)
                 pbar.update(1)  # Update the bar once a task finishes
-        print(results)
+        # print(results)
 
         for system in results:
-            if system:
+            if system and system["system_code"]:
 
                 system = System(
                     session=session,

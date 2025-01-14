@@ -101,6 +101,13 @@ class DROP(Benchmark):
     @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
     def span_match():
         async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="span_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
 
             target_list = json.loads(target.text)
             # target_list into bullet points

@@ -8,8 +8,11 @@ import numpy as np
 from umap import UMAP
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.colors import sample_colorscale
 from sqlalchemy.orm import Session
 from base import initialize_session, System, Population
+import threading
+import time
 
 
 class Visualizer:
@@ -158,17 +161,27 @@ class Visualizer:
         #    The index for the color scale is parent's cluster_label normalized
         #    by the max cluster label (since cluster labels go from 0..N-1).
         #    Plotly provides a function to sample a continuous color scale:
-        from plotly.colors import sample_colorscale
 
         max_label = cluster_labels.max() if len(cluster_labels) > 0 else 1
 
-        # Helper function to map a cluster_label to an RGBA color in "Rainbow" scale
+        # Helper function to map a cluster_label to an RGBA color in "Rainbow" scale with 50% opacity
         def get_line_color(parent_label):
             if max_label == 0:
                 # Avoid division by zero if only one cluster
-                return px.colors.sample_colorscale("Rainbow", 0.5)[0]
-            frac = parent_label / float(max_label)
-            return sample_colorscale("Rainbow", frac)[0]  # returns an RGBA string
+                base_color = sample_colorscale("Rainbow", 0.5)[0]
+            else:
+                frac = parent_label / float(max_label)
+                base_color = sample_colorscale("Rainbow", frac)[
+                    0
+                ]  # returns an RGBA string
+            # Modify the alpha channel to 0.5 for 50% opacity
+            if base_color.startswith("rgba"):
+                parts = base_color.rstrip(")").split(",")
+                r, g, b = parts[0][5:], parts[1], parts[2]
+                return f"rgba({r.strip()}, {g.strip()}, {b.strip()}, 0.5)"
+            else:
+                # If color is not in rgba format, default to semi-transparent black
+                return "rgba(0,0,0,0.5)"
 
         # 3) Add a 3D line trace for each (child -> parent) relationship
         #    Each system can have up to two parents (system_first_parent_id, system_second_parent_id).
@@ -217,8 +230,20 @@ class Visualizer:
                             )
                         )
 
-        # Finally, show the plot
-        fig.show()
+        # Function to display the plot
+        def display_plot():
+            fig.show()
+
+        # Start the plot in a separate thread
+        plot_thread = threading.Thread(target=display_plot, daemon=True)
+        plot_thread.start()
+
+        print("Plot is running. Press Ctrl+C to stop.")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nPlotting stopped by user.")
 
 
 if __name__ == "__main__":
