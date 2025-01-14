@@ -46,7 +46,8 @@ class CLRSText(Benchmark):
         dataset = self.filtered_hf_dataset(
             path="tomg-group-umd/CLRS-Text-test",
             name="default",
-            split=split_mapping[split],
+            split=split,
+            split_mapping=split_mapping,
             sample_fields=self._record_to_sample,
             shuffle=shuffle,
             seed=self.args.random_seed if self.args else None,

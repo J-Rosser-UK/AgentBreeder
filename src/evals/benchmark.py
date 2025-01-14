@@ -271,6 +271,7 @@ class Benchmark(ABC):
         self,
         path: str,
         split: str,
+        split_mapping: dict,
         name: Union[str, list] | None = None,
         data_dir: str | None = None,
         revision: str | None = None,
@@ -304,41 +305,61 @@ class Benchmark(ABC):
         if isinstance(name, str):
             name = [name]
 
-        final_dataset = []
-        for n in name:
-            # Generate cache directory for dataset
-            dataset_hash = mm3_hash(f"{path}{n}{data_dir}{split}{kwargs}")
-            datasets_cache_dir = inspect_cache_dir("hf_datasets")
-            dataset_cache_dir = os.path.join(
-                datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
-            )
+        final_dataset_mapping = {"validation": [], "test": []}
 
-            # Load dataset from cache or HuggingFace Hub
-            if os.path.exists(dataset_cache_dir) and cached and revision is None:
-                dataset = datasets.load_from_disk(dataset_cache_dir)
-            else:
-                print(f"Loading dataset {path} from Hugging Face...")
-                dataset = datasets.load_dataset(
-                    path=path,
-                    name=n,
-                    data_dir=data_dir,
-                    split=split,
-                    revision=revision,
-                    trust_remote_code=trust,
-                    **kwargs,
+        for split_k, split_v in split_mapping.items():
+            for n in name:
+                # Generate cache directory for dataset
+                dataset_hash = mm3_hash(f"{path}{n}{data_dir}{split_v}{kwargs}")
+                datasets_cache_dir = inspect_cache_dir("hf_datasets")
+                dataset_cache_dir = os.path.join(
+                    datasets_cache_dir, f"{safe_filename(path)}-{dataset_hash}"
                 )
 
-                dataset.save_to_disk(dataset_cache_dir)
+                # Load dataset from cache or HuggingFace Hub
+                if os.path.exists(dataset_cache_dir) and cached and revision is None:
+                    dataset = datasets.load_from_disk(dataset_cache_dir)
+                else:
+                    print(f"Loading dataset {path} from Hugging Face...")
+                    dataset = datasets.load_dataset(
+                        path=path,
+                        name=n,
+                        data_dir=data_dir,
+                        split=split_v,
+                        revision=revision,
+                        trust_remote_code=trust,
+                        **kwargs,
+                    )
 
-            dataset = dataset.filter(self.benchmark_filter)
+                    dataset.save_to_disk(dataset_cache_dir)
 
-            final_dataset.extend(dataset.to_list())
+                dataset = dataset.filter(self.benchmark_filter)
+
+                final_dataset_mapping[split_k].extend(dataset.to_list())
+
+        if list(split_mapping.values())[0] == list(split_mapping.values())[1]:
+            # Assign 20% of the validation set to the validation set and 80% to the test set
+            final_dataset_mapping["validation"] = final_dataset_mapping["validation"][
+                : int(len(final_dataset_mapping["validation"]) * 0.2)
+            ]
+
+            final_dataset_mapping["test"] = final_dataset_mapping["validation"][
+                int(len(final_dataset_mapping["validation"]) * 0.2) :
+            ]
+
+        final_dataset = final_dataset_mapping[split]
+
+        if limit:
+            # repeat to ensure dataset is at least 'limit' long
+            final_dataset = (
+                final_dataset * (limit // len(final_dataset))
+                + final_dataset[: limit % len(final_dataset)]
+            )
+
+            final_dataset = final_dataset[:limit]
 
         if shuffle:
             random.shuffle(final_dataset)
-
-        if limit:
-            final_dataset = final_dataset[:limit]
 
         # Return filtered dataset
         return MemoryDataset(

@@ -39,7 +39,10 @@ class TestSaladData(unittest.TestCase):
         for session in initialize_session():
             systems_for_validation = session.query(System).limit(1).all()
             print(systems_for_validation[0].system_id)
-            self.evaluator = SaladData(args=self.args, split="validation", limit=1)
+            self.evaluator = SaladData(
+                args=self.args, split="test", shuffle=False, limit=100
+            )
+            print([sample.input[30] for sample in self.evaluator.dataset])
 
 
 if __name__ == "__main__":

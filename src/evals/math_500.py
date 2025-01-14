@@ -26,38 +26,16 @@ class Math500(Benchmark):
             "test": "test",
         }
 
-        self.split = split
-        self.validation_set = set()
-        self.validation_set_size = 75
-
         self.dataset = self.filtered_hf_dataset(
             path="HuggingFaceH4/MATH-500",
             name="default",
-            split=split_mapping[split],
+            split=split,
+            split_mapping=split_mapping,
             sample_fields=self._record_to_sample,
             shuffle=shuffle,
             seed=self.args.random_seed,
             limit=limit,
         )
-
-    def benchmark_filter(self, example: dict[str, Any]) -> bool:
-
-        # Convert the dictionary to a JSON string with sorted keys for consistency
-        data_string = json.dumps(example, sort_keys=True)
-        # Create a hash of the JSON string
-        unique_id = hashlib.sha256(data_string.encode()).hexdigest()
-
-        if len(self.validation_set) < self.validation_set_size:
-            self.validation_set.add(unique_id)
-        if self.split == "validation":
-            if unique_id in self.validation_set:
-                return True
-
-        elif self.split == "test":
-            if unique_id not in self.validation_set:
-                return True
-
-        return False
 
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
 

@@ -124,7 +124,7 @@ def plot_pareto_frontiers(systems):
 # Example usage
 if __name__ == "__main__":
     random.seed(42)
-    population_id = "ce611672-5d2b-4577-babe-cf562fab4b1c"
+    population_id = "cb82f912-3d28-47b4-be9f-8802373d3d9d"
 
     all_systems = []
     for session in initialize_session():

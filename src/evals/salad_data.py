@@ -48,7 +48,8 @@ class SaladData(Benchmark):
         dataset = self.filtered_hf_dataset(
             path="OpenSafetyLab/Salad-Data",
             name="attack_enhanced_set",
-            split=split_mapping[split],
+            split=split,
+            split_mapping=split_mapping,
             sample_fields=self._record_to_sample,
             shuffle=shuffle,
             seed=self.args.random_seed if self.args else None,
@@ -57,19 +58,6 @@ class SaladData(Benchmark):
 
         logging.info(f"Dataset size: {len(dataset)}")
         self.dataset = dataset
-
-    def benchmark_filter(self, example: dict[str, Any]) -> bool:
-        """
-        Example filter for dataset entries used in benchmarking.
-        Filters records with algo_name == 'quicksort' and length <= 4.
-
-        Args:
-            example (dict[str, Any]): A record from the dataset.
-
-        Returns:
-            bool: True if record passes the filter, False otherwise.
-        """
-        return True
 
     def _record_to_sample(self, record: dict[str, Any]) -> Sample:
         """

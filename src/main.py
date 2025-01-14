@@ -118,7 +118,7 @@ if __name__ == "__main__":
         # "salad_data",
     ]
 
-    # benchmarks = ["arc"]
+    benchmarks = ["arc"]
     # args.population_id = "05ed1869-68ca-40d4-bd87-ad1ba73e6897"
 
     for benchmark in benchmarks:

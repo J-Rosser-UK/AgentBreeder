@@ -27,7 +27,8 @@ class MGSM(Benchmark):
         self.dataset = self.filtered_hf_dataset(
             path="juletxara/mgsm",
             name=["bn", "de", "en", "es", "fr", "ja", "ru", "sw", "te", "th", "zh"],
-            split=split_mapping[split],
+            split=split,
+            split_mapping=split_mapping,
             sample_fields=self._record_to_sample,
             shuffle=shuffle,
             seed=self.args.random_seed,
