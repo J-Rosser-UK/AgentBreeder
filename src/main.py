@@ -107,8 +107,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     benchmarks = [
-        "gpqa",
-        # "mmlu",
+        # "gpqa",
+        "mmlu",
         # "drop",
         # "mgsm",
         # "simple_qa",

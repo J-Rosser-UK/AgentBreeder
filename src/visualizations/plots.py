@@ -270,7 +270,7 @@ def plot(systems):
 # Example usage
 if __name__ == "__main__":
     random.seed(42)
-    population_id = "6969f7c9-a04d-4d2f-b175-033e21a89dc0"
+    population_id = "ce611672-5d2b-4577-babe-cf562fab4b1c"
 
     for session in initialize_session():
         systems = session.query(System).filter_by(population_id=population_id).all()

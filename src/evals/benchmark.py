@@ -81,7 +81,7 @@ class Benchmark(ABC):
             [self.match_task(), sd.match_task()],
             model=models,
             limit=limit,
-            log_dir="./logs",  # specify where logs are stored
+            log_dir=f"./logs/{self.__class__.__name__}-{str(systems[0].population_id)}",  # specify where logs are stored
             log_format="eval",  # choose log format ("eval" or "json")
             score=True,  # ensure scoring is enable
         )

@@ -49,8 +49,8 @@ def plot_pareto_frontiers(systems):
     # Step 1: Extract Relevant Data from Systems
     data = []
     for system in systems:
-        if system.system_capability_ci_median == 0:
-            continue  # Skip systems with median capability of 0
+        # if system.system_capability_ci_median == 0:
+        #     continue  # Skip systems with median capability of 0
         data.append(
             {
                 "generation_timestamp": system.generation_timestamp,
@@ -124,7 +124,7 @@ def plot_pareto_frontiers(systems):
 # Example usage
 if __name__ == "__main__":
     random.seed(42)
-    population_id = "445b50db-5b72-4399-b078-f4dba75e2109"
+    population_id = "ce611672-5d2b-4577-babe-cf562fab4b1c"
 
     all_systems = []
     for session in initialize_session():

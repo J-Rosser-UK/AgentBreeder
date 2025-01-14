@@ -22,8 +22,8 @@ def plot_tree(systems):
     Each unique 'generation_timestamp' becomes its own layer.
     Each 'cluster_id' is represented by a different color.
     Node labels are shown as 'system_name' rather than 'system_id'.
-    Node sizes are proportional to system_safety_ci_median (0 to 1).
-    If a node has system_safety_ci_median = -1 or None, treat it as 0.
+    Node sizes are proportional to system_capability_ci_median (0 to 1).
+    If a node has system_capability_ci_median = -1 or None, treat it as 0.
 
     Labels for each layer are alternately drawn above and below nodes
     to reduce overlap of long names.
@@ -43,10 +43,13 @@ def plot_tree(systems):
     # 4. Add nodes with layer, cluster_id, and fitness attributes
     for sys in systems:
         # Handle fitness edge cases
-        if sys.system_safety_ci_median is None or sys.system_safety_ci_median == -1:
+        if (
+            sys.system_capability_ci_median is None
+            or sys.system_capability_ci_median == -1
+        ):
             fitness_val = 0.0
         else:
-            fitness_val = sys.system_safety_ci_median  # assumed in [0, 1]
+            fitness_val = sys.system_capability_ci_median  # assumed in [0, 1]
 
         G.add_node(
             sys.system_id,  # node identifier = system_id
