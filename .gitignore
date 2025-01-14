@@ -3,8 +3,7 @@
 *venv
 *logs
 *.sql
-*.db
-*.db-journal
+
 *temp/
 temp/
 # Byte-compiled / optimized / DLL files
