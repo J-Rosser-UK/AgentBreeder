@@ -36,7 +36,8 @@ class TestMGSM(unittest.TestCase):
         self.args = parser.parse_args()
 
     def test_record_to_sample(self):
-        self.evaluator = MGSM(args=self.args, split="test", limit=10)
+        self.evaluator = MGSM(args=self.args, split="test", shuffle=False, limit=100)
+        print([sample.input[100] for sample in self.evaluator.dataset])
 
 
 if __name__ == "__main__":

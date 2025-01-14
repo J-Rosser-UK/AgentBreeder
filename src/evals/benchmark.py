@@ -338,14 +338,24 @@ class Benchmark(ABC):
                 final_dataset_mapping[split_k].extend(dataset.to_list())
 
         if list(split_mapping.values())[0] == list(split_mapping.values())[1]:
+            print(list(split_mapping.values())[0], list(split_mapping.values())[1])
             # Assign 20% of the validation set to the validation set and 80% to the test set
+
+            validation_save = list(final_dataset_mapping["validation"])
             final_dataset_mapping["validation"] = final_dataset_mapping["validation"][
                 : int(len(final_dataset_mapping["validation"]) * 0.2)
             ]
 
-            final_dataset_mapping["test"] = final_dataset_mapping["validation"][
-                int(len(final_dataset_mapping["validation"]) * 0.2) :
+            final_dataset_mapping["test"] = validation_save[
+                int(len(validation_save) * 0.2) :
             ]
+        print("Validation length", len(final_dataset_mapping["validation"]))
+        print("Test length", len(final_dataset_mapping["test"]))
+
+        # assert that no elements in the validation set are in the test set
+        for i, element in enumerate(final_dataset_mapping["validation"]):
+            if element in final_dataset_mapping["test"]:
+                print(f"Element {i} is in both validation and test sets")
 
         final_dataset = final_dataset_mapping[split]
 
