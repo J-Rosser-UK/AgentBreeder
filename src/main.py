@@ -108,17 +108,17 @@ if __name__ == "__main__":
 
     benchmarks = [
         # "gpqa",
-        "mmlu",
+        # "mmlu",
         # "drop",
         # "mgsm",
-        # "simple_qa",
-        # "math_500",
-        # "arc",
+        "simple_qa",
+        "math_500",
+        "arc",
         # "clrs_text",
         # "salad_data",
     ]
 
-    benchmarks = ["arc"]
+    # benchmarks = ["arc"]
     # args.population_id = "05ed1869-68ca-40d4-bd87-ad1ba73e6897"
 
     for benchmark in benchmarks:

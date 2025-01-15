@@ -77,7 +77,7 @@ class DROP(Benchmark):
         """
         ).strip()
 
-        prompt += f"\n\nOUTPUT ANSWER FORMAT: Provide your final answer as a string containing one or many words or numbers, or a short sentance."
+        prompt += f"\n\nOUTPUT ANSWER FORMAT: Provide your final answer as comma separated string of answers."
 
         return Sample(
             input=prompt,
@@ -159,7 +159,7 @@ class DROP(Benchmark):
 
             # Calculate Precision, Recall, and F1
             predicted_items = len(
-                state.output.completion.split("\n")
+                state.output.completion.split(",")
             )  # Split on newlines for bullet points
             total_gold_items = len(target_list)
 
