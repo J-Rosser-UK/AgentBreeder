@@ -22,7 +22,8 @@ class Agent:
     def __init__(
         self,
         agent_name,
-        agent_backstory=None,
+        agent_role="",
+        agent_goal="None",
         model="gpt-4o-mini",
         temperature=0.7,
         agent_timestamp=datetime.utcnow(),
@@ -33,7 +34,8 @@ class Agent:
 
         self.agent_name = agent_name + f" {random_id}"
 
-        self.agent_backstory = agent_backstory
+        self.agent_role = agent_role
+        self.agent_goal = agent_goal
         self.model = model
         self.temperature = temperature
         self.agent_timestamp = agent_timestamp
@@ -45,6 +47,13 @@ class Agent:
 
     @property
     def chat_history(self):
+
+        initial_message = [
+            {
+                "role": "system",
+                "content": f"You are {self.agent_name}. {self.agent_role}. {self.agent_goal}",
+            }
+        ]
 
         chats = sorted(
             [chat for meeting in self.meetings for chat in meeting.chats],
@@ -64,7 +73,7 @@ class Agent:
                 content = f"{chat.agent.agent_name}: {chat_content}"
             return {"role": role, "content": content}
 
-        history = [to_chat(chat) for chat in chats]
+        history = initial_message + [to_chat(chat) for chat in chats]
 
         # print(f"-----{self.agent_name}")
         # for chat in history:

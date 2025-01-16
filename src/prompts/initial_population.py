@@ -11,14 +11,9 @@ COT = {
     # Create the Chain-of-Thought agent
     cot_agent = Agent(
         agent_name='Chain-of-Thought Agent',
+        agent_role='You are a Chain-of-Thought Agent. You think step-by-step.',
+        agent_goal='Your goal is to solve the task by thinking step-by-step.',
         temperature=0.7
-    )
-
-    # Tell the cot agent about its role
-    cot_internal_monologue = Meeting(meeting_name=f"{cot_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(cot_internal_monologue) for agnt in [system, cot_agent]]
-    cot_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {cot_agent.agent_name}. You think step-by-step.")
     )
     
     # Setup meeting
@@ -69,17 +64,11 @@ COT_SC = {
     cot_agents = [
         Agent(
             agent_name=f'Chain-of-Thought Agent {i}',
+            agent_role='You are a Chain-of-Thought Agent. You think step-by-step.',
+            agent_goal='Your goal is to solve the task by thinking step-by-step.',
             temperature=0.8
         ) for i in range(N)
     ]
-
-    # Tell the cot agents about their role
-    for cot_agent in cot_agents:
-        cot_internal_monologue = Meeting(meeting_name=f"{cot_agent.agent_name}_internal_monologue")
-        [agnt.meetings.append(cot_internal_monologue) for agnt in [system, cot_agent]]
-        cot_internal_monologue.chats.append(
-            Chat(agent=system, content=f"You are a {cot_agent.agent_name}. You think step-by-step.")
-        )
 
     # Setup meeting
     meeting = Meeting(meeting_name="self-consistency")
@@ -137,28 +126,18 @@ Reflexion = {
 
     cot_agent = Agent(
         agent_name='Chain-of-Thought Agent',
+        agent_role='You are a Chain-of-Thought Agent. You think step-by-step.',
+        agent_goal='Your goal is to solve the task by thinking step-by-step.',
         temperature=0.7
     )
 
-    # Tell the cot agent about its role
-    cot_internal_monologue = Meeting(meeting_name=f"{cot_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(cot_internal_monologue) for agnt in [system, cot_agent]]
-    cot_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {cot_agent.agent_name}. You think step-by-step.")
-    )
-
+    
     critic_agent = Agent(
         agent_name='Critic Agent',
+        agent_role='You are a Critic Agent. You provide constructive criticism.',
+        agent_goal='Your goal is to help the Chain-of-Thought Agent improve its answer.',
         temperature=0.6
     )
-
-    # Tell the critic agent about its role
-    critic_internal_monologue = Meeting(meeting_name=f"{critic_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(critic_internal_monologue) for agnt in [system, critic_agent]]
-    critic_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {critic_agent.agent_name}. You are a constructive critic, you are skilled at assessing where someone might have gone wrong in their explanation.")
-    )
-
     
 
     # Setup meeting
@@ -251,27 +230,36 @@ LLM_debate = {
     system = Agent(agent_name = 'system', temperature=0.8)
 
     # Initialize debate agents with different roles and a moderate temperature for varied reasoning
-    debate_agents = [Agent(
-        agent_name=name,
+    biology_expert = Agent(
+        agent_name = 'Biology Expert',
+        agent_role = 'You are a Biology Expert. You have a PhD in biology and reason carefully about your answers pulling from your domain knowledge.',
+        agent_goal = 'Your goal is to provide the best answer based on your expertise.',
         temperature=0.8
-    ) for name in ['Biology Expert', 'Physics Expert', 'Science Generalist']]
+    )
 
-    # Tell the agents about their roles
-    for agent in debate_agents:
-        agent_internal_monologue = Meeting(meeting_name=f"{agent.agent_name}_internal_monologue")
-        [agnt.meetings.append(agent_internal_monologue) for agnt in [system, agent]]
-        agent_internal_monologue.chats.append(
-            Chat(agent=system, content=f"You are a {agent.agent_name}. You have a PhD in your domain and reason carefully about your answers pulling from your domain knowledge.")
-            )
+    physics_expert = Agent(
+        agent_name = 'Physics Expert',
+        agent_role = 'You are a Physics Expert. You have a PhD in physics and reason carefully about your answers pulling from your domain knowledge.',
+        agent_goal = 'Your goal is to provide the best answer based on your expertise.',
+        temperature=0.8
+    )
+
+    generalist = Agent(
+        agent_name = 'Science Generalist',
+        agent_role = 'You are a Science Generalist. You have a broad understanding of science and can provide answers based on general knowledge.',
+        agent_goal = 'Your goal is to provide a well-reasoned answer based on general scientific principles.',
+        temperature=0.8
+    )
+    
+    # Setup debate agents
+    debate_agents = [biology_expert, physics_expert, generalist]
 
     # Instruction for final decision-making based on all debates and solutions
-    final_decision_agent = Agent(agent_name = 'Final Decision Agent',temperature=0.1)
-
-    # Tell the final decision agent about its role
-    final_decision_internal_monologue = Meeting(meeting_name=f"{final_decision_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(final_decision_internal_monologue) for agnt in [system, final_decision_agent]]
-    final_decision_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {final_decision_agent.agent_name}. You decide on the final answer based on all debates and solutions.")
+    final_decision_agent = Agent(
+        agent_name = 'Final Decision Agent',
+        agent_role = 'You are the Final Decision Agent. You decide on the final answer based on all debates and solutions.',
+        agent_goal = 'Your goal is to provide the best answer based on the debates and solutions.',
+        temperature=0.1
     )
 
     # Setup a single meeting for the debate
@@ -311,24 +299,18 @@ Take_a_step_back = {
     "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = Agent(agent_name='system', temperature=0.8)
-    principle_agent = Agent(agent_name='Principle Agent', temperature=0.8)
-
-    # Tell the principle agent about its role
-    principle_internal_monologue = Meeting(meeting_name=f"{principle_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(principle_internal_monologue) for agnt in [system, principle_agent]]
-    principle_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {principle_agent.agent_name}. You are responsible for identifying the principles involved in solving the task.")
+    principle_agent = Agent(
+        agent_name='Principle Agent',
+        agent_role='You are a Principle Agent. You are responsible for identifying the principles involved in solving the task.',
+        agent_goal='Your goal is to identify the principles involved in solving the task.',
+        temperature=0.8
     )
-
-    cot_agent = Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
-
-    # Tell the cot agent about its role
-    cot_internal_monologue = Meeting(meeting_name=f"{cot_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(cot_internal_monologue) for agnt in [system, cot_agent]]
-    cot_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {cot_agent.agent_name}. You think step-by-step.")
-    )
-
+    cot_agent = Agent(
+        agent_name='Chain-of-Thought Agent',
+        agent_role='You are a Chain-of-Thought Agent. You think step-by-step.',
+        agent_goal='Your goal is to solve the task by thinking step-by-step.',
+        temperature=0.8
+    )   
     
 
     # Setup meeting
@@ -372,23 +354,19 @@ QD = {
     "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = Agent(agent_name='system', temperature=0.8)
-    cot_agent = Agent(agent_name='Chain-of-Thought Agent', temperature=0.8)
+    cot_agent = Agent(agent_name='Chain-of-Thought Agent',
+        agent_role='You are a Chain-of-Thought Agent. You think step-by-step.',
+        agent_goal='Your goal is to solve the task by thinking step-by-step.', temperature=0.8)
 
-    # Tell the cot agent about its role
-    cot_internal_monologue = Meeting(meeting_name=f"{cot_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(cot_internal_monologue) for agnt in [system, cot_agent]]
-    cot_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {cot_agent.agent_name}. You think step-by-step.")
+    
+
+    final_decision_agent = Agent(
+        agent_name='Final Decision Agent',
+        agent_role='You are the Final Decision Agent. You decide on the final answer based on all debates and solutions.',
+        agent_goal='Your goal is to provide the best answer based on the debates and solutions.',
+        temperature=0.1
     )
 
-    final_decision_agent = Agent(agent_name='Final Decision Agent', temperature=0.1)
-
-    # Tell the final decision agent about its role
-    final_decision_internal_monologue = Meeting(meeting_name=f"{final_decision_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(final_decision_internal_monologue) for agnt in [system, final_decision_agent]]
-    final_decision_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {final_decision_agent.agent_name}. You decide on the final answer based on all debates and solutions.")
-    )
 
     # Setup meeting
     meeting = Meeting(meeting_name="quality_diversity_meeting")
@@ -450,19 +428,41 @@ Role_Assignment = {
     "code": """async def forward(self, task: str) -> str:
     # Create agents
     system = Agent(agent_name='system', temperature=0.8)
-    routing_agent = Agent(agent_name='Routing Agent', temperature=0.8)
-
-    # Tell the routing agent about its role
-    routing_internal_monologue = Meeting(meeting_name=f"{routing_agent.agent_name}_internal_monologue")
-    [agnt.meetings.append(routing_internal_monologue) for agnt in [system, routing_agent]]
-    routing_internal_monologue.chats.append(
-        Chat(agent=system, content=f"You are a {routing_agent.agent_name}. You decide which expert to assign based on the task.")
+    routing_agent = Agent(
+        agent_name='Routing Agent',
+        agent_role='You are a Routing Agent. You decide which expert to assign based on the task.',
+        agent_goal='Your goal is to assign the task to the most suitable expert.',
+        temperature=0.8
     )
 
-    physics_expert = Agent(agent_name='Physics Expert', temperature=0.8)
-    chemistry_expert = Agent(agent_name='Chemistry Expert', temperature=0.8)
-    biology_expert = Agent(agent_name='Biology Expert', temperature=0.8)
-    generalist = Agent(agent_name='Science Generalist', temperature=0.8)
+    # Initialize expert agents
+    biology_expert = Agent(
+        agent_name = 'Biology Expert',
+        agent_role = 'You are a Biology Expert. You have a PhD in biology and reason carefully about your answers pulling from your domain knowledge.',
+        agent_goal = 'Your goal is to provide the best answer based on your expertise.',
+        temperature=0.8
+    )
+
+    physics_expert = Agent(
+        agent_name = 'Physics Expert',
+        agent_role = 'You are a Physics Expert. You have a PhD in physics and reason carefully about your answers pulling from your domain knowledge.',
+        agent_goal = 'Your goal is to provide the best answer based on your expertise.',
+        temperature=0.8
+    )
+
+    chemistry_expert = Agent(
+        agent_name = 'Chemistry Expert',
+        agent_role = 'You are a Chemistry Expert. You have a PhD in chemistry and reason carefully about your answers pulling from your domain knowledge.',
+        agent_goal = 'Your goal is to provide the best answer based on your expertise.',
+        temperature=0.8
+    )
+
+    generalist = Agent(
+        agent_name = 'Science Generalist',
+        agent_role = 'You are a Science Generalist. You have a broad understanding of science and can provide answers based on general knowledge.',
+        agent_goal = 'Your goal is to provide a well-reasoned answer based on general scientific principles.',
+        temperature=0.8
+    )
 
     expert_agents = {
         'physics': physics_expert,
@@ -471,13 +471,6 @@ Role_Assignment = {
         'general': generalist
     }
 
-    # Tell the agents about their roles
-    for agent in list(expert_agents.values()):
-        agent_internal_monologue = Meeting(meeting_name=f"{agent.agent_name}_internal_monologue")
-        [agnt.meetings.append(agent_internal_monologue) for agnt in [system, agent]]
-        agent_internal_monologue.chats.append(
-            Chat(agent=system, content=f"You are a {agent.agent_name}. You have a PhD in your domain and reason carefully about your answers pulling from your domain knowledge.")
-            )
 
     # Setup meeting
     meeting = Meeting(meeting_name="role_assignment_meeting")

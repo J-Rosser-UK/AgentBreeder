@@ -260,7 +260,7 @@ class Benchmark(ABC):
                 name="llm_match",
                 value=accuracy,
                 answer=state.output.completion,
-                explanation=f"Is answer correct? {response['is_match']}",
+                explanation=f"Is answer correct? {response.get('is_match','')}",
             )
 
         return score

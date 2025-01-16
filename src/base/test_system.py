@@ -28,7 +28,7 @@ class TestAgentBreederSystem(unittest.TestCase):
         self.assertEqual(len(agent.meetings), 0)
 
     def test_chat_initialization(self):
-        agent = Agent("Test Agent")
+        agent = Agent("Test Agent", "Test role", "Test goal")
         content = "Hello, world!"
         chat = Chat(agent, content)
         self.assertEqual(chat.agent, agent)
@@ -36,7 +36,7 @@ class TestAgentBreederSystem(unittest.TestCase):
         self.assertIsInstance(chat.chat_timestamp, datetime)
 
     def test_agent_chat_history(self):
-        agent = Agent("Test Agent")
+        agent = Agent("Test Agent", "Test role", "Test goal")
         meeting = Meeting("Test Meeting")
         agent.meetings.append(meeting)
         chat1 = Chat(agent, "Hello")
@@ -49,8 +49,8 @@ class TestAgentBreederSystem(unittest.TestCase):
 
     def test_multiple_agents_in_multiple_meetings(self):
         system = Agent("system")
-        agent1 = Agent("Test Agent 1")
-        agent2 = Agent("Test Agent 2")
+        agent1 = Agent("Test Agent 1", "Test role", "Test goal")
+        agent2 = Agent("Test Agent 2", "Test role", "Test goal")
         meeting1 = Meeting("Meeting 1")
         meeting2 = Meeting("Meeting 2")
         agent1.meetings.append(meeting1)

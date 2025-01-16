@@ -3,6 +3,11 @@
 *venv
 *.jsonl
 *.sql
+*logs/
+logs/
+*src/logs/
+*src.logs/
+*logs
 *.eval
 *temp/
 temp/
@@ -12,6 +17,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.vscode/
+*logs/
 
 # C extensions
 *.so

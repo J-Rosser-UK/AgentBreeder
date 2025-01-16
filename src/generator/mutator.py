@@ -58,16 +58,7 @@ class Mutator:
         try:
 
             system_response, messages, reflexion_response_format, parent_system_ids = (
-                await random.choice(
-                    [
-                        self._mutate,
-                        self._crossover,
-                        self._base,
-                        self._base,
-                        self._base,
-                        self._base,
-                    ]
-                )(parents)
+                await random.choice([self._mutate, self._crossover])(parents)
             )
 
             system_response = await self._debug(
