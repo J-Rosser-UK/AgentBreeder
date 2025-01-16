@@ -3,7 +3,7 @@
 *venv
 *.jsonl
 *.sql
-
+*.eval
 *temp/
 temp/
 # Byte-compiled / optimized / DLL files

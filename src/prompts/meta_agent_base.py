@@ -8,6 +8,7 @@ from base import System
 import os
 
 from .utils import extract_class_code, extract_function_code
+from .benchmark_prompts import benchmark_prompts
 
 
 EXAMPLE = {
@@ -28,18 +29,11 @@ get_structured_json_response_from_gpt_code = extract_function_code(
 )
 
 prompt_base = """# Overview
-You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on various benchmarks e.g. MMLU.
+You are an expert machine learning researcher testing various agentic systems.
+Your objective is to design building blocks such as prompts and control flows
+within these systems to solve complex tasks.
 
-## An example question from MMLU:
-
-Answer the following multiple choice question.
-
-The constellation ... is a bright W-shaped constellation in the northern sky.
-
-(A) Centaurus
-(B) Cygnus
-(C) Cassiopeia
-(D) Cepheus
+[BENCHMARK_DESCRIPTION]
 
 # The utility code:
 
@@ -93,6 +87,7 @@ Here is an example of the output format for the next agent architecture:
 [EXAMPLE]
 
 You must use the exact function interface used above. You need to specify the instruction, input information, and the required output fields for various LLM agents to do their specific part of the architecture.
+In particular, each agent does not know their own name, so if you want an agent to take on a specifiy persona such as "Domain Expert" or "Critic", the agent must have an internal meeting where a system prompt gives the agent a persona.
 Also, it could be helpful to set the LLMs role and temperature to further control the LLMs response. Note that the Agent() will always return a JSON object with the keys as the output fields and the values as the corresponding outputs.
 DO NOT FORGET the task input to LLM if you think it is needed, otherwise LLM will not know about the task.
 
@@ -182,6 +177,17 @@ async def forward(self, task):
     return output["answer"]
 ```
 
+5. Ensure that the agents are made aware of their persona, the do not know their name:
+```python
+agent = Agent(agent_name="Biology Expert", temperature=0.7)
+biology_expert_internal_monologue = Meeting(meeting_name=f"biology_expert_internal_monologue")
+[a.meetings.append(biology_expert_internal_monologue) for a in [system, agent]]
+biology_expert_internal_monologue.chats.append(
+    Chat(agent=system, content=f"You are a biology expert. You have a PhD in biology and reason carefully about your answers pulling from your domain knowledge.")
+    )
+
+```
+
 # Your task
 You are deeply familiar with LLM prompting techniques and LLM agent works from the literature. Your goal is to maximize "fitness" by proposing interestingly new agents.
 Observe the discovered architectures carefully and think about what insights, lessons, or stepping stones can be learned from them.
@@ -226,6 +232,9 @@ def get_base_prompt_with_archive(args, session):
     archive_str = f"[{archive_str}]"
     prompt = prompt_base.replace("[ARCHIVE]", archive_str)
     prompt = prompt.replace("[EXAMPLE]", json.dumps(EXAMPLE))
+    prompt = prompt.replace(
+        "[BENCHMARK_DESCRIPTION]", benchmark_prompts[args.benchmark]
+    )
 
     response_format = {
         "thought": "The first key should be (thought), and it should capture your thought process for designing the next function. In the thought section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.",

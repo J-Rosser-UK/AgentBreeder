@@ -83,8 +83,8 @@ class Benchmark(ABC):
             [self.match_task(), sd.match_task()],
             model=models,
             limit=limit,
-            log_dir=f"./logs/{self.__class__.__name__}-{str(systems[0].population_id)}-{self.split}---{str(uuid.uuid4())}",  # specify where logs are stored
-            log_format="eval",  # choose log format ("eval" or "json")
+            log_dir=f"./src/logs/{self.split}/{self.args.log_timestamp}/{self.__class__.__name__}-{str(systems[0].population_id)}-{str(uuid.uuid4())}",  # specify where logs are stored
+            log_format="json",  # choose log format ("eval" or "json")
             score=True,  # ensure scoring is enable
         )
 
