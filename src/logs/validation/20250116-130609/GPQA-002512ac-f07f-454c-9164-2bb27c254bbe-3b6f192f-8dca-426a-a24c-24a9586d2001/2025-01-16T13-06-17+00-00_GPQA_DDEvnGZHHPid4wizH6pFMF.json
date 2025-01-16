@@ -1,0 +1,106 @@
+{
+  "version": 2,
+  "status": "cancelled",
+  "eval": {
+    "run_id": "i7EihEFHmUASsZzHcAioPL",
+    "created": "2025-01-16T13:06:17+00:00",
+    "task": "GPQA",
+    "task_id": "DDEvnGZHHPid4wizH6pFMF",
+    "task_version": 0,
+    "task_file": "src/evals/gpqa.py",
+    "task_attribs": {},
+    "task_args": {
+      "self": "GPQA"
+    },
+    "dataset": {
+      "name": "Idavidrein/gpqa",
+      "location": "Idavidrein/gpqa",
+      "samples": 50,
+      "sample_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "shuffled": false
+    },
+    "model": "agntbrdr/Dynamic Assignment of Roles||4c124780-8a36-4a9e-aec7-f940fd586366",
+    "model_args": {},
+    "config": {
+      "limit": 50
+    },
+    "revision": {
+      "type": "git",
+      "origin": "git@github.com:J-Rosser-UK/AgentBreeder.git",
+      "commit": "d2b8bc9"
+    },
+    "packages": {
+      "inspect_ai": "0.3.49"
+    }
+  },
+  "plan": {
+    "name": "plan",
+    "steps": [
+      {
+        "solver": "match_solver",
+        "params": {
+          "self": "GPQA"
+        }
+      }
+    ],
+    "config": {
+      "temperature": 0.5
+    }
+  },
+  "stats": {
+    "started_at": "2025-01-16T13:06:17+00:00",
+    "completed_at": "2025-01-16T13:06:25+00:00",
+    "model_usage": {}
+  }
+}

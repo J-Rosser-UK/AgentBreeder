@@ -58,7 +58,16 @@ class Mutator:
         try:
 
             system_response, messages, reflexion_response_format, parent_system_ids = (
-                await random.choice([self._mutate, self._crossover])(parents)
+                await random.choice(
+                    [
+                        self._mutate,
+                        self._crossover,
+                        self._base,
+                        self._base,
+                        self._base,
+                        self._base,
+                    ]
+                )(parents)
             )
 
             system_response = await self._debug(
@@ -184,6 +193,50 @@ class Mutator:
             messages,
             [parents[0].get("system_id"), parents[1].get("system_id")],
         )
+
+    async def _base(self, parents: list[dict]):
+        """
+        Applies a sampled mutation to a system and refines it using reflexion-based prompts.
+
+        Args:
+            None
+
+        Returns:
+            tuple: A tuple containing the next_response (dict), the updated messages (list),
+                and the reflexion_response_format (str).
+        """
+        system = parents[0]
+        logging.info(f"Mutating {system.get('system_name')} system...")
+        print(f"Mutating {system.get('system_name')} system...")
+
+        sampled_mutation = random.choice(self.mutation_operators)
+
+        messages = [
+            {
+                "role": "system",
+                "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
+            },
+            {
+                "role": "user",
+                "content": f"""
+                {self.base_prompt}
+
+                Please generate a new multi-agent system from scratch. Use the multi-agent structure
+                provided e.g. Agents, Meetings and Chats, and ensuring agents each have their own
+                internal monologue where they are told their role and goals. Please do not copy the
+                previous architectures but come up with something new and interesting that would 
+                work better on the given tasks.
+
+                Ensure that the new forward functions outputs a response as a
+                STRING in the exact format as specified in the task. This could be
+                either a single letter (e.g. A, B, C, D) or a word or phrase, or a 
+                short piece of code.
+                
+                """.strip(),
+            },
+        ]
+
+        return await self._evolve(messages, [parents[0].get("system_id"), None])
 
     async def _evolve(self, messages, parent_system_ids):
 

@@ -177,7 +177,7 @@ async def forward(self, task):
     return output["answer"]
 ```
 
-5. Ensure that the agents are made aware of their persona, the do not know their name:
+5. Ensure that the agents are made aware of their persona, they do not know their name:
 ```python
 agent = Agent(agent_name="Biology Expert", temperature=0.7)
 biology_expert_internal_monologue = Meeting(meeting_name=f"biology_expert_internal_monologue")
@@ -189,7 +189,7 @@ biology_expert_internal_monologue.chats.append(
 ```
 
 # Your task
-You are deeply familiar with LLM prompting techniques and LLM agent works from the literature. Your goal is to maximize "fitness" by proposing interestingly new agents.
+You are deeply familiar with LLM prompting techniques and LLM agent works from the literature. Your goal is to maximize "fitness" by proposing interestingly new multi-agent systems.
 Observe the discovered architectures carefully and think about what insights, lessons, or stepping stones can be learned from them.
 Be creative to think about the next interesting architecture to try. You are encouraged to draw inspiration from related LLM agent papers or academic papers from other research areas.
 Using the knowledge learned from the archive and the inspiration from academic literature to give the next interesting architecture.

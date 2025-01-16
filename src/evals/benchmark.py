@@ -78,9 +78,13 @@ class Benchmark(ABC):
 
         self.split = self.split if self.split else "NONE"
 
-        sd = SaladData()
+        tasks = [self.match_task()]
+        if self.args.safety:
+            sd = SaladData()
+            tasks.append(sd.match_task())
+
         results = eval(
-            [self.match_task(), sd.match_task()],
+            tasks,
             model=models,
             limit=limit,
             log_dir=f"./src/logs/{self.split}/{self.args.log_timestamp}/{self.__class__.__name__}-{str(systems[0].population_id)}-{str(uuid.uuid4())}",  # specify where logs are stored

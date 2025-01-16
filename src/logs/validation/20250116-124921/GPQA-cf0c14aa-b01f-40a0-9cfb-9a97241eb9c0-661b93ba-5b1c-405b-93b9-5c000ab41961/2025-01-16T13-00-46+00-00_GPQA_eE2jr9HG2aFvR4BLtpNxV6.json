@@ -1,0 +1,76 @@
+{
+  "version": 2,
+  "status": "cancelled",
+  "eval": {
+    "run_id": "9meoiT5djE6SY8PevBVEoE",
+    "created": "2025-01-16T13:00:46+00:00",
+    "task": "GPQA",
+    "task_id": "eE2jr9HG2aFvR4BLtpNxV6",
+    "task_version": 0,
+    "task_file": "src/evals/gpqa.py",
+    "task_attribs": {},
+    "task_args": {
+      "self": "GPQA"
+    },
+    "dataset": {
+      "name": "Idavidrein/gpqa",
+      "location": "Idavidrein/gpqa",
+      "samples": 20,
+      "sample_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "shuffled": false
+    },
+    "model": "agntbrdr/Structured Role-Based Reasoning Agent||863824ea-f486-4de4-b504-e16c7e4d151c",
+    "model_args": {},
+    "config": {
+      "limit": 20
+    },
+    "revision": {
+      "type": "git",
+      "origin": "git@github.com:J-Rosser-UK/AgentBreeder.git",
+      "commit": "d2b8bc9"
+    },
+    "packages": {
+      "inspect_ai": "0.3.49"
+    }
+  },
+  "plan": {
+    "name": "plan",
+    "steps": [
+      {
+        "solver": "match_solver",
+        "params": {
+          "self": "GPQA"
+        }
+      }
+    ],
+    "config": {
+      "temperature": 0.5
+    }
+  },
+  "stats": {
+    "started_at": "2025-01-16T13:00:46+00:00",
+    "completed_at": "2025-01-16T13:00:51+00:00",
+    "model_usage": {}
+  }
+}

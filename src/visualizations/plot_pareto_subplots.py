@@ -343,7 +343,10 @@ def main():
         ):
             ax = axes[idx]
             plot_pareto_frontiers(systems, ax)
-            ax.set_title(f"{population.population_benchmark}", fontsize=12)
+            ax.set_title(
+                f"{population.population_benchmark}-{population.population_id}",
+                fontsize=12,
+            )
 
         # Remove any unused subplots if less than 8
         if len(populations) < len(axes):
