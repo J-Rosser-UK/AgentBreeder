@@ -24,6 +24,7 @@ class DROP(Benchmark):
         shuffle: bool = True,
         limit: int = 1000,
     ) -> Dataset:
+        self.split = split
 
         self.args = args
 

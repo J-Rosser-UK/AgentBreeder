@@ -75,9 +75,16 @@ class Generator:
 
         for _ in range(self.args.n_mutations):
 
-            system_1 = random.choice(self.population.pareto_elites).to_dict()
+            if self.args.pareto:
 
-            system_2 = random.choice(self.population.pareto_elites).to_dict()
+                system_1 = random.choice(self.population.pareto_elites).to_dict()
+
+                system_2 = random.choice(self.population.pareto_elites).to_dict()
+            else:
+                system_1 = random.choice(self.population.elites).to_dict()
+
+                system_2 = random.choice(self.population.elites).to_dict()
+
             parents.append((system_1, system_2))
 
         self.base_prompt, self.base_prompt_response_format = (

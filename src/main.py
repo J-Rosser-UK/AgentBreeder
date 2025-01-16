@@ -30,7 +30,6 @@ def main(args, population_id=None):
 
     validator = Validator(args)
     clusterer = Clusterer()
-    illuminator = Illuminator(args)
 
     # Initialize population_id only if it doesn't exist
     if not population_id:
@@ -100,6 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_mutations", type=int, default=10)
     parser.add_argument("--n_evals", type=int, default=50)
     parser.add_argument("--debug_max", type=int, default=3)
+    parser.add_argument("--pareto", type=bool, default=True)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("-p", "--population_id", type=str, default="None")
     parser.add_argument("--benchmark", type=str, default="mmlu")
@@ -107,13 +107,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     benchmarks = [
-        # "gpqa",
-        # "mmlu",
-        # "drop",
-        # "mgsm",
-        "simple_qa",
         "math_500",
+        "gpqa",
+        "mmlu",
+        "drop",
+        "mgsm",
         "arc",
+        "simple_qa",
         # "clrs_text",
         # "salad_data",
     ]

@@ -140,7 +140,7 @@ class Cluster(CustomBase):
         elite = (
             session.query(System)
             .filter(System.cluster_id == self.cluster_id)
-            .order_by(System.system_fitness.desc())
+            .order_by(System.system_capability_ci_median.desc())
             .first()
         )
 

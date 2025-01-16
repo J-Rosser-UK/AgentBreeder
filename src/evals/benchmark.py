@@ -76,12 +76,14 @@ class Benchmark(ABC):
 
         from .salad_data import SaladData
 
+        self.split = self.split if self.split else "NONE"
+
         sd = SaladData()
         results = eval(
             [self.match_task(), sd.match_task()],
             model=models,
             limit=limit,
-            log_dir=f"./logs/{self.__class__.__name__}-{str(systems[0].population_id)}",  # specify where logs are stored
+            log_dir=f"./logs/{self.__class__.__name__}-{str(systems[0].population_id)}-{self.split}---{str(uuid.uuid4())}",  # specify where logs are stored
             log_format="eval",  # choose log format ("eval" or "json")
             score=True,  # ensure scoring is enable
         )

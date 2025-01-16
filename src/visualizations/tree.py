@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
         print(population_id)
 
-        population_id = "51d46f52-7315-419e-891b-f275172eb94a"
+        # population_id = "51d46f52-7315-419e-891b-f275172eb94a"
 
         # Suppose you have a list of systems from your DB:
         systems = session.query(System).filter_by(population_id=population_id).all()

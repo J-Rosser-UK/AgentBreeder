@@ -1,22 +1,21 @@
 import argparse
-import random
-from concurrent.futures import ThreadPoolExecutor
+
 import logging
-from tqdm import tqdm
-from generator import initialize_population_id, generate_mutant, run_generation
-from descriptor import Clusterer
+
 from base import initialize_session, Population, System
-from evals import Validator
+
 import os
 import uuid
 import asyncio
 import json
 import warnings
 from sqlalchemy.exc import SAWarning
-from illuminator import Illuminator
-from sqlalchemy.orm import joinedload
+
 import time
-from evals import CLRSText, MMLU
+from evals import CLRSText, MMLU, ARC, GPQA, DROP, MGSM, SaladData, SimpleQA, Math500
+import pandas as pd
+import numpy as np
+from rich import print
 
 # Disable logging for httpx
 logging.getLogger("httpx").disabled = True
@@ -25,31 +24,132 @@ logging.getLogger("httpx").disabled = True
 warnings.filterwarnings("ignore", category=SAWarning)
 
 
-def main(args):
-    random.seed(args.random_seed)
+class Evaluator:
 
-    evaluator = MMLU(args=args, split="test", shuffle=True, limit=args.n_evals)
+    def __init__(self, args):
 
-    for session in initialize_session():
+        self.args = args
 
-        # Only choose systems which haven't been evaluated yet (e.g. system_fitness=None)
-        systems_for_evaluation = (
-            session.query(System).filter_by(system_id=args.system_id).all()
+        self.benchmarks = {
+            "arc": ARC,
+            "gpqa": GPQA,
+            "mmlu": MMLU,
+            "drop": DROP,
+            "mgsm": MGSM,
+            "clrs_text": CLRSText,
+            "salad_data": SaladData,
+            "simple_qa": SimpleQA,
+            "math_500": Math500,
+        }
+
+        self.benchmark = self.benchmarks[args.benchmark](
+            args=self.args, split="test", shuffle=True, limit=self.args.n_evals
         )
 
-        print(
-            "Number of systems for evaluation",
-            len(systems_for_evaluation),
+    def evaluate(
+        self,
+        population: Population,
+        systems_for_validation: list[System],
+    ):
+
+        model_metrics = self.benchmark.evaluate(
+            systems_for_validation,
+            limit=self.args.n_evals,
         )
 
-        model_metrics = evaluator.evaluate(
-            systems_for_evaluation,
-            limit=args.n_evals,
+        records = {
+            system.system_id: {
+                "population_id": population.population_id,
+                "benchmark": population.population_benchmark,
+                "system_name": system.system_name,
+                "system_id": system.system_id,
+                "system_safety_ci_median": None,
+                "system_safety_ci_upper": None,
+                "system_safety_ci_lower": None,
+                "system_capability_ci_median": None,
+                "system_capability_ci_upper": None,
+                "system_capability_ci_lower": None,
+                "system_code": system.system_code,
+            }
+            for system in systems_for_validation
+        }
+
+        # You can now access each model’s metrics via model_metrics
+        for model, task_metrics in model_metrics.items():
+            for task, metrics in task_metrics.items():
+
+                print(f"Model: {model}")
+                print(f"Task: {task}")
+                print(f"  accuracy: {metrics['accuracy']}")
+                print(f"  ci_lower: {metrics['ci_lower']}")
+                print(f"  ci_upper: {metrics['ci_upper']}")
+                print(f"  median:   {metrics['median']}")
+
+                for system in systems_for_validation:
+
+                    if str(system.system_id) == model.split("||")[1]:
+                        if task == self.benchmarks[self.args.benchmark].__name__:
+                            records[system.system_id]["system_capability_ci_median"] = (
+                                metrics["median"]
+                            )
+                            records[system.system_id]["system_capability_ci_upper"] = (
+                                metrics["ci_upper"]
+                            )
+                            records[system.system_id]["system_capability_ci_lower"] = (
+                                metrics["ci_lower"]
+                            )
+
+                        elif task == SaladData.__name__:
+                            records[system.system_id]["system_safety_ci_median"] = (
+                                metrics["median"]
+                            )
+                            records[system.system_id]["system_safety_ci_upper"] = (
+                                metrics["ci_upper"]
+                            )
+                            records[system.system_id]["system_safety_ci_lower"] = (
+                                metrics["ci_lower"]
+                            )
+
+        return records
+
+
+def compute_pareto_frontier(systems_in_cluster):
+    def dominates(s1, s2):
+        """
+        Returns True if s1 dominates s2 across the two objectives:
+        - system_capability_ci_median
+        - system_safety_ci_median
+        We assume we are maximizing both objectives.
+        """
+        if not s1.system_capability_ci_median:
+            return False
+        elif not s2.system_capability_ci_median:
+            return True
+
+        return (
+            s1.system_capability_ci_median >= s2.system_capability_ci_median
+            and s1.system_safety_ci_median >= s2.system_safety_ci_median
+            and (
+                s1.system_capability_ci_median > s2.system_capability_ci_median
+                or s1.system_safety_ci_median > s2.system_safety_ci_median
+            )
         )
 
-        print(json.dumps(model_metrics, indent=4))
+    # Compute the Pareto front (non-dominated set)
+    pareto_front = []
+    for s1 in systems_in_cluster:
+        # Check if s1 is dominated by any other system
+        is_dominated = False
+        for s2 in systems_in_cluster:
+            if s1 == s2:
+                continue
+            if dominates(s2, s1):
+                is_dominated = True
+                break
+        if not is_dominated:
+            pareto_front.append(s1)
 
-    return args.system_id  # Return the population ID for restarts
+    return pareto_front
 
 
 if __name__ == "__main__":
@@ -60,11 +160,78 @@ if __name__ == "__main__":
     parser.add_argument("--current_dir", type=str, default=current_directory)
     parser.add_argument("--random_seed", type=int, default=42)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
-    parser.add_argument("--n_evals", type=int, default=10)
-    parser.add_argument("--population_id", type=str, default="None")
-    parser.add_argument("--system_id", type=str, default="None")
-    parser.add_argument("--benchmark", type=str, default="mmlu")
+    parser.add_argument("--n_evals", type=int, default=100)
 
     args = parser.parse_args()
 
-    system_id = main(args)
+    eval_timestamp_str = str(time.strftime("%Y%m%d-%H%M%S"))
+
+    # try:
+    populations = []
+    for session in initialize_session():
+        latest_populations = (
+            session.query(Population)
+            .order_by(Population.population_timestamp.desc())
+            .all()
+        )
+
+        if not latest_populations:
+            print("No populations found.")
+            continue
+
+        for population in latest_populations:
+            args.benchmark = population.population_benchmark
+
+            systems = (
+                session.query(System)
+                .filter_by(population_id=population.population_id)
+                .all()
+            )
+            if len(systems) < 40:
+                continue
+
+            filtered_systems = []
+            for system in systems:
+                if (
+                    not system.system_capability_ci_median
+                    or system.system_capability_ci_median == 0
+                ):
+                    continue  # Skip systems with median capability of 0
+                filtered_systems.append(system)
+
+            baseline_systems = filtered_systems[:7]
+
+            generated_systems = filtered_systems[7:]
+            generated_highest_capability_systems: list = sorted(
+                generated_systems,
+                key=lambda x: x.system_capability_ci_median,
+                reverse=True,
+            )[:2]
+
+            print(generated_highest_capability_systems)
+            generated_highest_safety_systems: list = sorted(
+                generated_systems,
+                key=lambda x: x.system_safety_ci_median,
+                reverse=True,
+            )[:2]
+            generated_highest_pareto_systems: list = compute_pareto_frontier(
+                generated_systems
+            )
+
+            # eval all our systems
+            systems_for_evaluation = (
+                baseline_systems
+                + generated_highest_capability_systems
+                + generated_highest_safety_systems
+                + generated_highest_pareto_systems
+            )
+
+            evaluator = Evaluator(args)
+            records = evaluator.evaluate(population, systems_for_evaluation)
+
+            results_file = f"./src/results/{eval_timestamp_str}/{population.population_benchmark}-{population.population_id}.jsonl"
+            os.makedirs(os.path.dirname(results_file), exist_ok=True)
+            with open(results_file, "a") as f:
+                for id, record in records.items():
+                    json_record = json.dumps(record)
+                    f.write(json_record + "\n")

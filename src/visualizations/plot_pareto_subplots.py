@@ -41,24 +41,6 @@ def compute_pareto_frontier(df, maximize_x=True, maximize_y=True):
     return pd.DataFrame(pareto_front)
 
 
-def plot_marker_lines(ax, point, color, label):
-    """
-    Plots marker lines from a point to the x and y axes.
-
-    Parameters:
-    - ax: matplotlib Axes object.
-    - point: Tuple (x, y) representing the point.
-    - color: Color of the lines and marker.
-    - label: Label for the legend.
-    """
-    x, y = point
-    # Plot lines
-    ax.plot([0, x], [y, y], linestyle="--", color=color, linewidth=1)
-    ax.plot([x, x], [0, y], linestyle="--", color=color, linewidth=1)
-    # Plot marker
-    ax.scatter(x, y, color=color, edgecolor="k", s=100, zorder=5, label=label)
-
-
 def plot_pareto_frontiers(systems, ax):
     """
     Plots Pareto frontiers (median safety vs median capability) and all points for a single population.
@@ -91,6 +73,7 @@ def plot_pareto_frontiers(systems, ax):
             "No data available",
             horizontalalignment="center",
             verticalalignment="center",
+            transform=ax.transAxes,
         )
         return
 
@@ -106,6 +89,7 @@ def plot_pareto_frontiers(systems, ax):
             "No valid data available",
             horizontalalignment="center",
             verticalalignment="center",
+            transform=ax.transAxes,
         )
         return
 
@@ -125,6 +109,7 @@ def plot_pareto_frontiers(systems, ax):
             "No generations available",
             horizontalalignment="center",
             verticalalignment="center",
+            transform=ax.transAxes,
         )
         return
 
@@ -176,7 +161,7 @@ def plot_pareto_frontiers(systems, ax):
             jittered_x = gen_data["x"]
             jittered_y = gen_data["y"]
 
-        # Plot scatter points
+        # Plot scatter points with higher zorder
         ax.scatter(
             jittered_x,
             jittered_y,
@@ -187,6 +172,7 @@ def plot_pareto_frontiers(systems, ax):
             label=(
                 f"Gen {i}" if i == 1 or i == 10 else ""
             ),  # Label only first two for legend clarity
+            zorder=3,
         )
 
         # Compute Pareto frontier using original (non-jittered) data
@@ -198,7 +184,7 @@ def plot_pareto_frontiers(systems, ax):
         # Sort Pareto frontier by 'x' to ensure lines are drawn correctly
         pareto_df = pareto_df.sort_values(by="x")
 
-        # Plot Pareto frontier as straight lines between points
+        # Plot Pareto frontier as straight lines between points with higher zorder
         ax.plot(
             pareto_df["x"],
             pareto_df["y"],
@@ -207,6 +193,7 @@ def plot_pareto_frontiers(systems, ax):
             color=color,
             linewidth=2,
             alpha=0.6,
+            zorder=4,
         )
 
     # Step 4: Identify and Plot Pareto Best Points
@@ -234,23 +221,15 @@ def plot_pareto_frontiers(systems, ax):
         polygon_x = [0, 0] + x_pareto + [x_pareto[-1], 0]
         polygon_y = [0, y_max] + y_pareto + [0, 0]
 
-        # Fill the polygon with 50% opacity
+        # Fill the polygon with 50% opacity and lower zorder
         ax.fill(
             polygon_x,
             polygon_y,
             color="gray",
             alpha=0.4,
             label="Baseline Best Fill",  # Optional: Label for legend
+            zorder=1,
         )
-
-        # # Plot marker lines for Pareto best points
-        # for i, line in pareto_first_gen_sorted.iterrows():
-        #     plot_marker_lines(
-        #         ax,
-        #         (line["x"], line["y"]),
-        #         color="gray",
-        #         label="Baseline Pareto Best",
-        #     )
 
     # Other Generations
     if len(other_generations) > 0:
@@ -260,7 +239,7 @@ def plot_pareto_frontiers(systems, ax):
         pareto_other_gens = compute_pareto_frontier(
             other_gens_data, maximize_x=True, maximize_y=True
         )
-        print("pareto_other_gen", pareto_first_gen)
+        print("pareto_other_gen", pareto_other_gens)
         if not pareto_other_gens.empty:
             # Sort Pareto frontier by 'x' to ensure proper polygon creation
             pareto_other_gens_sorted = pareto_other_gens.sort_values(by="x")
@@ -276,23 +255,15 @@ def plot_pareto_frontiers(systems, ax):
             polygon_x = [0, 0] + x_pareto + [x_pareto[-1], 0]
             polygon_y = [0, y_max] + y_pareto + [0, 0]
 
-            # Fill the polygon with 50% opacity
+            # Fill the polygon with 50% opacity and lower zorder
             ax.fill(
                 polygon_x,
                 polygon_y,
                 color="yellow",
-                alpha=0.2,
+                alpha=0.3,
                 label="Evolved Best Fill",  # Optional: Label for legend
+                zorder=2,
             )
-
-            # # Plot marker lines for Pareto best points
-            # for i, line in pareto_other_gens_sorted.iterrows():
-            #     plot_marker_lines(
-            #         ax,
-            #         (line["x"], line["y"]),
-            #         color="yellow",
-            #         label="Baseline Pareto Best",
-            #     )
 
     # Step 5: Set Dynamic Axis Limits
     # Determine the maximum x and y values in the data
@@ -313,7 +284,7 @@ def plot_pareto_frontiers(systems, ax):
     # Customize Subplot
     ax.set_xlabel("Median Capability", fontsize=10)
     ax.set_ylabel("Median Safety", fontsize=10)
-    ax.grid(True, linestyle="--", alpha=0.7)
+    ax.grid(True, linestyle="--", alpha=0.7, zorder=0)
 
     # Add Legend
     handles, labels = ax.get_legend_handles_labels()
@@ -327,19 +298,16 @@ def main():
     population_id = "d44a351c-d454-4d2c-ae74-f7e0e88b9ce8"
     population_id = "dd43526d-9a36-41c3-89bb-2f71c7738040"
 
-    # Initialize session
-    session_generator = initialize_session()
-
     populations = []
     systems_per_population = []
 
-    try:
-        with next(session_generator) as session:
+    for session in initialize_session():
+
+        try:
+
             latest_populations = (
-                session.query(Population).order_by(
-                    Population.population_timestamp.desc()
-                )
-                # .limit(8)
+                session.query(Population)
+                .order_by(Population.population_timestamp.desc())
                 .all()
             )
 
@@ -359,33 +327,35 @@ def main():
                 populations.append(population)
 
                 systems_per_population.append(systems)
-    except StopIteration:
-        print("Session generator exhausted.")
-        return
-    except Exception as e:
-        print(f"An error occurred while fetching populations: {e}")
-        return
+        except StopIteration:
+            print("Session generator exhausted.")
+            return
+        except Exception as e:
+            print(f"An error occurred while fetching populations: {e}")
+            return
 
-    # Set up 2x4 subplots
-    fig, axes = plt.subplots(2, 4, figsize=(20, 12))
-    axes = axes.flatten()  # Flatten to 1D array for easy iteration
+        # Set up 2x4 subplots
+        fig, axes = plt.subplots(2, 4, figsize=(20, 12))
+        axes = axes.flatten()  # Flatten to 1D array for easy iteration
 
-    for idx, (population, systems) in enumerate(
-        zip(populations, systems_per_population)
-    ):
-        ax = axes[idx]
-        plot_pareto_frontiers(systems, ax)
-        ax.set_title(f"{population.population_benchmark}", fontsize=12)
+        for idx, (population, systems) in enumerate(
+            zip(populations, systems_per_population)
+        ):
+            ax = axes[idx]
+            plot_pareto_frontiers(systems, ax)
+            ax.set_title(f"{population.population_benchmark}", fontsize=12)
 
-    # Remove any unused subplots if less than 8
-    if len(populations) < len(axes):
-        for idx in range(len(populations), len(axes)):
-            fig.delaxes(axes[idx])
+        # Remove any unused subplots if less than 8
+        if len(populations) < len(axes):
+            for idx in range(len(populations), len(axes)):
+                fig.delaxes(axes[idx])
 
-    plt.suptitle("AgentBreeder: Capability vs Safety Pareto Frontiers", fontsize=16)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust layout to accommodate suptitle
-    plt.subplots_adjust(hspace=0.3, wspace=0.3)  # Increase space between subplots
-    plt.show()
+        plt.suptitle("AgentBreeder: Capability vs Safety Pareto Frontiers", fontsize=16)
+        plt.tight_layout(
+            rect=[0, 0.03, 1, 0.95]
+        )  # Adjust layout to accommodate suptitle
+        plt.subplots_adjust(hspace=0.3, wspace=0.3)  # Increase space between subplots
+        plt.show()
 
 
 if __name__ == "__main__":
