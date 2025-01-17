@@ -315,15 +315,15 @@ def main():
                 print("No populations found.")
                 return
 
-            for population in latest_populations:
+            for population in latest_populations[:8]:
 
                 systems = (
                     session.query(System)
                     .filter_by(population_id=population.population_id)
                     .all()
                 )
-                if len(systems) < 40:
-                    continue
+                # if len(systems) < 40:
+                #     continue
                 populations.append(population)
 
                 systems_per_population.append(systems)
@@ -333,6 +333,8 @@ def main():
         except Exception as e:
             print(f"An error occurred while fetching populations: {e}")
             return
+
+        print(len(populations))
 
         # Set up 2x4 subplots
         fig, axes = plt.subplots(2, 4, figsize=(20, 12))

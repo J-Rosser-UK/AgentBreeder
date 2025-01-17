@@ -28,7 +28,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # )
 
 engine = create_engine(
-    f"sqlite:///{current_dir}/db/ablation.db",
+    f"sqlite:///{current_dir}/db/pareto.db",
     connect_args={"check_same_thread": False},
 )
 

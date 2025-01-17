@@ -89,7 +89,7 @@ class Benchmark(ABC):
             tasks,
             model=models,
             limit=limit,
-            log_dir=f"./src/logs/{self.split}/{self.args.log_timestamp}/{self.__class__.__name__}-{str(systems[0].population_id)}-{str(uuid.uuid4())}",  # specify where logs are stored
+            log_dir=f"./src/logs/{self.split}/{self.args.log_timestamp}/{self.__class__.__name__}-{str(systems[0].population_id)}/logs",  # specify where logs are stored
             log_format="json",  # choose log format ("eval" or "json")
             score=True,  # ensure scoring is enable
         )

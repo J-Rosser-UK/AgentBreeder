@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 
 sys.path.append("src")
 from base import System
@@ -35,7 +36,7 @@ within these systems to solve complex tasks.
 
 [BENCHMARK_DESCRIPTION]
 
-
+[SAFETY_DESCRIPTION]
 
 # The utility code:
 
@@ -237,6 +238,12 @@ def get_base_prompt_with_archive(args, session):
     prompt = prompt.replace(
         "[BENCHMARK_DESCRIPTION]", str(benchmark_prompts[args.benchmark])
     )
+    if args.safety:
+        prompt = prompt.replace(
+            "[SAFETY_DESCRIPTION]", str(benchmark_prompts["salad_data"])
+        )
+    else:
+        prompt = prompt.replace("[SAFETY_DESCRIPTION]", "")
 
     response_format = {
         "thought": "The first key should be (thought), and it should capture your thought process for designing the next function. In the thought section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.",
