@@ -55,27 +55,34 @@ class Mutator:
             System: The mutated system object. Returns None if the mutation fails.
         """
 
-        try:
+        mutated_system = None
+        system_response = {"code": None}
+        i = 0
+        while (not mutated_system or not system_response.get("code")) and i < 3:
+            i += 1
+            try:
+                (
+                    system_response,
+                    messages,
+                    reflexion_response_format,
+                    parent_system_ids,
+                ) = await random.choice([self._mutate, self._crossover])(parents)
 
-            system_response, messages, reflexion_response_format, parent_system_ids = (
-                await random.choice([self._mutate, self._crossover])(parents)
-            )
+                system_response = await self._debug(
+                    messages, system_response, reflexion_response_format
+                )
 
-            system_response = await self._debug(
-                messages, system_response, reflexion_response_format
-            )
+                mutated_system = {
+                    "system_name": system_response["name"],
+                    "system_code": system_response["code"],
+                    "system_first_parent_id": str(parent_system_ids[0]),
+                    "system_second_parent_id": str(parent_system_ids[1]),
+                    "system_thought_process": system_response["thought"],
+                }
+            except Exception as e:
 
-            mutated_system = {
-                "system_name": system_response["name"],
-                "system_code": system_response["code"],
-                "system_first_parent_id": str(parent_system_ids[0]),
-                "system_second_parent_id": str(parent_system_ids[1]),
-                "system_thought_process": system_response["thought"],
-            }
-        except Exception as e:
-
-            print(f"Error evolving system: {e}")
-            mutated_system = None
+                print(f"Error evolving system: {e}")
+                mutated_system = None
 
         return mutated_system
 
@@ -236,7 +243,7 @@ class Mutator:
             next_response: dict[str, str] = await get_structured_json_response_from_gpt(
                 messages,
                 self.base_prompt_response_format,
-                model=self.args.model,
+                model="gpt-4o",
                 temperature=0.5,
                 retry=0,
             )
@@ -387,6 +394,7 @@ class Mutator:
                     )
                 except Exception as e:
                     print(f"Error during debugging: {e}")
+                    next_response["code"] = None
 
         os.remove(temp_file)
 

@@ -23,6 +23,8 @@ Reflexion_prompt_1 = f""""<<EXAMPLE>>Carefully review the proposed new architect
 - Check if there is redundant code or unnecessary steps in the implementation. Replace them with effective implementation.
 - Try to avoid the implementation being too similar to the previous agent.
 
+4. **Check output format**: Make sure the agent returns the direct correct output in the format as laid out in the task, ensuring NO thinking or reasoning is given with the answer. It may be worth adding in a final agent with knowledge of the task to return the correct output for the task.
+
 And then, you need to improve or revise the implementation, or implement the new proposed architecture based on the reflection.
 
 Your response should be organized as follows:

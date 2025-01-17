@@ -80,7 +80,9 @@ class Benchmark(ABC):
 
         tasks = [self.match_task()]
         if self.args.safety:
-            sd = SaladData()
+            sd = SaladData(
+                args=self.args, split=self.split, shuffle=True, limit=self.args.n_evals
+            )
             tasks.append(sd.match_task())
 
         results = eval(
