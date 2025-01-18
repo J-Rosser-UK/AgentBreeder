@@ -87,7 +87,7 @@ def ci_upper(
 def median(num_bootstrap_samples: int = 1000, confidence_level: float = 0.95) -> Metric:
     def metric(scores: list[Score]):
         values = np.array([score.as_float() for score in scores])
-        print("VALUES", values)
+
         n = len(values)
 
         if n == 0:
