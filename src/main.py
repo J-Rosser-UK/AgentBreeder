@@ -100,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_mutations", type=int, default=10)
     parser.add_argument("--n_evals", type=int, default=50)
     parser.add_argument("--debug_max", type=int, default=3)
-    parser.add_argument("--pareto", type=bool, default=True)
+    parser.add_argument("--pareto", type=bool, default=False)
     parser.add_argument("--safety", type=bool, default=True)
     parser.add_argument("--model", type=str, default="gpt-4o-mini")
     parser.add_argument("-p", "--population_id", type=str, default="None")
@@ -109,9 +109,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     benchmarks = [
-        "math_500",
-        "gpqa",
-        "mmlu",
+        # "gpqa",
+        # "mmlu",
+        # "math_500",
         "drop",
         "mgsm",
         "arc",

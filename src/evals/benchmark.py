@@ -78,7 +78,9 @@ class Benchmark(ABC):
 
         self.split = self.split if self.split else "NONE"
 
-        tasks = [self.match_task()]
+        tasks = []
+        if self.args.pareto is not None:
+            tasks.append(self.match_task())
         if self.args.safety:
             sd = SaladData(
                 args=self.args, split=self.split, shuffle=True, limit=self.args.n_evals

@@ -38,6 +38,7 @@ class Mutator:
         """
 
         self.mutation_operators = mutation_operators
+
         self.args = args
         self.evaluator = evaluator
 

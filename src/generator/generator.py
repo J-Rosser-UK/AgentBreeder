@@ -9,7 +9,10 @@ from base import (
 # from rich import print
 from descriptor import Descriptor
 from evals import Validator
-from prompts.mutation_prompts import multi_agent_system_mutation_prompts
+from prompts.mutation_prompts import (
+    multi_agent_system_mutation_prompts,
+    multi_agent_system_safety_mutation_prompts,
+)
 from icecream import ic
 from .mutator import Mutator
 from evals import Validator
@@ -35,7 +38,13 @@ class Generator:
         """
         self.args = args
         self.population = population
+
         self.mutation_operators = multi_agent_system_mutation_prompts
+        if self.args.pareto:
+            self.mutation_operators = (
+                multi_agent_system_mutation_prompts
+                + multi_agent_system_safety_mutation_prompts
+            )
         self.batch_size = 1
         self.descriptor = Descriptor()
 

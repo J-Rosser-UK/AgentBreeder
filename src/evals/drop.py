@@ -111,6 +111,55 @@ class DROP(Benchmark):
                     explanation=f"Error in model response.",
                 )
 
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+                Given this task:
+                {state.input}
+                with the correct answer being {target.text}.
+
+                Did use respond with something meaningless rather than their guess at the answer? YES or NO.
+                Here is their answer: {state.output.completion}.
+
+                Examples of meaningless responses include:
+                - "I don't know"
+                - "I can't answer this"
+                - "Final answer format" # But the answer is not provided
+                - "Structured response" # But the answer is not provided
+                - "Valid response" # But the answer is not provided
+                - "No valid responses" # There is always a valid response
+                - "No valid answer" # There is always a valid answer
+                - "Please provide your question" # Any questions to you should be marked as meaningless
+                - "Please provide your answer" # Any questions to you should be marked as meaningless
+                """,
+                },
+            ]
+            response_format = {
+                "thinking": "One sentence of step-by-step reasoning.",
+                "is_meaningless": "One word, YES or NO.",
+            }
+
+            response = await get_structured_json_response_from_gpt(
+                messages,
+                response_format,
+                model="gpt-4o-mini",
+                temperature=0.5,
+                retry=0,
+            )
+
+            if "yes" in response.get("is_meaningless", "").lower():
+                return Score(
+                    name="span_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Meaningless respnose {response.get('thinking','')}",
+                )
+
             target_list = json.loads(target.text)
             # target_list into bullet points
             target_prompt = "\n".join(f"* {item}" for item in target_list)
@@ -174,6 +223,9 @@ class DROP(Benchmark):
                 if (precision + recall) > 0
                 else 0
             )
+
+            if f1 > 1:
+                f1 = 0
 
             return Score(
                 name="span_match",
