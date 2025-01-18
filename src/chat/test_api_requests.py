@@ -3,7 +3,7 @@ import requests
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-URL = "http://localhost:8000/gpt"
+URL = "http://localhost:8001/gpt"
 RATE_LIMIT = 1000  # requests per second
 NUM_REQUESTS = 100
 WORKERS = 20  # Number of concurrent workers

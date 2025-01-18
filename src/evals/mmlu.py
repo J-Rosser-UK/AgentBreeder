@@ -75,6 +75,6 @@ class MMLU(Benchmark):
             name=self.__class__.__name__,
             dataset=self.dataset,
             solver=self.match_solver(),
-            scorer=self.llm_match(),
+            scorer=self.multi_choice_match(),
             config=GenerateConfig(temperature=0.5),
         )

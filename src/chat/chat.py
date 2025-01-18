@@ -13,7 +13,7 @@ import httpx
 
 
 client = httpx.AsyncClient()
-URL = "http://localhost:8000/gpt"
+URL = "http://localhost:8001/gpt"
 
 # https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py
 

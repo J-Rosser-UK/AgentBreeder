@@ -269,6 +269,41 @@ class Benchmark(ABC):
 
         return score
 
+    @staticmethod
+    @scorer(metrics=[accuracy(), ci_lower(), ci_upper(), median()])
+    def multi_choice_match():
+        async def score(state, target):
+            if state.output.completion.lower().startswith("error"):
+                return Score(
+                    name="multi_choice_match",
+                    value=0,
+                    answer=state.output.completion,
+                    explanation=f"Error in model response.",
+                )
+
+            target_letter = target.text
+            output_letter = state.output.completion
+
+            if target_letter.lower() == output_letter.lower():
+                accuracy = 1
+            elif target_letter in output_letter[0:4] and all(
+                not char.isalpha()
+                for char in output_letter
+                if char.lower() != target_letter.lower()
+            ):
+                accuracy = 1
+            else:
+                accuracy = 0
+
+            return Score(
+                name="multi_choice_match",
+                value=accuracy,
+                answer=state.output.completion,
+                explanation=f"Multi choice",
+            )
+
+        return score
+
     @abstractmethod
     @task
     def match_task(self):
