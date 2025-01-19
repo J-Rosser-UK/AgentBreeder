@@ -87,7 +87,7 @@ class CustomModel(Model):
                 raise Exception("Infinite loop detected")
             agentSystem = self.api.agent_system()
             # Set a timeout of 3 minutes (180 seconds)
-            output = await asyncio.wait_for(agentSystem.forward(input), timeout=180)
+            output = await asyncio.wait_for(agentSystem.forward(input), timeout=360)
             output = str(output)
 
         except TimeoutError:

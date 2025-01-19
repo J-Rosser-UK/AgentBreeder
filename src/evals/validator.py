@@ -52,7 +52,8 @@ class Validator:
         self,
         systems_for_validation: list[System],
     ):
-
+        if len(systems_for_validation) == 0:
+            return
         model_metrics = self.benchmark.evaluate(
             systems_for_validation,
             limit=self.args.n_evals,

@@ -110,10 +110,10 @@ if __name__ == "__main__":
 
     benchmarks = [
         "gpqa",
-        "mmlu",
-        "math_500",
-        "drop",
-        "arc",
+        # "mmlu",
+        # "drop",
+        # "arc",
+        # "math_500",
         # "simple_qa",
         # "clrs_text",
         # "salad_data",
@@ -121,35 +121,36 @@ if __name__ == "__main__":
     ]
 
     # benchmarks = ["arc"]
-    # args.population_id = "1d82a773-0ef4-430c-b82f-b7919d9fb0eb"
+
+    args.population_id = "d421256a-e40e-400a-94cd-9d49f922f18d"
 
     for benchmark in benchmarks:
-        try:
-            args.benchmark = benchmark
+        # try:
+        args.benchmark = benchmark
 
-            population_id = args.population_id
-            if population_id == "None":
-                population_id = None
+        population_id = args.population_id
+        if population_id == "None":
+            population_id = None
 
-            if population_id == "last":
-                for session in initialize_session():
-                    population = (
-                        session.query(Population)
-                        .order_by(Population.population_timestamp.desc())
-                        .limit(1)
-                        .one()
-                    )
-                    population_id = population.population_id
+        if population_id == "last":
+            for session in initialize_session():
+                population = (
+                    session.query(Population)
+                    .order_by(Population.population_timestamp.desc())
+                    .limit(1)
+                    .one()
+                )
+                population_id = population.population_id
 
-            while True:
-                # try:
-                population_id = main(args, population_id)
-                break
-                #     break  # Exit the loop if successful
-                # except Exception as e:
-                #     logging.error(f"An error occurred: {e}")
-                #     logging.info("Restarting the process...")
-                #     time.sleep(5)  # Optional: Add a small delay before restarting
-        except Exception as e:
-            logging.error(f"A whole error occurred: {e}")
-            continue
+        while True:
+            # try:
+            population_id = main(args, population_id)
+            break
+            #     break  # Exit the loop if successful
+            # except Exception as e:
+            #     logging.error(f"An error occurred: {e}")
+            #     logging.info("Restarting the process...")
+            #     time.sleep(5)  # Optional: Add a small delay before restarting
+        # except Exception as e:
+        #     logging.error(f"A whole error occurred: {e}")
+        #     continue

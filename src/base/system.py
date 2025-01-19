@@ -89,6 +89,7 @@ class Agent:
             messages=messages,
             response_format=response_format,
             temperature=self.temperature,
+            model=self.model,
         )
         return response_json
 

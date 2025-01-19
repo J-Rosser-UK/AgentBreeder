@@ -11,9 +11,11 @@ import openai
 import tiktoken
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
+import anthropic
 
 load_dotenv(override=True)
 client = openai.OpenAI()
+client_anth = anthropic.Anthropic()
 
 # ----------------------------------
 # CONFIGURATION & GLOBAL VARIABLES
@@ -63,47 +65,67 @@ def call_openai_sync(messages, response_format, model=MODEL, temperature=0.5, re
         required.append(key)
 
     # Add "Please use the "get_structured_response" function to structure the response." to the final message
-    messages.append(
-        {
-            "role": "system",
-            "content": "Please use the 'get_structured_response' function to structure the response.",
-        }
-    )
 
-    response = client.chat.completions.create(
-        model=model,
-        temperature=temperature,
-        messages=messages,
-        max_tokens=2000,
-        functions=[
-            {
-                "name": "get_structured_response",
-                "description": "Get structured response from GPT.",
-                "parameters": {
-                    "type": "object",
-                    "properties": properties,
-                    "required": required,
-                },
-            }
-        ],
-        timeout=60,
-        function_call={"name": "get_structured_response"},
-    )
-
-    # Loading the response as a JSON object
-    if not response.choices[0].message.function_call and retry < 3:
-        logging.warning("Retrying due to missing function call.")
+    if model != "gpt-4o-mini":
         messages.append(
             {
-                "role": "system",
-                "content": "YOU MUST use the 'get_structured_response' function to structure the response.",
+                "role": "user",
+                "content": f"Please output your response in a well-formed JSON object with the following structure \n{json.dumps(response_format, indent=4)}.",
             }
         )
-        response = call_openai_sync(
-            messages, response_format, model, temperature, retry + 1
+        messages.append(
+            {"role": "assistant", "content": "Here is the JSON requested:\n{"}
+        )
+        response = client_anth.messages.create(
+            model=model,
+            temperature=temperature,
+            messages=messages,
+            max_tokens=8000,
+            timeout=120,
+        )
+        logging.info(response.content[0].text)
+        json_response = json.loads("{" + response.content[0].text)
+    else:
+        messages.append(
+            {
+                "role": "user",
+                "content": "Please use the 'get_structured_response' function to structure the response.",
+            }
+        )
+        response = client.chat.completions.create(
+            model=model,
+            temperature=temperature,
+            messages=messages,
+            max_tokens=10000,
+            functions=[
+                {
+                    "name": "get_structured_response",
+                    "description": "Get structured response from GPT.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": properties,
+                        "required": required,
+                    },
+                }
+            ],
+            timeout=120,
+            function_call={"name": "get_structured_response"},
         )
 
-    json_response = json.loads(response.choices[0].message.function_call.arguments)
+        # Loading the response as a JSON object
+        if not response.choices[0].message.function_call and retry < 3:
+            logging.warning("Retrying due to missing function call.")
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "YOU MUST use the 'get_structured_response' function to structure the response.",
+                }
+            )
+            response = call_openai_sync(
+                messages, response_format, model, temperature, retry + 1
+            )
+
+        json_response = json.loads(response.choices[0].message.function_call.arguments)
     return json_response
 
 
@@ -121,6 +143,7 @@ class GPTRequest(BaseModel):
 async def gpt_endpoint(req: GPTRequest):
     token_consumption = count_tokens(req.messages)
     req_id = str(time.time()) + "_" + str(id(req))
+
     logging.info(
         f"Queueing request {req_id} with token consumption {token_consumption}"
     )

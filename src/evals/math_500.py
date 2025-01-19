@@ -87,7 +87,7 @@ class Math500(Benchmark):
 
         # Combine question and choices into a single prompt
         prompt = f"{question_prompt}\n\n"
-        prompt += f"OUTPUT ANSWER FORMAT: Provide your final answer as only a latex string, this could be, e.g. a single number, equation, short sentance etc."
+        prompt += f"OUTPUT ANSWER FORMAT: Provide your final answer as only a latex string, this could be, e.g. a single number, equation, or a short piece of text. Don't include units e.g. cm, degrees etc."
 
         return Sample(
             input=prompt,
@@ -101,15 +101,29 @@ class Math500(Benchmark):
         async def score(state, target):
             if state.output.completion.lower().startswith("error"):
                 return Score(
-                    name="multi_choice_match",
+                    name="math_match",
                     value=0,
                     answer=state.output.completion,
                     explanation=f"Error in model response.",
                 )
 
-            e = ""
             try:
                 accuracy = Math500.match_latex(target.text, state.output.completion)
+                if accuracy:
+                    accuracy = 1
+                else:
+                    # print(
+                    #     "target.text",
+                    #     target.text,
+                    #     target.text[6:-1],
+                    #     "state.output.completion",
+                    #     state.output.completion,
+                    # )
+
+                    if target.text[6:-1] == state.output.completion:
+                        accuracy = 1
+                    else:
+                        accuracy = 0
             except Exception as e:
                 accuracy = 0
 
@@ -117,7 +131,7 @@ class Math500(Benchmark):
                 name="math_match",
                 value=accuracy,
                 answer=state.output.completion,
-                explanation=f"Math match {e}",
+                explanation=f"Math match",
             )
 
         return score
@@ -128,7 +142,7 @@ class Math500(Benchmark):
             name=self.__class__.__name__,
             dataset=self.dataset,
             solver=self.match_solver(),
-            scorer=self.llm_match(),
+            scorer=self.math_match(),
             config=GenerateConfig(temperature=0.5),
         )
 

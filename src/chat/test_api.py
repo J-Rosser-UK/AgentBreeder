@@ -2,7 +2,7 @@ import asyncio
 import httpx
 from tqdm import tqdm
 
-URL = "http://localhost:8001/gpt"
+URL = "http://localhost:8000/gpt"
 RATE_LIMIT = 1000  # requests per second
 NUM_REQUESTS = 100
 

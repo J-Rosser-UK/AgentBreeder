@@ -106,7 +106,7 @@ class Mutator:
 
         messages = [
             {
-                "role": "system",
+                "role": "user",
                 "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
             },
             {
@@ -158,7 +158,7 @@ class Mutator:
 
         messages = [
             {
-                "role": "system",
+                "role": "user",
                 "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
             },
             {
@@ -212,7 +212,7 @@ class Mutator:
 
         messages = [
             {
-                "role": "system",
+                "role": "user",
                 "content": """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object.""",
             },
             {
@@ -241,13 +241,15 @@ class Mutator:
 
         # Generate new solution and do reflection
         try:
+
             next_response: dict[str, str] = await get_structured_json_response_from_gpt(
                 messages,
                 self.base_prompt_response_format,
-                model="gpt-4o",
+                model="claude-3-5-sonnet-20241022",
                 temperature=0.5,
                 retry=0,
             )
+            # print(next_response)
 
             # Reflexion 1
             Reflexion_prompt_1, reflexion_response_format = (
@@ -259,7 +261,7 @@ class Mutator:
             next_response = await get_structured_json_response_from_gpt(
                 messages,
                 reflexion_response_format,
-                model=self.args.model,
+                model="claude-3-5-sonnet-20241022",
                 temperature=0.5,
                 retry=0,
             )
@@ -273,13 +275,14 @@ class Mutator:
             next_response = await get_structured_json_response_from_gpt(
                 messages,
                 reflexion_response_format,
-                model=self.args.model,
+                model="claude-3-5-sonnet-20241022",
                 temperature=0.5,
                 retry=0,
             )
         except Exception as e:
             print("During LLM generate new solution:")
             print(e)
+
             return None
 
         # Clean up the system to only allow numbers, letters, hyphens and underscores
@@ -355,7 +358,7 @@ class Mutator:
                 # Set a timeout of 3 minutes (180 seconds)
                 try:
                     output = await asyncio.wait_for(
-                        agentSystem.forward(input), timeout=180
+                        agentSystem.forward(input), timeout=360
                     )
                 except asyncio.TimeoutError:
                     next_response["code"] = None

@@ -13,7 +13,7 @@ import httpx
 
 
 client = httpx.AsyncClient()
-URL = "http://localhost:8001/gpt"
+URL = "http://localhost:8000/gpt"
 
 # https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py
 
@@ -45,7 +45,7 @@ async def main():
     response = await get_structured_json_response_from_gpt(
         messages=[
             {
-                "role": "system",
+                "role": "user",
                 "content": "Please think step by step and then solve the task.",
             },
             {
@@ -57,6 +57,7 @@ async def main():
             "thinking": "Your step by step thinking.",
             "answer": "A single letter, A, B, C or D.",
         },
+        model="claude-3-5-sonnet-20241022",
     )
     print(response)
 
